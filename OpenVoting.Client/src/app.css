@@ -1,11 +1,142 @@
 ﻿#root {
-    max-width: 1280px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 2rem;
-    text-align: center;
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: #0f172a;
 }
 
-th, td {
-    padding-left: 1rem;
-    padding-right: 1rem;
+body {
+    background: radial-gradient(circle at 10% 20%, #eef2ff 0, #f8fafc 45%, #ffffff 100%);
+}
+
+.page header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    margin: 0 0 0.25rem;
+    color: #6366f1;
+}
+
+.lede {
+    color: #475569;
+    margin: 0.25rem 0 0.5rem;
+}
+
+.card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.25rem;
+    box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08);
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+textarea {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    padding: 0.75rem;
+    font-family: "Fira Code", "SFMono-Regular", Menlo, Consolas, monospace;
+    resize: vertical;
+}
+
+.actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.btn {
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    padding: 0.55rem 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 150ms ease;
+    font-weight: 600;
+}
+
+.btn:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+.btn.primary {
+    background: linear-gradient(120deg, #4f46e5, #6366f1);
+    border: none;
+    color: #fff;
+}
+
+.btn.primary:hover {
+    filter: brightness(1.05);
+}
+
+.error {
+    color: #b91c1c;
+    margin-top: 0.75rem;
+}
+
+.ok {
+    color: #0f9d58;
+}
+
+.result {
+    margin-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.75rem;
+    line-height: 1.5;
+}
+
+.winners {
+    list-style: none;
+    padding: 0.5rem 0 0;
+    margin: 0;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.winner-badge {
+    display: inline-block;
+    background: linear-gradient(120deg, #16a34a, #22c55e);
+    color: #fff;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.winner-chip {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 0.4rem 0.65rem;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.12);
+}
+
+@media (max-width: 700px) {
+    .page header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }

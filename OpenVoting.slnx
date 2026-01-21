@@ -4,4 +4,5 @@
     <Deploy />
   </Project>
   <Project Path="OpenVoting.Server/OpenVoting.Server.csproj" Id="ec07647e-61e5-4f36-836e-1f25ebff903b" />
+  <Project Path="OpenVoting.Server.Tests/OpenVoting.Server.Tests.csproj" />
 </Solution>
