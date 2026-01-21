@@ -1,10 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import CH55xBootloader from './flasher.tsx'
+import App from './app.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <CH55xBootloader />
+    <App />
   </StrictMode>,
 )

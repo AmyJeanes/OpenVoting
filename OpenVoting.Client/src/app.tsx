@@ -1,7 +1,7 @@
 /// <reference types="w3c-web-usb" />
-import './flasher.css';
+import './app.css';
 
-export default function Flasher() {
+export default function App() {
   return (
     <div>
       <h1>OpenVoting</h1>

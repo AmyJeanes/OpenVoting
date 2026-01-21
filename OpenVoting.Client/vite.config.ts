@@ -47,7 +47,7 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            '^/flasher': {
+            '^/api/': {
                 target,
                 secure: false
             }
