@@ -14,6 +14,20 @@ resource "azurerm_storage_account" "main" {
   account_replication_type        = "LRS"
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = true
+
+  blob_properties {
+    cors_rule {
+      allowed_methods    = ["GET", "HEAD", "OPTIONS"]
+      allowed_origins    = [
+        "https://localhost:54196",
+        "https://${azurerm_container_app.main.ingress[0].fqdn}",
+        "https://${cloudflare_dns_record.main.name}"
+      ]
+      allowed_headers    = ["*"]
+      exposed_headers    = ["*"]
+      max_age_in_seconds = 3600
+    }
+  }
 }
 
 resource "azurerm_storage_container" "assets" {
