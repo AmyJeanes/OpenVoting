@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="OpenVoting.Client/OpenVoting.Client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="OpenVoting.Server/OpenVoting.Server.csproj" Id="ec07647e-61e5-4f36-836e-1f25ebff903b" />
+</Solution>

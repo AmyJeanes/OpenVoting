@@ -1,0 +1,10 @@
+image:
+  repository: ghcr.io/amyjeanes/openvoting/openvoting
+  tag: latest
+imagePullSecrets: []
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 10m
+  limits:
+    memory: 256Mi
