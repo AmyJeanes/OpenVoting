@@ -20,8 +20,7 @@ resource "azurerm_storage_account" "main" {
       allowed_methods    = ["GET", "HEAD", "OPTIONS"]
       allowed_origins    = [
         "https://localhost:54196",
-        "https://${azurerm_container_app.main.ingress[0].fqdn}",
-        "https://${cloudflare_dns_record.main.name}"
+        "https://voting.${data.cloudflare_zone.main.name}"
       ]
       allowed_headers    = ["*"]
       exposed_headers    = ["*"]
