@@ -17,6 +17,21 @@ resource "azurerm_container_app" "main" {
       image  = var.image_sha != "" ? "ghcr.io/amyjeanes/openvoting/openvoting@${var.image_sha}" : "ghcr.io/amyjeanes/openvoting/openvoting:${var.image_tag}"
       cpu    = 0.25
       memory = "0.5Gi"
+
+      env {
+        name  = "Settings__BlobStorage__ConnectionString"
+        secret_name = "storage-connection-string"
+      }
+
+      env {
+        name  = "Settings__BlobStorage__ContainerName"
+        value = azurerm_storage_container.assets.name
+      }
+
+      env {
+        name  = "Settings__BlobStorage__PublicBaseUrl"
+        value = "${azurerm_storage_account.main.primary_blob_endpoint}${azurerm_storage_container.assets.name}"
+      }
     }
   }
 
@@ -28,6 +43,11 @@ resource "azurerm_container_app" "main" {
       latest_revision = true
       percentage      = 100
     }
+  }
+
+  secret {
+    name  = "storage-connection-string"
+    value = azurerm_storage_account.main.primary_connection_string
   }
 }
 
