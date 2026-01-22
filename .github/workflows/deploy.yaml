@@ -39,6 +39,7 @@ jobs:
             --namespace default \
             --set image.repository="ghcr.io/amyjeanes/openvoting/openvoting" \
             --set image.tag="${IMAGE_TAG}" \
+            --set host="${{ vars.HOST }}" \
             --set env.connectionStrings.database="${{ secrets.DATABASE_CONNECTION_STRING }}" \
             --set env.discord.clientId="${{ vars.DISCORD_CLIENT_ID }}" \
             --set env.discord.clientSecret="${{ secrets.DISCORD_CLIENT_SECRET }}" \
