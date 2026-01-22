@@ -8,6 +8,11 @@ TODO:
 - Mobile support / responsive design
 - Make title / description configurable per poll e.g. disable for logo contests
 - Improve error handling
+- Show if you've voted yet clearly incl on list page
+- Show voting instructions more clearly (select up to X entries etc)
+- Voting details could all be under a dropdown to reduce clutter
+- Adjustable slider for the size of the entries per row on the voting page
+- Show total number of votes cast so far in the poll (but not specifics)
 - Fix pages flashing when changing state especially if previous data is being shown
 - Make sure entries are ordered by votes in history page
 - Make sure entires are ordered randomly for each user during voting stage (including the blurred previews in submission stage)
