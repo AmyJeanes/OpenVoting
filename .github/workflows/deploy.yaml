@@ -46,7 +46,7 @@ jobs:
             --set env.discord.botToken="${{ secrets.DISCORD_BOT_TOKEN }}" \
             --set env.discord.redirectUri="https://${{ vars.HOST }}/api/auth/discord" \
             --set env.discord.guildId="${{ vars.DISCORD_GUILD_ID }}" \
-            --set env.discord.adminRoleIds="${{ vars.DISCORD_ADMIN_ROLE_IDS }}" \
+            --set-string env.discord.adminRoleIds="${{ vars.DISCORD_ADMIN_ROLE_IDS }}" \
             --set env.jwt.signingKey="${{ secrets.JWT_SIGNING_KEY }}" \
             --set env.blobStorage.connectionString="${{ secrets.BLOB_STORAGE_CONNECTION_STRING }}" \
             --set env.blobStorage.containerName="${{ vars.BLOB_STORAGE_CONTAINER_NAME }}" \
