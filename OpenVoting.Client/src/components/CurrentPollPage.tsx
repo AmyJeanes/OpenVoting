@@ -105,6 +105,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const showVotingWindow = !!poll && (poll.status === 2 || isClosed) && !isMaxTimestamp(poll.votingOpensAt);
   const showAdminEntries = !!poll && !isClosed && poll.isAdmin;
   const showAdminBreakdown = !!poll && poll.isAdmin && poll.status === 2;
+  const showBlurredPreview = !!poll && !poll.isAdmin && poll.hideEntriesUntilVoting && (poll.status === 1 || poll.status === 5) && entries.length > 0;
   const myEntries = useMemo(() => entries.filter((e) => e.isOwn), [entries]);
   const [confirmConfig, setConfirmConfig] = useState<ConfirmDialogConfig | null>(null);
   const [pendingEntryId, setPendingEntryId] = useState<string | null>(null);
@@ -120,8 +121,17 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const [rankedIds, setRankedIds] = useState<string[]>([]);
   const [rankError, setRankError] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [dragOverAfter, setDragOverAfter] = useState(false);
   const selectedEntries = useMemo(() => entries.filter((e) => voteState[e.id]?.selected), [entries, voteState]);
   const rankedEntries = useMemo(() => rankedIds.map((id) => entries.find((e) => e.id === id)).filter((e): e is PollEntryResponse => !!e), [entries, rankedIds]);
+  const preferTeaserAsset = poll?.hideEntriesUntilVoting && !poll?.isAdmin && (poll.status === 1 || poll.status === 5);
+  const entryAssetId = (entry: { publicAssetId?: string; originalAssetId: string; teaserAssetId?: string }) => {
+    if (preferTeaserAsset && entry.teaserAssetId) {
+      return entry.teaserAssetId;
+    }
+    return entry.publicAssetId ?? entry.originalAssetId ?? entry.teaserAssetId ?? '';
+  };
   const [metaForm, setMetaForm] = useState({ title: '', description: '' });
   const [submissionForm, setSubmissionForm] = useState({ maxSubmissionsPerMember: 1, submissionClosesAt: '' });
   const [votingForm, setVotingForm] = useState({ maxSelections: 1, votingClosesAt: '' });
@@ -314,16 +324,25 @@ export function CurrentPollPage(props: CurrentPollProps) {
     setDraggingId(null);
   };
 
-  const handleRankDrop = (targetId: string) => {
+  const handleDragOverItem = (ev: React.DragEvent<HTMLLIElement>, targetId: string) => {
+    ev.preventDefault();
+    setDragOverId(targetId);
+    setDragOverAfter(false);
+  };
+
+  const handleDropOnItem = (targetId: string) => {
     if (!draggingId || draggingId === targetId) return;
     setRankedIds((prev) => {
-      const next = prev.filter((id) => id !== draggingId);
-      const insertAt = next.indexOf(targetId);
-      if (insertAt === -1) return prev;
-      next.splice(insertAt, 0, draggingId);
-      return [...next];
+      const fromIdx = prev.indexOf(draggingId);
+      const toIdx = prev.indexOf(targetId);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      const next = [...prev];
+      [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
+      return next;
     });
     setDraggingId(null);
+    setDragOverId(null);
+    setDragOverAfter(false);
   };
 
   const moveRank = (entryId: string, direction: -1 | 1) => {
@@ -601,7 +620,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
             <ul className="entries entry-grid">
               {entries.map((e) => {
                 const breakdown = breakdownByEntryId.get(e.id);
-                const asset = assetCache[e.originalAssetId];
+		        const assetId = entryAssetId(e);
+		        const asset = assetCache[assetId];
                 return (
                   <li key={e.id} className="entry-card">
                     <div className="entry-head">
@@ -708,7 +728,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
           </div>
           <ul className="entries entry-grid">
             {myEntries.map((e) => {
-              const asset = assetCache[e.originalAssetId];
+		      const assetId = entryAssetId(e);
+		      const asset = assetCache[assetId];
               return (
                 <li key={e.id} className="entry-card">
                   <div className="entry-head">
@@ -743,6 +764,31 @@ export function CurrentPollPage(props: CurrentPollProps) {
         </section>
       )}
 
+      {showBlurredPreview && (
+        <section className="card">
+          <div className="section-head">
+            <h3>Entries (preview)</h3>
+            <p className="muted">Images stay blurred until voting opens.</p>
+          </div>
+          <div className="vote-grid">
+            {entries.map((e) => {
+              const assetId = entryAssetId(e);
+              const asset = assetCache[assetId];
+              return (
+                <div key={e.id} className="entry-card vote-card">
+                  <div className="vote-head">
+                    <span className="entry-title">{e.displayName}</span>
+                    {e.submittedByDisplayName && <span className="muted">By {e.submittedByDisplayName}</span>}
+                  </div>
+                  {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
+                  {e.description && <p className="muted">{e.description}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {poll?.canVote && !isClosed && entries.length > 0 && (
         <section className="card">
           <div className="section-head">
@@ -758,15 +804,29 @@ export function CurrentPollPage(props: CurrentPollProps) {
           <div className="vote-grid">
             {entries.map((e) => {
               const current = voteState[e.id] ?? { selected: false, rank: '' };
-              const asset = assetCache[e.originalAssetId];
+		      const assetId = entryAssetId(e);
+		      const asset = assetCache[assetId];
               const isSelected = current.selected;
               return (
-                <div key={e.id} className={`entry-card vote-card ${isSelected ? 'selected' : ''}`}>
+                <div
+                  key={e.id}
+                  className={`entry-card vote-card ${isSelected ? 'selected' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleToggleSelection(e.id, !isSelected)}
+                  onKeyDown={(ev) => {
+                    if (ev.key === ' ' || ev.key === 'Enter') {
+                      ev.preventDefault();
+                      handleToggleSelection(e.id, !isSelected);
+                    }
+                  }}
+                >
                   <div className="vote-head">
                     <label className="check-row">
                       <input
                         type="checkbox"
                         checked={isSelected}
+                        onClick={(ev) => ev.stopPropagation()}
                         onChange={(ev) => handleToggleSelection(e.id, ev.target.checked)}
                       />
                       <span className="entry-title">{e.displayName}</span>
@@ -815,25 +875,49 @@ export function CurrentPollPage(props: CurrentPollProps) {
                 {rankedEntries.map((e, idx) => (
                   <li
                     key={e.id}
-                    className="rank-item"
+                    className={`rank-item${draggingId === e.id ? ' dragging' : ''}${dragOverId === e.id ? ' drop-target' : ''}${dragOverId === e.id && dragOverAfter ? ' drop-after' : ''}`}
                     draggable
                     onDragStart={() => setDraggingId(e.id)}
-                    onDragOver={(ev) => ev.preventDefault()}
-                    onDrop={() => handleRankDrop(e.id)}
+                    onDragOver={(ev) => handleDragOverItem(ev, e.id)}
+                    onDrop={() => handleDropOnItem(e.id)}
+                    onDragEnd={() => {
+                      setDraggingId(null);
+                      setDragOverId(null);
+                      setDragOverAfter(false);
+                    }}
                   >
-                    <span className="drag-handle" aria-hidden="true">↕</span>
+                    <div className="rank-controls">
+                      <span className="drag-handle" aria-hidden="true">↕</span>
+                      <div className="rank-actions">
+                        <button
+                          className="ghost"
+                          onClick={() => moveRank(e.id, -1)}
+                          aria-label={`Move ${e.displayName} up`}
+                          disabled={idx === 0}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          className="ghost"
+                          onClick={() => moveRank(e.id, 1)}
+                          aria-label={`Move ${e.displayName} down`}
+                          disabled={idx === rankedEntries.length - 1}
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </div>
                     <div className="rank-body">
                       <div className="rank-title">#{idx + 1} · {e.displayName}</div>
                       {e.submittedByDisplayName && <p className="muted">By {e.submittedByDisplayName}</p>}
                     </div>
-                    <div className="rank-actions">
-                      <button className="ghost" onClick={() => moveRank(e.id, -1)} aria-label={`Move ${e.displayName} up`}>
-                        ↑
-                      </button>
-                      <button className="ghost" onClick={() => moveRank(e.id, 1)} aria-label={`Move ${e.displayName} down`}>
-                        ↓
-                      </button>
-                    </div>
+                    {assetCache[entryAssetId(e)]?.url && (
+                      <img
+                        src={assetCache[entryAssetId(e)]!.url}
+                        alt={e.displayName}
+                        className="rank-img"
+                      />
+                    )}
                   </li>
                 ))}
               </ul>
@@ -860,7 +944,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
           {pollDetail.entries.length > 0 && (
             <ul className="entries">
               {pollDetail.entries.map((e) => {
-                const asset = assetCache[e.originalAssetId];
+		      const assetId = entryAssetId(e);
+		      const asset = assetCache[assetId];
                 const firstChoice = pollDetail.votingMethod === 2 ? e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0 : undefined;
                 return (
                   <li key={e.id} className="entry-card">

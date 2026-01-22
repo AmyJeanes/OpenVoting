@@ -39,6 +39,8 @@ const defaultEntryForm = {
   description: ''
 };
 
+const maxUploadBytes = 5 * 1024 * 1024;
+
 export default function App() {
   const [token, setToken] = useState<string>('');
   const [sessionState, setSessionState] = useState<SessionState>('idle');
@@ -444,6 +446,39 @@ export default function App() {
     await fetchVotingBreakdown(poll.id);
   };
 
+  const readImageDimensions = (file: File) => new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Unable to read the selected image.'));
+    };
+    image.src = objectUrl;
+  });
+
+  const validateImageFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Please upload an image file.');
+    }
+
+    if (file.size > maxUploadBytes) {
+      throw new Error('Images must be 5MB or smaller.');
+    }
+
+    const { width, height } = await readImageDimensions(file);
+    if (width !== height) {
+      throw new Error('Images must be square (1:1 aspect ratio).');
+    }
+
+    if (width < 512 || height < 512) {
+      throw new Error('Images must be at least 512×512.');
+    }
+  };
+
   const loadAsset = async (id?: string) => {
     if (!id || assetCache[id]) return;
     try {
@@ -456,9 +491,11 @@ export default function App() {
     }
   };
 
-  const loadAssetsForEntries = (data: Array<{ originalAssetId: string }>) => {
+  const loadAssetsForEntries = (data: Array<{ originalAssetId?: string; publicAssetId?: string; teaserAssetId?: string }>) => {
     const ids = new Set<string>();
     data.forEach((e) => {
+      if (e.publicAssetId) ids.add(e.publicAssetId);
+      if (e.teaserAssetId) ids.add(e.teaserAssetId);
       if (e.originalAssetId) ids.add(e.originalAssetId);
     });
     ids.forEach((id) => loadAsset(id));
@@ -487,6 +524,12 @@ export default function App() {
         throw new Error('Upload an image to submit.');
       }
 
+      if (!entryForm.displayName.trim()) {
+        throw new Error('Display name is required.');
+      }
+
+      await validateImageFile(entryFiles.original);
+
       const upload = await uploadAsset(entryFiles.original);
       const originalId = upload.id;
 
@@ -513,6 +556,23 @@ export default function App() {
     } finally {
       setEntrySubmitting(false);
     }
+  };
+
+  const handleEntryFilesChange = (files: { original?: File }) => {
+    setEntrySubmitError(null);
+
+    const file = files.original;
+    if (!file) {
+      setEntryFiles({});
+      return;
+    }
+
+    validateImageFile(file)
+      .then(() => setEntryFiles(files))
+      .catch((err) => {
+        setEntryFiles({});
+        setEntrySubmitError(err instanceof Error ? err.message : 'Please choose a square image under 5MB and at least 512×512.');
+      });
   };
 
   const disqualifyEntry = async (entryId: string, reason: string) => {
@@ -991,7 +1051,7 @@ export default function App() {
               onSubmitVote={submitVote}
               onSubmitEntry={submitEntry}
               onEntryFormChange={setEntryForm}
-              onEntryFilesChange={setEntryFiles}
+              onEntryFilesChange={handleEntryFilesChange}
               onDisqualify={disqualifyEntry}
               onRequalify={requalifyEntry}
               onDeleteEntry={deleteEntry}
@@ -1035,7 +1095,7 @@ export default function App() {
               onSubmitVote={submitVote}
               onSubmitEntry={submitEntry}
               onEntryFormChange={setEntryForm}
-              onEntryFilesChange={setEntryFiles}
+              onEntryFilesChange={handleEntryFilesChange}
               onDisqualify={disqualifyEntry}
               onRequalify={requalifyEntry}
               onDeleteEntry={deleteEntry}

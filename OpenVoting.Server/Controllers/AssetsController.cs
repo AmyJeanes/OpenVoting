@@ -13,6 +13,8 @@ namespace OpenVoting.Server.Controllers;
 [Authorize]
 public sealed class AssetsController : ControllerBase
 {
+	private const long MaxUploadBytes = 5 * 1024 * 1024;
+
 	private readonly ApplicationDbContext _db;
 	private readonly IAssetStorage _storage;
 	private readonly BlobStorageSettings _blobSettings;
@@ -25,7 +27,7 @@ public sealed class AssetsController : ControllerBase
 	}
 
 	[HttpPost]
-	[RequestSizeLimit(50 * 1024 * 1024)]
+	[RequestSizeLimit(6 * 1024 * 1024)]
 	[Consumes("multipart/form-data")]
 	public async Task<ActionResult<AssetResponse>> Upload([FromForm] IFormFile file, CancellationToken cancellationToken)
 	{
@@ -40,12 +42,34 @@ public sealed class AssetsController : ControllerBase
 			return BadRequest("File is required");
 		}
 
-		var asset = await _storage.SaveAsync(file, cancellationToken);
+		if (file.Length > MaxUploadBytes)
+		{
+			return BadRequest("Images must be 5MB or smaller");
+		}
 
-		_db.Assets.Add(asset);
-		await _db.SaveChangesAsync(cancellationToken);
+		if (string.IsNullOrWhiteSpace(file.ContentType) || !file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+		{
+			return BadRequest("Only image uploads are supported");
+		}
 
-		return Ok(ToResponse(asset));
+		try
+		{
+			var asset = await _storage.SaveAsync(file, cancellationToken, new AssetSaveOptions
+			{
+				RequireSquare = true,
+				MinDimension = 512,
+				MaxBytes = MaxUploadBytes
+			});
+
+			_db.Assets.Add(asset);
+			await _db.SaveChangesAsync(cancellationToken);
+
+			return Ok(ToResponse(asset));
+		}
+		catch (InvalidOperationException ex)
+		{
+			return BadRequest(ex.Message);
+		}
 	}
 
 	[HttpGet("{id:guid}")]

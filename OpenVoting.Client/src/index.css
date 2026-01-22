@@ -32,6 +32,8 @@
   --admin-card-bg: #fff4d6;
   --admin-card-border: #f2b94c;
   --admin-accent: #d97706;
+  --draft-card-bg: #fff7ed;
+  --draft-card-border: #fcd34d;
   --winner-bg: #f0fdf4;
   --winner-border: #bbf7d0;
   --winner-text: #065f46;
@@ -72,6 +74,8 @@
     --admin-card-bg: #20160d;
     --admin-card-border: #4a321c;
     --admin-accent: #f5a524;
+    --draft-card-bg: #1a1208;
+    --draft-card-border: #5e3c16;
     --winner-bg: #0f2a1d;
     --winner-border: #1f4e32;
     --winner-text: #c6f6d5;

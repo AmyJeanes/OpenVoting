@@ -17,6 +17,9 @@ public sealed class PollEntriesController : ControllerBase
 	private readonly ILogger<PollEntriesController> _logger;
 	private readonly IAssetStorage _assetStorage;
 
+	private const int PublicImageSize = 512;
+	private const int TeaserImageSize = 512;
+
 	public PollEntriesController(ApplicationDbContext db, ILogger<PollEntriesController> logger, IAssetStorage assetStorage)
 	{
 		_db = db;
@@ -47,12 +50,7 @@ public sealed class PollEntriesController : ControllerBase
 
 		await PollAutoTransition.ApplyAsync(_db, poll, _logger, cancellationToken);
 
-		var hideEntries = poll.HideEntriesUntilVoting && (poll.Status == PollStatus.SubmissionOpen || poll.Status == PollStatus.Review) && !authUser.IsAdmin;
 		var query = _db.PollEntries.Where(e => e.PollId == pollId);
-		if (hideEntries)
-		{
-			query = query.Where(e => e.SubmittedByMemberId == member.Id);
-		}
 
 		var entries = await query
 			.OrderBy(e => e.CreatedAt)
@@ -316,11 +314,36 @@ public sealed class PollEntriesController : ControllerBase
 			return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Submission limit reached for this poll");
 		}
 
-		var assetExists = await _db.Assets.AnyAsync(a => a.Id == request.OriginalAssetId, cancellationToken);
-		if (!assetExists)
+		var originalAsset = await _db.Assets.FirstOrDefaultAsync(a => a.Id == request.OriginalAssetId, cancellationToken);
+		if (originalAsset is null)
 		{
 			return BadRequest("Original asset not found");
 		}
+
+		if (!originalAsset.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+		{
+			return BadRequest("Original asset must be an image");
+		}
+
+		Asset? publicAsset = null;
+		Asset? teaserAsset = null;
+
+		try
+		{
+			(publicAsset, teaserAsset) = await CreateDerivedAssetsAsync(originalAsset, cancellationToken);
+		}
+		catch (InvalidOperationException ex)
+		{
+			return BadRequest(ex.Message);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Failed to create derived assets for entry in poll {PollId}", poll.Id);
+			return Problem(statusCode: StatusCodes.Status500InternalServerError, detail: "Unable to process image. Please try again.");
+		}
+
+		ArgumentNullException.ThrowIfNull(publicAsset);
+		ArgumentNullException.ThrowIfNull(teaserAsset);
 
 		var entry = new PollEntry
 		{
@@ -330,12 +353,13 @@ public sealed class PollEntriesController : ControllerBase
 			DisplayName = request.DisplayName,
 			Description = request.Description,
 			OriginalAssetId = request.OriginalAssetId,
-			TeaserAssetId = null,
-			PublicAssetId = null,
+			TeaserAssetId = teaserAsset.Id,
+			PublicAssetId = publicAsset.Id,
 			CreatedAt = now,
 			IsDisqualified = false
 		};
 
+		_db.Assets.AddRange(publicAsset, teaserAsset);
 		_db.PollEntries.Add(entry);
 		await _db.SaveChangesAsync(cancellationToken);
 
@@ -351,6 +375,65 @@ public sealed class PollEntriesController : ControllerBase
 			DisqualificationReason = entry.DisqualificationReason,
 			CreatedAt = entry.CreatedAt
 		});
+	}
+
+	private async Task<(Asset PublicAsset, Asset TeaserAsset)> CreateDerivedAssetsAsync(Asset originalAsset, CancellationToken cancellationToken)
+	{
+		await using var source = await _assetStorage.OpenReadAsync(originalAsset.StorageKey, cancellationToken);
+		await using var buffer = new MemoryStream();
+		await source.CopyToAsync(buffer, cancellationToken);
+		buffer.Position = 0;
+
+		var created = new List<Asset>();
+		try
+		{
+			var publicAsset = await _assetStorage.SaveAsync(
+				buffer,
+				"public.png",
+				"image/png",
+				cancellationToken,
+				new AssetSaveOptions
+				{
+					RequireSquare = true,
+					ResizeTo = PublicImageSize,
+					NormalizeToPng = true
+				});
+			created.Add(publicAsset);
+
+			buffer.Position = 0;
+
+			var teaserAsset = await _assetStorage.SaveAsync(
+				buffer,
+				"teaser.png",
+				"image/png",
+				cancellationToken,
+				new AssetSaveOptions
+				{
+					RequireSquare = true,
+					ResizeTo = TeaserImageSize,
+					ApplyBlur = true,
+					NormalizeToPng = true
+				});
+			created.Add(teaserAsset);
+
+			return (publicAsset, teaserAsset);
+		}
+		catch
+		{
+			foreach (var asset in created)
+			{
+				try
+				{
+					await _assetStorage.DeleteAsync(asset.StorageKey, cancellationToken);
+				}
+				catch (Exception cleanupEx)
+				{
+					_logger.LogWarning(cleanupEx, "Failed to clean up derived asset {StorageKey}", asset.StorageKey);
+				}
+			}
+
+			throw;
+		}
 	}
 
 	private static EligibilityResult CanSubmit(Poll poll, CommunityMember member)

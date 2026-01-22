@@ -135,7 +135,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
         </div>
         {detail.entries.length === 0 && <p className="muted">No entries recorded.</p>}
         {detail.entries.length > 0 && (
-          <ul className="entries">
+          <ul className="entries entry-grid">
             {detail.entries.map((e) => {
               const assetId = e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? '';
               const asset = assetCache[assetId];
