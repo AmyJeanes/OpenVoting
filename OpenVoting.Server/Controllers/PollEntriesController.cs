@@ -53,24 +53,29 @@ public sealed class PollEntriesController : ControllerBase
 		var query = _db.PollEntries.Where(e => e.PollId == pollId);
 
 		var entries = await query
-			.OrderBy(e => e.CreatedAt)
-			.Select(e => new PollEntryResponse
-			{
-				Id = e.Id,
-				DisplayName = e.DisplayName,
-				Description = e.Description,
-				OriginalAssetId = e.OriginalAssetId,
-				TeaserAssetId = e.TeaserAssetId,
-				PublicAssetId = e.PublicAssetId,
-				IsDisqualified = e.IsDisqualified,
-				DisqualificationReason = e.DisqualificationReason,
-				CreatedAt = e.CreatedAt,
-				SubmittedByDisplayName = authUser.IsAdmin || poll.Status == PollStatus.Closed || e.SubmittedByMemberId == member.Id
-					? e.SubmittedByMember.DisplayName
-					: string.Empty,
-				IsOwn = e.SubmittedByMemberId == member.Id
-			})
-			.ToListAsync(cancellationToken);
+			   .OrderBy(e => e.CreatedAt)
+			   .Select(e => new PollEntryResponse
+			   {
+				   Id = e.Id,
+				   DisplayName = e.DisplayName,
+				   Description = e.Description,
+				   // Only expose unblurred asset IDs if admin, owner, or not in submission phase
+				   OriginalAssetId = (authUser.IsAdmin || e.SubmittedByMemberId == member.Id || poll.Status != PollStatus.SubmissionOpen)
+					   ? e.OriginalAssetId
+					   : Guid.Empty,
+				   TeaserAssetId = e.TeaserAssetId,
+				   PublicAssetId = (authUser.IsAdmin || e.SubmittedByMemberId == member.Id || poll.Status != PollStatus.SubmissionOpen)
+					   ? e.PublicAssetId
+					   : Guid.Empty,
+				   IsDisqualified = e.IsDisqualified,
+				   DisqualificationReason = e.DisqualificationReason,
+				   CreatedAt = e.CreatedAt,
+				   SubmittedByDisplayName = authUser.IsAdmin || poll.Status == PollStatus.Closed || e.SubmittedByMemberId == member.Id
+					   ? e.SubmittedByMember.DisplayName
+					   : string.Empty,
+				   IsOwn = e.SubmittedByMemberId == member.Id
+			   })
+			   .ToListAsync(cancellationToken);
 
 		if (entries.Count == 0)
 		{
@@ -152,11 +157,11 @@ public sealed class PollEntriesController : ControllerBase
 
 			if (assets.Count > 0)
 			{
-				await _db.Assets.Where(a => assetIds.Contains(a.Id)).ExecuteDeleteAsync(cancellationToken);
+				_db.Assets.RemoveRange(_db.Assets.Where(a => assetIds.Contains(a.Id)));
 			}
 		}
 
-		await _db.VoteChoices.Where(vc => vc.EntryId == entryId).ExecuteDeleteAsync(cancellationToken);
+		_db.VoteChoices.RemoveRange(_db.VoteChoices.Where(vc => vc.EntryId == entryId));
 		_db.PollEntries.Remove(entry);
 		await _db.SaveChangesAsync(cancellationToken);
 

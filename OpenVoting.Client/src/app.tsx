@@ -69,6 +69,7 @@ export default function App() {
   const [voteSubmitting, setVoteSubmitting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
   const [voteInfo, setVoteInfo] = useState<VoteResponse | null>(null);
+  const [toast, setToast] = useState<{ id: number; message: string } | null>(null);
 
   const [createForm, setCreateForm] = useState(defaultCreateForm);
   const [creating, setCreating] = useState(false);
@@ -611,15 +612,16 @@ export default function App() {
 
   const deleteEntry = async (entryId: string) => {
     if (!poll?.id) return;
-    const confirmed = window.confirm('Delete this entry? This cannot be undone.');
-    if (!confirmed) return;
     try {
       const res = await authedFetch(`/api/polls/${poll.id}/entries/${entryId}`, { method: 'DELETE' });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      await fetchEntries(poll.id);
+      await Promise.all([
+        fetchEntries(poll.id),
+        fetchPollDetail(poll.id)
+      ]);
     } catch (err) {
       setEntriesError(err instanceof Error ? err.message : 'Failed to delete entry');
     }
@@ -637,6 +639,14 @@ export default function App() {
       ...prev,
       [entryId]: { selected: prev[entryId]?.selected ?? false, rank }
     }));
+  };
+
+  const showToast = (message: string) => {
+    const id = Date.now();
+    setToast({ id, message });
+    window.setTimeout(() => {
+      setToast((current) => (current?.id === id ? null : current));
+    }, 4000);
   };
 
   const submitVote = async (rankedIds?: string[]) => {
@@ -721,6 +731,7 @@ export default function App() {
       }
       const data: VoteResponse = await res.json();
       setVoteInfo(data);
+      showToast('Vote saved');
     } catch (err) {
       setVoteError(err instanceof Error ? err.message : 'Failed to submit vote');
     } finally {
@@ -1164,6 +1175,11 @@ export default function App() {
         </div>
       )}
       <ConfirmDialog config={confirmConfig} onConfirm={() => settleConfirm(true)} onCancel={() => settleConfirm(false)} />
+      {toast && (
+        <div className="toast" role="status" onClick={() => setToast(null)}>
+          <span>{toast.message}</span>
+        </div>
+      )}
     </PageShell>
   );
 }

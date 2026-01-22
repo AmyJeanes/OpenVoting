@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { ConfirmDialog, type ConfirmDialogConfig } from './ConfirmDialog';
@@ -99,7 +99,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
   const { pollId } = useParams();
   const isClosed = poll?.status === 3 || poll?.status === 4;
-  const hasWinners = isClosed && (pollDetail?.winners?.length ?? 0) > 0;
   const showSubmissionSettings = !!poll && poll.status === 1;
   const showVotingSettings = !!poll && poll.status === 2;
   const showVotingWindow = !!poll && (poll.status === 2 || isClosed) && !isMaxTimestamp(poll.votingOpensAt);
@@ -123,6 +122,51 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverAfter, setDragOverAfter] = useState(false);
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
+  const itemPositions = useRef<Record<string, number>>({});
+  const lastSubmittedRanks = useMemo(() => {
+    if (!poll?.requireRanking || !voteInfo) return [] as string[];
+    return [...voteInfo.choices]
+      .filter((c) => typeof c.rank === 'number')
+      .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
+      .map((c) => c.entryId);
+  }, [poll?.id, poll?.requireRanking, voteInfo]);
+
+  const hasRankChanges = useMemo(() => {
+    if (!poll?.requireRanking) return true;
+    if (rankedIds.length === 0) return true;
+    if (rankedIds.length !== lastSubmittedRanks.length) return true;
+    return rankedIds.some((id, idx) => id !== lastSubmittedRanks[idx]);
+  }, [poll?.requireRanking, rankedIds, lastSubmittedRanks]);
+
+  useLayoutEffect(() => {
+    const prevPositions = itemPositions.current;
+    const nextPositions: Record<string, number> = {};
+
+    rankedIds.forEach((id) => {
+      const el = itemRefs.current[id];
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      nextPositions[id] = top;
+
+      const prevTop = prevPositions[id];
+      if (typeof prevTop === 'number') {
+        const delta = prevTop - top;
+        if (delta !== 0) {
+          el.style.transition = 'none';
+          el.style.transform = `translateY(${delta}px)`;
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              el.style.transition = 'transform 180ms ease';
+              el.style.transform = '';
+            });
+          });
+        }
+      }
+    });
+
+    itemPositions.current = nextPositions;
+  }, [rankedIds]);
   const selectedEntries = useMemo(() => entries.filter((e) => voteState[e.id]?.selected), [entries, voteState]);
   const rankedEntries = useMemo(() => rankedIds.map((id) => entries.find((e) => e.id === id)).filter((e): e is PollEntryResponse => !!e), [entries, rankedIds]);
   const preferTeaserAsset = poll?.hideEntriesUntilVoting && !poll?.isAdmin && (poll.status === 1 || poll.status === 5);
@@ -571,29 +615,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
         </section>
       )}
 
-      {hasWinners && pollDetail && (
-        <section className="card">
-          <div className="section-head">
-            <div>
-              <p className="eyebrow">Results</p>
-              <h3>Winners</h3>
-            </div>
-          </div>
-          <div className="winners">
-            {pollDetail.winners.map((w) => (
-              <div key={w.entryId} className="winner-chip">
-                <div>
-                  <strong>{w.displayName}</strong>
-                  <span className="muted"> · {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
-                </div>
-                {w.assetId && assetCache[w.assetId]?.url && (
-                  <img src={assetCache[w.assetId]!.url} alt={w.displayName} className="winner-img" />
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Winners summary removed from top-level poll detail; winners are highlighted in the full breakdown below */}
 
       {showAdminEntries && (
         <section className="card admin-card">
@@ -601,7 +623,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
             <div>
               <p className="eyebrow">Entries</p>
               <h3>Admin view</h3>
-              <p className="muted">Only admins see entries before results are public. Tallies show during voting.</p>
+              <p className="muted">Only admins see unblurred entries before results are public.</p>
             </div>
             <div className="actions">
               <span className="pill">Admin</span>
@@ -620,8 +642,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
             <ul className="entries entry-grid">
               {entries.map((e) => {
                 const breakdown = breakdownByEntryId.get(e.id);
-		        const assetId = entryAssetId(e);
-		        const asset = assetCache[assetId];
+      const assetId = entryAssetId(e);
+      const asset = assetCache[assetId];
                 return (
                   <li key={e.id} className="entry-card">
                     <div className="entry-head">
@@ -632,11 +654,15 @@ export function CurrentPollPage(props: CurrentPollProps) {
                       </div>
                     </div>
                     {asset?.url && (
-                      <img
-                        src={asset.url}
-                        alt={e.displayName}
-                        className="entry-img"
-                      />
+                      // Admins can click to view the original uploaded image.
+                      <a
+                        href={assetCache[e.originalAssetId]?.url || asset.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="View full original image"
+                      >
+                        <img src={asset.url} alt={e.displayName} className="entry-img" style={{ cursor: 'zoom-in' }} />
+                      </a>
                     )}
                     {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
                     {showAdminBreakdown && !votingBreakdownError && (
@@ -728,8 +754,10 @@ export function CurrentPollPage(props: CurrentPollProps) {
           </div>
           <ul className="entries entry-grid">
             {myEntries.map((e) => {
-		      const assetId = entryAssetId(e);
-		      const asset = assetCache[assetId];
+              // For your own submissions always show the original asset (not teaser/public),
+              // so the image won't appear blurred to you.
+              const assetId = e.originalAssetId || entryAssetId(e);
+              const asset = assetCache[assetId];
               return (
                 <li key={e.id} className="entry-card">
                   <div className="entry-head">
@@ -738,11 +766,17 @@ export function CurrentPollPage(props: CurrentPollProps) {
                       {e.description && <p className="muted">{e.description}</p>}
                       <p className="muted">Submitted {new Date(e.createdAt).toLocaleString()}</p>
                     </div>
-                    <div className="badges">
-                      {e.submittedByDisplayName && <span className="pill subtle">By {e.submittedByDisplayName}</span>}
-                    </div>
                   </div>
-                  {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
+                  {asset?.url && (
+                    <a
+                      href={assetCache[e.originalAssetId]?.url || asset.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="View full original image"
+                    >
+                      <img src={asset.url} alt={e.displayName} className="entry-img" style={{ cursor: 'zoom-in' }} />
+                    </a>
+                  )}
                   {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
                   <div className="actions">
                     <button className="ghost" onClick={() => {
@@ -770,22 +804,23 @@ export function CurrentPollPage(props: CurrentPollProps) {
             <h3>Entries (preview)</h3>
             <p className="muted">Images stay blurred until voting opens.</p>
           </div>
-          <div className="vote-grid">
+          <ul className="entries entry-grid">
             {entries.map((e) => {
               const assetId = entryAssetId(e);
               const asset = assetCache[assetId];
               return (
-                <div key={e.id} className="entry-card vote-card">
-                  <div className="vote-head">
-                    <span className="entry-title">{e.displayName}</span>
-                    {e.submittedByDisplayName && <span className="muted">By {e.submittedByDisplayName}</span>}
+                <li key={e.id} className="entry-card">
+                  <div className="entry-head">
+                    <div>
+                      <p className="entry-title">{e.displayName}</p>
+                    </div>
                   </div>
                   {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
                   {e.description && <p className="muted">{e.description}</p>}
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         </section>
       )}
 
@@ -795,7 +830,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
             <h3>{isRankedMethod ? 'Vote — Step 1: select entries' : 'Vote'}</h3>
             <p className="muted">
               {isRankedMethod
-                ? `Pick up to ${poll.maxSelections} entries to rank. Drag to order them in the next step.`
+                ? `Select up to ${poll.maxSelections} entries you want to see win. You’ll rank them next; unranked entries won’t count.`
                 : `Select up to ${poll.maxSelections} entries.`}
             </p>
           </div>
@@ -836,7 +871,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
                   {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
                   {e.description && <p className="muted">{e.description}</p>}
                   {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
-                  {isRankedMethod && isSelected && <p className="muted">Ranking happens in the next step.</p>}
                 </div>
               );
             })}
@@ -866,7 +900,9 @@ export function CurrentPollPage(props: CurrentPollProps) {
           <div className="modal-card wide">
             <p className="eyebrow">Vote — Step 2</p>
             <h3>Order your selections</h3>
-            <p className="muted">Drag to reorder. Top item becomes rank 1.</p>
+            <p className="muted">
+              Drag to reorder. Your #1 is your first choice; if it drops out, your vote moves to your next ranked pick.
+            </p>
             {voteError && <p className="error">{voteError}</p>}
             {rankError && <p className="error">{rankError}</p>}
             {rankedEntries.length === 0 && <p className="muted">No selections yet.</p>}
@@ -876,6 +912,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
                   <li
                     key={e.id}
                     className={`rank-item${draggingId === e.id ? ' dragging' : ''}${dragOverId === e.id ? ' drop-target' : ''}${dragOverId === e.id && dragOverAfter ? ' drop-after' : ''}`}
+                    ref={(node) => { itemRefs.current[e.id] = node; }}
                     draggable
                     onDragStart={() => setDraggingId(e.id)}
                     onDragOver={(ev) => handleDragOverItem(ev, e.id)}
@@ -924,8 +961,12 @@ export function CurrentPollPage(props: CurrentPollProps) {
             )}
             <div className="modal-actions">
               <button className="ghost" onClick={handleBackToSelection} disabled={voteSubmitting}>Back to selection</button>
-              <button className="primary" onClick={handleRankSubmit} disabled={voteSubmitting}>
-                {voteSubmitting ? 'Submitting…' : 'Submit ranked vote'}
+              <button className="primary" onClick={handleRankSubmit} disabled={voteSubmitting || (poll.requireRanking && !hasRankChanges)}>
+                {voteSubmitting
+                  ? 'Submitting…'
+                  : voteInfo
+                    ? 'Update vote'
+                    : 'Submit vote'}
               </button>
             </div>
           </div>
@@ -942,13 +983,13 @@ export function CurrentPollPage(props: CurrentPollProps) {
           </div>
           {pollDetail.entries.length === 0 && <p className="muted">No entries recorded.</p>}
           {pollDetail.entries.length > 0 && (
-            <ul className="entries">
+            <ul className="entries entry-grid">
               {pollDetail.entries.map((e) => {
 		      const assetId = entryAssetId(e);
 		      const asset = assetCache[assetId];
                 const firstChoice = pollDetail.votingMethod === 2 ? e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0 : undefined;
                 return (
-                  <li key={e.id} className="entry-card">
+                  <li key={e.id} className={`entry-card ${e.isWinner ? 'winner' : ''}`}>
                     <div className="entry-head">
                       <div>
                         <p className="entry-title">{e.displayName}</p>
@@ -958,23 +999,37 @@ export function CurrentPollPage(props: CurrentPollProps) {
                       </div>
                       <div className="badges">
                         {typeof e.position === 'number' && <span className="pill subtle">#{e.position}</span>}
-                      {e.isWinner && <span className="pill">Winner</span>}
+                        {e.isWinner && <span className="pill winner">Winner</span>}
                       </div>
                     </div>
-                    {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
+                    {asset?.url && (
+                      <a
+                        href={assetCache[e.originalAssetId]?.url || asset.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="View full original image"
+                      >
+                        <img src={asset.url} alt={e.displayName} className="entry-img" style={{ cursor: 'zoom-in' }} />
+                      </a>
+                    )}
                     {e.description && <p className="muted">{e.description}</p>}
                     <div className="actions">
                       {pollDetail.votingMethod === 2 ? (
-                        <span className="pill subtle">{firstChoice} first-choice</span>
+                        <span className="pill subtle">{firstChoice} people ranked this #1</span>
                       ) : (
-                        <span className="pill subtle">{e.approvalVotes} approvals</span>
+                        <span className="pill subtle">{e.approvalVotes} people approved</span>
                       )}
                     </div>
                     {pollDetail.votingMethod === 2 && e.rankCounts.length > 0 && (
-                      <div className="muted">
-                        {e.rankCounts.map((r) => (
-                          <span key={r.rank} className="pill subtle">Rank {r.rank}: {r.votes}</span>
-                        ))}
+                      <div className="muted" style={{ marginTop: 6 }}>
+                        <span style={{ fontWeight: 600, marginRight: 6 }}>How people ranked this:</span>
+                        <ul style={{ display: 'inline', padding: 0, margin: 0, listStyle: 'none' }}>
+                          {e.rankCounts.map((r) => (
+                            <li key={r.rank} style={{ display: 'inline', marginRight: 8 }}>
+                              <span className="pill subtle">#{r.rank}: {r.votes}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </li>
