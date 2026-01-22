@@ -132,6 +132,7 @@ export type ConfigResponse = {
   discordAuthorizeUrl: string;
   redirectUri: string;
   serverName: string;
+  serverIconUrl?: string;
 };
 
 export type SessionState = 'idle' | 'loading' | 'authenticated' | 'anonymous';

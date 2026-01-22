@@ -1,12 +1,88 @@
 :root {
+  color-scheme: light;
   font-family: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
   line-height: 1.6;
   font-weight: 400;
-  color: #0f172a;
-  background-color: #050b18;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --bg-body: radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.08), transparent 42%),
+    radial-gradient(circle at 80% 0%, rgba(34, 197, 94, 0.1), transparent 38%),
+    linear-gradient(180deg, #f7fbff 0%, #eef2f7 100%);
+  --text-primary: #0f172a;
+  --text-secondary: #1f2937;
+  --text-muted: #475569;
+  --surface: #ffffff;
+  --surface-alt: #f8fafc;
+  --surface-muted: #eef2f7;
+  --border: #dfe4ed;
+  --border-strong: #e2e8f0;
+  --shadow-soft: 0 12px 32px rgba(15, 23, 42, 0.08);
+  --shadow-strong: 0 10px 24px rgba(8, 15, 35, 0.2);
+  --link: #0ea5e9;
+  --ghost-bg: #eef2f7;
+  --ghost-bg-hover: #e3e8f2;
+  --nav-active-bg: #0f172a;
+  --nav-active-text: #f8fafc;
+  --pill-subtle-bg: #f1f5f9;
+  --pill-subtle-text: #475569;
+  --admin-pill-bg: #fef9c3;
+  --admin-pill-text: #b45309;
+  --admin-card-bg: #fff4d6;
+  --admin-card-border: #f2b94c;
+  --admin-accent: #d97706;
+  --winner-bg: #f0fdf4;
+  --winner-border: #bbf7d0;
+  --winner-text: #065f46;
+  --banner-bg: #e8f0ff;
+  --banner-border: #d5d9e2;
+  --modal-backdrop: rgba(15, 23, 42, 0.6);
+  --rank-border: #e2e8f0;
+  --selected-border: #0ea5e9;
+  --selected-bg: #ecfeff;
+  --input-bg: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg-body: radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.08), transparent 42%),
+      radial-gradient(circle at 80% 0%, rgba(74, 222, 128, 0.08), transparent 40%),
+      linear-gradient(180deg, #050b18 0%, #0b1324 100%);
+    --text-primary: #e5e7eb;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+    --surface: #0f172a;
+    --surface-alt: #111827;
+    --surface-muted: #0b1220;
+    --border: #1f2937;
+    --border-strong: #273449;
+    --shadow-soft: 0 16px 40px rgba(0, 0, 0, 0.4);
+    --shadow-strong: 0 12px 32px rgba(0, 0, 0, 0.5);
+    --link: #38bdf8;
+    --ghost-bg: #1f2937;
+    --ghost-bg-hover: #243049;
+    --nav-active-bg: #38bdf8;
+    --nav-active-text: #041022;
+    --pill-subtle-bg: #1f2937;
+    --pill-subtle-text: #e2e8f0;
+    --admin-pill-bg: #2c1f12;
+    --admin-pill-text: #f4b86c;
+    --admin-card-bg: #20160d;
+    --admin-card-border: #4a321c;
+    --admin-accent: #f5a524;
+    --winner-bg: #0f2a1d;
+    --winner-border: #1f4e32;
+    --winner-text: #c6f6d5;
+    --banner-bg: #0f172a;
+    --banner-border: #1f2c45;
+    --modal-backdrop: rgba(0, 0, 0, 0.6);
+    --rank-border: #1f2937;
+    --selected-border: #38bdf8;
+    --selected-bg: rgba(56, 189, 248, 0.12);
+    --input-bg: #0f172a;
+  }
 }
 
 * {
@@ -16,10 +92,8 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at 20% 20%, rgba(46, 204, 113, 0.14), transparent 45%),
-    radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.16), transparent 40%),
-    linear-gradient(180deg, #050b18 0%, #0b1324 100%);
-  color: #0f172a;
+  background: var(--bg-body);
+  color: var(--text-primary);
 }
 
 a {

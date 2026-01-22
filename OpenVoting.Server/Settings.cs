@@ -5,7 +5,6 @@ public sealed class Settings
 	public DiscordSettings Discord { get; init; } = new();
 	public JwtSettings Jwt { get; init; } = new();
 	public BlobStorageSettings BlobStorage { get; init; } = new();
-	public string ServerName { get; init; } = "OpenVoting";
 }
 
 public sealed class DiscordSettings
@@ -14,6 +13,7 @@ public sealed class DiscordSettings
 	public string ClientSecret { get; init; } = string.Empty;
 	public string RedirectUri { get; init; } = string.Empty;
 	public string GuildId { get; init; } = string.Empty;
+	public string? BotToken { get; init; }
 	public string[] AdminRoleIds { get; init; } = Array.Empty<string>();
 }
 

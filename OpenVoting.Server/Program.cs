@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 builder.Services.Configure<Settings>(builder.Configuration.GetSection("Settings"));
+builder.Services.AddMemoryCache();
 
 var connectionString = builder.Configuration.GetConnectionString("Database") ?? throw new InvalidOperationException("Connection string 'Database' not found");
 var jwtSettings = builder.Configuration.GetSection("Settings:Jwt").Get<JwtSettings>() ?? throw new InvalidOperationException("JWT settings not configured");
@@ -41,6 +43,16 @@ builder.Services.AddAuthorization();
 builder.Services.AddHttpClient<IDiscordOAuthService, DiscordOAuthService>(client =>
 {
 	client.BaseAddress = new Uri("https://discord.com/api/");
+});
+
+builder.Services.AddHttpClient<IDiscordGuildService, DiscordGuildService>((sp, client) =>
+{
+	var settings = sp.GetRequiredService<IOptions<Settings>>().Value;
+	client.BaseAddress = new Uri("https://discord.com/api/");
+	if (!string.IsNullOrWhiteSpace(settings.Discord.BotToken))
+	{
+		client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bot", settings.Discord.BotToken);
+	}
 });
 
 builder.Services.AddScoped<TokenService>();

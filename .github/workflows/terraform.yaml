@@ -59,6 +59,13 @@ jobs:
           cloudflare_api_token = "${{ secrets.CLOUDFLARE_API_TOKEN }}"
           cloudflare_zone_id = "${{ vars.CLOUDFLARE_ZONE_ID }}"
           azure_subscription_id = "${{ vars.AZURE_SUBSCRIPTION_ID }}"
+          database_connection_string = "${{ secrets.DATABASE_CONNECTION_STRING }}"
+          discord_client_id = "${{ vars.DISCORD_CLIENT_ID }}"
+          discord_client_secret = "${{ secrets.DISCORD_CLIENT_SECRET }}"
+          discord_guild_id = "${{ vars.DISCORD_GUILD_ID }}"
+          discord_bot_token = "${{ secrets.DISCORD_BOT_TOKEN }}"
+          discord_admin_role_ids = ${{ vars.DISCORD_ADMIN_ROLE_IDS_JSON }}
+          jwt_signing_key = "${{ secrets.JWT_SIGNING_KEY }}"
           image_sha = "${{ github.event.inputs.image_sha || inputs.image_sha || '' }}"
           EOF
         working-directory: terraform

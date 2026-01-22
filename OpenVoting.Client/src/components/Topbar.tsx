@@ -13,12 +13,16 @@ export type TopbarProps = {
 
 export function Topbar({ sessionState, me, config, loginCta, hasLivePolls, onLogin, onLogout }: TopbarProps) {
   const serverName = config?.serverName?.trim() || 'Voting';
+  const serverIconUrl = config?.serverIconUrl?.trim() || '';
+  const serverInitials = (serverName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'VT').slice(0, 3);
 
   return (
     <header className="topbar">
       <div className="brand">
         <Link to="/polls/live" className="brand-link">
-          <div className="brand-mark">VP</div>
+          <div className={serverIconUrl ? 'brand-mark brand-mark-image' : 'brand-mark'}>
+            {serverIconUrl ? <img src={serverIconUrl} alt={`${serverName} logo`} loading="lazy" /> : serverInitials}
+          </div>
           <div className="brand-copy">
             {hasLivePolls && (
               <div className="brand-row">
@@ -26,7 +30,7 @@ export function Topbar({ sessionState, me, config, loginCta, hasLivePolls, onLog
               </div>
             )}
             <h1 className="brand-title">{serverName} Voting</h1>
-            <p className="brand-sub">Real-time competitions with Discord sign-in.</p>
+            <p className="brand-sub">Voting system for communities.</p>
           </div>
         </Link>
       </div>

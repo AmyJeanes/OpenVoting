@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
+using OpenVoting.Server.Services;
 
 namespace OpenVoting.Server.Controllers;
 
@@ -9,22 +10,29 @@ namespace OpenVoting.Server.Controllers;
 public sealed class ConfigController : ControllerBase
 {
 	private readonly Settings _settings;
+	private readonly IDiscordGuildService _discordGuildService;
 
-	public ConfigController(IOptions<Settings> settings)
+	public ConfigController(IOptions<Settings> settings, IDiscordGuildService discordGuildService)
 	{
 		_settings = settings.Value;
+		_discordGuildService = discordGuildService;
 	}
 
 	[HttpGet]
-	[ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any, NoStore = false)]
-	public ActionResult<ClientConfigResponse> Get()
+	[ResponseCache(Duration = 600, Location = ResponseCacheLocation.Any, NoStore = false)]
+	public async Task<ActionResult<ClientConfigResponse>> Get(CancellationToken cancellationToken)
 	{
 		var authorizeUrl = BuildDiscordAuthorizeUrl();
+		var guildInfo = await _discordGuildService.GetGuildInfoAsync(cancellationToken);
+		var serverName = guildInfo?.Name ?? "OpenVoting";
+		var serverIcon = guildInfo?.IconUrl ?? string.Empty;
+
 		return Ok(new ClientConfigResponse
 		{
 			DiscordAuthorizeUrl = authorizeUrl,
 			RedirectUri = _settings.Discord.RedirectUri,
-			ServerName = string.IsNullOrWhiteSpace(_settings.ServerName) ? "OpenVoting" : _settings.ServerName
+			ServerName = serverName,
+			ServerIconUrl = serverIcon
 		});
 	}
 
@@ -53,4 +61,5 @@ public sealed class ClientConfigResponse
 	public string DiscordAuthorizeUrl { get; init; } = string.Empty;
 	public string RedirectUri { get; init; } = string.Empty;
 	public string ServerName { get; init; } = string.Empty;
+	public string ServerIconUrl { get; init; } = string.Empty;
 }
