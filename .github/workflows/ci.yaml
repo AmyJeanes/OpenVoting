@@ -42,12 +42,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: github.ref == 'refs/heads/main'
 
-  deploy:
+  terraform:
     if: github.ref == 'refs/heads/main'
     needs: build
-    name: Deploy
+    name: Terraform
     uses: ./.github/workflows/terraform.yaml
     with:
       runApply: true
+    secrets: inherit
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: [build, terraform]
+    name: Deploy
+    uses: ./.github/workflows/deploy.yaml
+    with:
       image_sha: ${{ needs.build.outputs.image_sha }}
     secrets: inherit

@@ -1,0 +1,18 @@
+host: voting.example.com
+
+env:
+  connectionStrings:
+    database: test-connection-string
+  discord:
+    clientId: test-client-id
+    clientSecret: test-client-secret
+    botToken: test-bot-token
+    redirectUri: "https://example.com/api/auth/discord"
+    guildId: test-guild-id
+    adminRoleIds: "role1,role2,role3"
+  jwt:
+    signingKey: test-signing-key
+  blobStorage:
+    connectionString: test-storage-connection-string
+    containerName: test-container-name
+    publicBaseUrl: https://example.com/storage/

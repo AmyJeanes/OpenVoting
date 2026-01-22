@@ -1,0 +1,62 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_sha:
+        description: "Docker image SHA to deploy"
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      image_sha:
+        description: "Docker image SHA to deploy"
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+      
+      - name: Connect to Kubernetes
+        uses: AmyJeanes/Abyss-Infrastructure/.github/actions/connect-k8s@main
+        with:
+          kubeconfig: "${{ secrets.KUBECONFIG }}"
+          hostname: "${{ vars.KUBERNETES_API_HOSTNAME }}"
+          serviceTokenId: ${{ vars.CLOUDFLARE_TUNNEL_SERVICE_TOKEN_ID }}
+          serviceTokenSecret: ${{ secrets.CLOUDFLARE_TUNNEL_SERVICE_TOKEN_SECRET }}
+
+      - name: Deploy OpenVoting
+        env:
+          IMAGE_TAG: ${{ inputs.image_sha != '' && inputs.image_sha || 'latest' }}
+        run: |
+          helm upgrade --install --wait --atomic --debug \
+            openvoting ./openvoting \
+            --namespace default \
+            --set image.repository="ghcr.io/amyjeanes/openvoting/openvoting" \
+            --set image.tag="${IMAGE_TAG}" \
+            --set env.connectionStrings.database="${{ secrets.DATABASE_CONNECTION_STRING }}" \
+            --set env.discord.clientId="${{ vars.DISCORD_CLIENT_ID }}" \
+            --set env.discord.clientSecret="${{ secrets.DISCORD_CLIENT_SECRET }}" \
+            --set env.discord.botToken="${{ secrets.DISCORD_BOT_TOKEN }}" \
+            --set env.discord.redirectUri="https://${{ vars.HOST }}/api/auth/discord" \
+            --set env.discord.guildId="${{ vars.DISCORD_GUILD_ID }}" \
+            --set env.discord.adminRoleIds="${{ vars.DISCORD_ADMIN_ROLE_IDS }}" \
+            --set env.jwt.signingKey="${{ secrets.JWT_SIGNING_KEY }}" \
+            --set env.blobStorage.connectionString="${{ secrets.BLOB_STORAGE_CONNECTION_STRING }}" \
+            --set env.blobStorage.containerName="${{ secrets.BLOB_STORAGE_CONTAINER_NAME }}" \
+            --set env.blobStorage.publicBaseUrl="${{ secrets.BLOB_STORAGE_PUBLIC_BASE_URL }}"
+        working-directory: charts
+
+      - name: Wait for certificate to be ready
+        uses: AmyJeanes/Abyss-Infrastructure/.github/actions/wait-kube-certificate@main
+        with:
+          name: "openvoting-tls"
+
+      - name: Disconnect from Kubernetes
+        if: always()
+        uses: AmyJeanes/Abyss-Infrastructure/.github/actions/disconnect-k8s@main
