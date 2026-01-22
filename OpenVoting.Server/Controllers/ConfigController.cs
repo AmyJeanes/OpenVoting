@@ -23,7 +23,8 @@ public sealed class ConfigController : ControllerBase
 		return Ok(new ClientConfigResponse
 		{
 			DiscordAuthorizeUrl = authorizeUrl,
-			RedirectUri = _settings.Discord.RedirectUri
+			RedirectUri = _settings.Discord.RedirectUri,
+			ServerName = string.IsNullOrWhiteSpace(_settings.ServerName) ? "OpenVoting" : _settings.ServerName
 		});
 	}
 
@@ -51,4 +52,5 @@ public sealed class ClientConfigResponse
 {
 	public string DiscordAuthorizeUrl { get; init; } = string.Empty;
 	public string RedirectUri { get; init; } = string.Empty;
+	public string ServerName { get; init; } = string.Empty;
 }

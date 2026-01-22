@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenVoting.Data;
 using OpenVoting.Data.Enums;
 using OpenVoting.Server.Auth;
+using OpenVoting.Server.Services;
 
 namespace OpenVoting.Server.Controllers;
 
@@ -42,6 +43,8 @@ public sealed class VotesController : ControllerBase
 			return NotFound();
 		}
 
+		await PollAutoTransition.ApplyAsync(_db, poll, _logger, cancellationToken);
+
 		var vote = await _db.Votes
 			.Include(v => v.Choices)
 			.FirstOrDefaultAsync(v => v.PollId == pollId && v.MemberId == member.Id, cancellationToken);
@@ -74,6 +77,8 @@ public sealed class VotesController : ControllerBase
 		{
 			return NotFound();
 		}
+
+		await PollAutoTransition.ApplyAsync(_db, poll, _logger, cancellationToken);
 
 		var voteCheck = CanVote(poll, member);
 		if (!voteCheck.Allowed)

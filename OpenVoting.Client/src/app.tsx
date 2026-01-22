@@ -1,157 +1,214 @@
 /// <reference types="w3c-web-usb" />
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Route, Routes, useNavigate } from 'react-router-dom';
 import './app.css';
-
-type MeResponse = {
-  memberId: string;
-  communityId: string;
-  displayName: string;
-  joinedAt: string;
-  isEligible: boolean;
-  ineligibleReason?: string;
-  isAdmin: boolean;
-};
-
-type PollResponse = {
-  id: string;
-  title: string;
-  description?: string;
-  status: number;
-  votingMethod: number;
-  submissionOpensAt: string;
-  submissionClosesAt: string;
-  votingOpensAt: string;
-  votingClosesAt: string;
-  hideEntriesUntilVoting: boolean;
-  maxSelections: number;
-  requireRanking: boolean;
-  maxSubmissionsPerMember: number;
-  mustHaveJoinedBefore?: string;
-  requiredRoleIds: string[];
-  canSubmit: boolean;
-  canVote: boolean;
-  isAdmin: boolean;
-};
-
-type PollWinnerResponse = {
-  entryId: string;
-  displayName: string;
-  votes: number;
-};
-
-type PollHistoryResponse = {
-  id: string;
-  title: string;
-  status: number;
-  votingMethod: number;
-  votingClosesAt: string;
-  winners: PollWinnerResponse[];
-};
-
-type PollEntryResponse = {
-  id: string;
-  displayName: string;
-  description?: string;
-  originalAssetId: string;
-  teaserAssetId?: string;
-  publicAssetId?: string;
-  isDisqualified: boolean;
-  disqualificationReason?: string;
-  createdAt: string;
-};
-
-type VoteChoiceResponse = {
-  entryId: string;
-  rank?: number;
-};
-
-type VoteResponse = {
-  voteId: string;
-  pollId: string;
-  memberId: string;
-  isFinal: boolean;
-  submittedAt?: string;
-  choices: VoteChoiceResponse[];
-};
-
-type AssetUploadResponse = {
-  id: string;
-  storageKey: string;
-  contentType: string;
-  bytes: number;
-  sha256: string;
-  url?: string;
-};
-
-type ConfigResponse = {
-  discordAuthorizeUrl: string;
-  redirectUri: string;
-};
+import {
+  ActivePollsPage,
+  CurrentPollPage,
+  HistoryPage,
+  Home,
+  NotFound,
+  PageShell,
+  Topbar,
+  ConfirmDialog,
+  type ConfirmDialogConfig,
+  votingMethodOptions
+} from './components';
+import type {
+  AssetUploadResponse,
+  ConfigResponse,
+  MeResponse,
+  PollDetailResponse,
+  PollEntryResponse,
+  PollHistoryResponse,
+  PollResponse,
+  SessionState,
+  VoteResponse,
+  VotingBreakdownEntry
+} from './types';
 
 const tokenKey = 'ov_token';
 
+const defaultCreateForm = {
+  title: 'New competition',
+  description: '',
+  votingMethod: 1
+};
+
+const defaultEntryForm = {
+  displayName: '',
+  description: '',
+  originalAssetId: '',
+  teaserAssetId: '',
+  publicAssetId: ''
+};
+
 export default function App() {
   const [token, setToken] = useState<string>('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+  const [sessionState, setSessionState] = useState<SessionState>('idle');
   const [me, setMe] = useState<MeResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<ConfigResponse | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
+
   const [poll, setPoll] = useState<PollResponse | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [entries, setEntries] = useState<PollEntryResponse[] | null>(null);
+  const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
+  const [activePolls, setActivePolls] = useState<PollResponse[]>([]);
+  const [activeLoading, setActiveLoading] = useState(false);
+  const [pollDetail, setPollDetail] = useState<PollDetailResponse | null>(null);
+  const [entries, setEntries] = useState<PollEntryResponse[]>([]);
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [entriesLoading, setEntriesLoading] = useState(false);
-  const [entryForm, setEntryForm] = useState({
-    displayName: '',
-    description: '',
-    originalAssetId: '',
-    teaserAssetId: '',
-    publicAssetId: ''
-  });
+  const [assetCache, setAssetCache] = useState<Record<string, AssetUploadResponse>>({});
+
+  const [entryForm, setEntryForm] = useState(defaultEntryForm);
   const [entryFiles, setEntryFiles] = useState<{ original?: File; teaser?: File; public?: File }>({});
   const [entrySubmitting, setEntrySubmitting] = useState(false);
   const [entrySubmitError, setEntrySubmitError] = useState<string | null>(null);
-  const [assetCache, setAssetCache] = useState<Record<string, AssetUploadResponse>>({});
+
   const [voteState, setVoteState] = useState<Record<string, { selected: boolean; rank: string }>>({});
   const [voteSubmitting, setVoteSubmitting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
   const [voteInfo, setVoteInfo] = useState<VoteResponse | null>(null);
-  const [createForm, setCreateForm] = useState({
-    title: 'Logo Vote',
-    description: '',
-    submissionOpensAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-    submissionClosesAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-    votingOpensAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
-    votingClosesAt: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
-    hideEntriesUntilVoting: true,
-    maxSelections: 5,
-    requireRanking: false,
-    maxSubmissionsPerMember: 1,
-    votingMethod: 1
-  });
+
+  const [createForm, setCreateForm] = useState(defaultCreateForm);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const [confirmConfig, setConfirmConfig] = useState<ConfirmDialogConfig | null>(null);
+  const confirmResolver = useRef<((result: boolean) => void) | null>(null);
+  const [openVotingModal, setOpenVotingModal] = useState<{ pollId: string; selectedMethod: number; submitting: boolean } | null>(null);
+
   const [history, setHistory] = useState<PollHistoryResponse[]>([]);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [votingBreakdown, setVotingBreakdown] = useState<VotingBreakdownEntry[]>([]);
+  const [votingBreakdownError, setVotingBreakdownError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
+    fetchConfig();
     const saved = localStorage.getItem(tokenKey);
     if (saved) {
       setToken(saved);
+    } else {
+      setSessionState('anonymous');
     }
-    fetchConfig();
   }, []);
 
   useEffect(() => {
-    if (token) {
-      fetchCurrentPoll();
-      fetchHistory();
+    if (!token) {
+      setSessionState('anonymous');
+      resetPollState();
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    const bootstrap = async () => {
+      setSessionState('loading');
+      try {
+        await fetchMe();
+        await refreshActiveAndSelected();
+        await fetchHistory();
+        setSessionState('authenticated');
+      } catch (err) {
+        if ((err as Error).message === 'Unauthorized') {
+          return;
+        }
+        setFlash((err as Error).message || 'Unable to refresh session');
+      }
+    };
+
+    bootstrap();
   }, [token]);
 
+  useEffect(() => {
+    const name = config?.serverName?.trim() || 'OpenVoting';
+    document.title = `${name} Voting`;
+  }, [config?.serverName]);
+
+  useEffect(() => {
+    history.forEach((p) => p.winners.forEach((w) => w.assetId && loadAsset(w.assetId)));
+  }, [history]);
+
+  const pollById = (id: string | null) => {
+    if (!id) return null;
+    if (poll?.id === id) return poll;
+    return activePolls.find((p) => p.id === id) ?? null;
+  };
+
+  const requestConfirm = (config: ConfirmDialogConfig) => new Promise<boolean>((resolve) => {
+    confirmResolver.current = resolve;
+    setConfirmConfig(config);
+  });
+
+  const settleConfirm = (result: boolean) => {
+    if (confirmResolver.current) {
+      confirmResolver.current(result);
+    }
+    confirmResolver.current = null;
+    setConfirmConfig(null);
+  };
+
+  useEffect(() => () => {
+    if (confirmResolver.current) {
+      confirmResolver.current(false);
+    }
+    confirmResolver.current = null;
+  }, []);
+
+  const authedFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const res = await fetch(input, {
+      ...init,
+      headers: {
+        ...(init?.headers ?? {}),
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (res.status === 401) {
+      logout('Your session expired. Please sign in again.');
+      throw new Error('Unauthorized');
+    }
+
+    return res;
+  };
+
+  const logout = (message?: string) => {
+    localStorage.removeItem(tokenKey);
+    setToken('');
+    setMe(null);
+    resetPollState();
+    setHistory([]);
+    setVotingBreakdown([]);
+    setVotingBreakdownError(null);
+    setSessionState('anonymous');
+    setFlash(message && message.trim().length > 0 ? message : 'Signed out.');
+  };
+
+  const clearSelectedPollData = () => {
+    setPoll(null);
+    setPollDetail(null);
+    setEntries([]);
+    setEntriesError(null);
+    setEntriesLoading(false);
+    setVoteState({});
+    setVoteError(null);
+    setVoteInfo(null);
+  };
+
+  const resetPollState = () => {
+    setPoll(null);
+    setPollError(null);
+    setSelectedPollId(null);
+    setActivePolls([]);
+    clearSelectedPollData();
+    setVotingBreakdown([]);
+    setVotingBreakdownError(null);
+  };
+
   const fetchConfig = async () => {
+    setConfigError(null);
     try {
       const res = await fetch('/api/config');
       if (!res.ok) {
@@ -165,82 +222,166 @@ export default function App() {
     }
   };
 
-  const saveToken = (value: string) => {
-    setToken(value);
-    if (value) {
-      localStorage.setItem(tokenKey, value);
-    } else {
-      localStorage.removeItem(tokenKey);
+  const fetchMe = async (): Promise<MeResponse> => {
+    const res = await authedFetch('/api/auth/me');
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || res.statusText);
     }
+    const data: MeResponse = await res.json();
+    setMe(data);
+    return data;
   };
 
-  const fetchMe = async () => {
-    setStatus('loading');
-    setError(null);
-    setMe(null);
-    try {
-      const res = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+  const createPoll = async () => {
+    setCreateError(null);
+    const latestActive = activePolls.length === 0 ? await fetchActivePolls() : activePolls;
+    const activeCount = latestActive.length;
+    if (activeCount > 0) {
+      const proceed = await requestConfirm({
+        title: 'Create another active poll?',
+        body: `There ${activeCount === 1 ? 'is' : 'are'} already ${activeCount} active poll${activeCount === 1 ? '' : 's'}. Do you want to create another?`,
+        confirmLabel: 'Create poll'
       });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || res.statusText);
-      }
-      const data: MeResponse = await res.json();
-      setMe(data);
-      setStatus('ok');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setStatus('error');
-    }
-  };
-
-  const fetchCurrentPoll = async () => {
-    if (!token) return;
-    setPollError(null);
-    try {
-      const res = await fetch('/api/polls/current', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.status === 204) {
-        setPoll(null);
+      if (!proceed) {
         return;
       }
+    }
+    setCreating(true);
+    try {
+      const payload: Record<string, unknown> = {
+        title: createForm.title,
+        description: createForm.description || undefined,
+        votingMethod: createForm.votingMethod
+      };
+
+      const res = await authedFetch('/api/polls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const data: PollResponse = await res.json();
-      setPoll(data);
-      await fetchEntries(data.id);
-      await fetchVote(data.id);
+      const created: PollResponse = await res.json();
+      setSelectedPollId(created.id);
+      await fetchActivePolls();
+      await refreshPoll(true, created.id);
+      navigate('/polls/current');
     } catch (err) {
-      setPollError(err instanceof Error ? err.message : 'Failed to load poll');
+      setCreateError(err instanceof Error ? err.message : 'Failed to create poll');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const refreshPoll = async (hydrate: boolean, targetPollId?: string) => {
+    if (!token) return null;
+    setPollError(null);
+    const targetId = targetPollId ?? selectedPollId ?? null;
+    if (!targetId) {
+      clearSelectedPollData();
+      return null;
+    }
+    const res = await authedFetch(`/api/polls/${targetId}/summary`);
+    if (res.status === 404 || res.status === 204) {
+      clearSelectedPollData();
+      return null;
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || res.statusText);
+    }
+    const data: PollResponse = await res.json();
+    setPoll(data);
+    setSelectedPollId(data.id);
+    if (!data.isAdmin || (data.status !== 2 && data.status !== 5)) {
+      setVotingBreakdown([]);
+      setVotingBreakdownError(null);
+    }
+    if (hydrate) {
+      await Promise.all([fetchEntries(data.id), fetchVote(data.id)]);
+      await fetchPollDetail(data.id);
+      if (data.isAdmin && (data.status === 2 || data.status === 5)) {
+        await fetchVotingBreakdown(data.id);
+      }
+    }
+    return data;
+  };
+
+  const fetchVotingBreakdown = async (pollId: string) => {
+    setVotingBreakdownError(null);
+    try {
+      const res = await authedFetch(`/api/polls/${pollId}/tally`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      const tally: VotingBreakdownEntry[] = await res.json();
+      setVotingBreakdown(tally);
+    } catch (err) {
+      setVotingBreakdownError(err instanceof Error ? err.message : 'Failed to load voting breakdown');
     }
   };
 
   const fetchHistory = async () => {
     if (!token) return;
     setHistoryError(null);
+    const res = await authedFetch('/api/polls/history');
+    if (res.status === 204) {
+      setHistory([]);
+      return;
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || res.statusText);
+    }
+    const data: PollHistoryResponse[] = await res.json();
+    setHistory(data);
+  };
+
+  const fetchActivePolls = async (): Promise<PollResponse[]> => {
+    if (!token) return [];
+    setActiveLoading(true);
     try {
-      const res = await fetch('/api/polls/history', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.status === 204) {
-        setHistory([]);
-        return;
+      const res = await authedFetch('/api/polls/active');
+      if (res.status === 204 || res.status === 403) {
+        setActivePolls([]);
+        setSelectedPollId(null);
+        return [];
       }
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const data: PollHistoryResponse[] = await res.json();
-      setHistory(data);
+      const data: PollResponse[] = await res.json();
+      setActivePolls(data);
+      if (!selectedPollId || !data.some((p) => p.id === selectedPollId)) {
+        setSelectedPollId(data[0]?.id ?? null);
+      }
+      return data;
     } catch (err) {
-      setHistoryError(err instanceof Error ? err.message : 'Failed to load history');
+      setPollError(err instanceof Error ? err.message : 'Failed to load polls');
+      setActivePolls([]);
+      setSelectedPollId(null);
+      return [];
+    } finally {
+      setActiveLoading(false);
     }
+  };
+
+  const fetchPollDetail = async (pollId: string) => {
+    if (!token) throw new Error('Not authenticated');
+    const res = await authedFetch(`/api/polls/${pollId}`);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || res.statusText);
+    }
+    const data: PollDetailResponse = await res.json();
+    setPollDetail(data);
+    loadAssetsForEntries(data.entries);
+    return data;
   };
 
   const fetchEntries = async (pollId?: string) => {
@@ -249,9 +390,7 @@ export default function App() {
     setEntriesError(null);
     setEntriesLoading(true);
     try {
-      const res = await fetch(`/api/polls/${targetId}/entries`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await authedFetch(`/api/polls/${targetId}/entries`);
       if (res.status === 204) {
         setEntries([]);
         return;
@@ -277,6 +416,74 @@ export default function App() {
     }
   };
 
+  const fetchVote = async (pollId?: string) => {
+    if (!token || !(pollId ?? poll?.id)) return;
+    const targetId = pollId ?? poll?.id;
+    const res = await authedFetch(`/api/polls/${targetId}/vote`);
+    if (res.status === 204) {
+      setVoteInfo(null);
+      return;
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || res.statusText);
+    }
+    const data: VoteResponse = await res.json();
+    setVoteInfo(data);
+    setVoteState((prev) => {
+      const next = { ...prev } as Record<string, { selected: boolean; rank: string }>;
+      data.choices.forEach((c) => {
+        next[c.entryId] = { selected: true, rank: c.rank ? String(c.rank) : '' };
+      });
+      return next;
+    });
+  };
+
+  const onRefreshBreakdown = async () => {
+    if (!poll?.id || !poll.isAdmin || (poll.status !== 2 && poll.status !== 5)) {
+      setVotingBreakdown([]);
+      setVotingBreakdownError(null);
+      return;
+    }
+    await fetchVotingBreakdown(poll.id);
+  };
+
+  const loadAsset = async (id?: string) => {
+    if (!id || assetCache[id]) return;
+    try {
+      const res = await authedFetch(`/api/assets/${id}`);
+      if (!res.ok) return;
+      const data: AssetUploadResponse = await res.json();
+      setAssetCache((prev) => ({ ...prev, [id]: data }));
+    } catch {
+      // Suppress asset load errors
+    }
+  };
+
+  const loadAssetsForEntries = (data: Array<{ originalAssetId: string; teaserAssetId?: string; publicAssetId?: string }>) => {
+    const ids = new Set<string>();
+    data.forEach((e) => {
+      if (e.publicAssetId) ids.add(e.publicAssetId);
+      else if (e.teaserAssetId) ids.add(e.teaserAssetId);
+      else if (e.originalAssetId) ids.add(e.originalAssetId);
+    });
+    ids.forEach((id) => loadAsset(id));
+  };
+
+  const uploadAsset = async (file: File): Promise<AssetUploadResponse> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await authedFetch('/api/assets', {
+      method: 'POST',
+      body: form
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || res.statusText);
+    }
+    return res.json();
+  };
+
   const submitEntry = async () => {
     if (!poll) return;
     setEntrySubmitError(null);
@@ -293,11 +500,10 @@ export default function App() {
       const teaserId = entryForm.teaserAssetId || (entryFiles.teaser ? (await uploadAsset(entryFiles.teaser)).id : '');
       const publicId = entryForm.publicAssetId || (entryFiles.public ? (await uploadAsset(entryFiles.public)).id : '');
 
-      const res = await fetch(`/api/polls/${poll.id}/entries`, {
+      const res = await authedFetch(`/api/polls/${poll.id}/entries`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           displayName: entryForm.displayName.trim(),
@@ -312,7 +518,7 @@ export default function App() {
         throw new Error(text || res.statusText);
       }
       await fetchEntries(poll.id);
-      setEntryForm({ displayName: '', description: '', originalAssetId: '', teaserAssetId: '', publicAssetId: '' });
+      setEntryForm(defaultEntryForm);
       setEntryFiles({});
     } catch (err) {
       setEntrySubmitError(err instanceof Error ? err.message : 'Failed to submit entry');
@@ -321,71 +527,53 @@ export default function App() {
     }
   };
 
-  const uploadAsset = async (file: File): Promise<AssetUploadResponse> => {
-    const form = new FormData();
-    form.append('file', file);
-    const res = await fetch('/api/assets', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: form
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || res.statusText);
-    }
-    return res.json();
-  };
-
-  const loadAsset = async (id?: string) => {
-    if (!id || assetCache[id]) return;
+  const disqualifyEntry = async (entryId: string, reason: string) => {
+    if (!poll?.id) return;
     try {
-      const res = await fetch(`/api/assets/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await authedFetch(`/api/polls/${poll.id}/entries/${entryId}/disqualify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason.trim() })
       });
-      if (!res.ok) return;
-      const data: AssetUploadResponse = await res.json();
-      setAssetCache((prev) => ({ ...prev, [id]: data }));
-    } catch {
-      // Ignore
-    }
-  };
-
-  const loadAssetsForEntries = (data: PollEntryResponse[]) => {
-    const ids = new Set<string>();
-    data.forEach((e) => {
-      if (e.publicAssetId) ids.add(e.publicAssetId);
-      else if (e.teaserAssetId) ids.add(e.teaserAssetId);
-      else if (e.originalAssetId) ids.add(e.originalAssetId);
-    });
-    ids.forEach((id) => loadAsset(id));
-  };
-
-  const fetchVote = async (pollId?: string) => {
-    if (!token || !(pollId ?? poll?.id)) return;
-    const targetId = pollId ?? poll?.id;
-    try {
-      const res = await fetch(`/api/polls/${targetId}/vote`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.status === 204) {
-        setVoteInfo(null);
-        return;
-      }
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const data: VoteResponse = await res.json();
-      setVoteInfo(data);
-      setVoteState((prev) => {
-        const next = { ...prev } as Record<string, { selected: boolean; rank: string }>;
-        data.choices.forEach((c) => {
-          next[c.entryId] = { selected: true, rank: c.rank ? String(c.rank) : '' };
-        });
-        return next;
+      await fetchEntries(poll.id);
+    } catch (err) {
+      setEntriesError(err instanceof Error ? err.message : 'Failed to disqualify entry');
+    }
+  };
+
+  const requalifyEntry = async (entryId: string) => {
+    if (!poll?.id) return;
+    try {
+      const res = await authedFetch(`/api/polls/${poll.id}/entries/${entryId}/requalify`, {
+        method: 'POST'
       });
-    } catch (_err) {
-      // Keep silent failure to avoid blocking UI; show message inline if needed.
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      await fetchEntries(poll.id);
+    } catch (err) {
+      setEntriesError(err instanceof Error ? err.message : 'Failed to requalify entry');
+    }
+  };
+
+  const deleteEntry = async (entryId: string) => {
+    if (!poll?.id) return;
+    const confirmed = window.confirm('Delete this entry? This cannot be undone.');
+    if (!confirmed) return;
+    try {
+      const res = await authedFetch(`/api/polls/${poll.id}/entries/${entryId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      await fetchEntries(poll.id);
+    } catch (err) {
+      setEntriesError(err instanceof Error ? err.message : 'Failed to delete entry');
     }
   };
 
@@ -403,14 +591,32 @@ export default function App() {
     }));
   };
 
-  const submitVote = async () => {
+  const submitVote = async (rankedIds?: string[]) => {
     if (!poll) return;
     setVoteError(null);
     setVoteSubmitting(true);
 
-    const selected = Object.entries(voteState)
-      .filter(([, v]) => v.selected)
-      .map(([id, v]) => ({ entryId: id, rank: v.rank }));
+    let selected: Array<{ entryId: string; rank: string }>;
+
+    if (rankedIds) {
+      selected = rankedIds.map((id, idx) => ({ entryId: id, rank: String(idx + 1) }));
+      setVoteState((prev) => {
+        const next = { ...prev } as Record<string, { selected: boolean; rank: string }>;
+        rankedIds.forEach((id, idx) => {
+          next[id] = { selected: true, rank: String(idx + 1) };
+        });
+        Object.keys(next).forEach((id) => {
+          if (!rankedIds.includes(id)) {
+            next[id] = { selected: false, rank: '' };
+          }
+        });
+        return next;
+      });
+    } else {
+      selected = Object.entries(voteState)
+        .filter(([, v]) => v.selected)
+        .map(([id, v]) => ({ entryId: id, rank: v.rank }));
+    }
 
     if (selected.length === 0) {
       setVoteError('Select at least one entry');
@@ -425,16 +631,23 @@ export default function App() {
     }
 
     if (poll.requireRanking) {
-      const ranks = selected.map((s) => Number(s.rank));
-      if (ranks.some((r) => Number.isNaN(r) || r < 1 || r > selected.length)) {
-        setVoteError('Ranks must be between 1 and the number of selected entries');
+      if (rankedIds && new Set(rankedIds).size !== rankedIds.length) {
+        setVoteError('Ranked choices must be unique');
         setVoteSubmitting(false);
         return;
       }
-      if (new Set(ranks).size !== ranks.length) {
-        setVoteError('Ranks must be unique');
-        setVoteSubmitting(false);
-        return;
+      const ranks = selected.map((s) => Number(s.rank));
+      if (!rankedIds) {
+        if (ranks.some((r) => Number.isNaN(r) || r < 1 || r > selected.length)) {
+          setVoteError('Ranks must be between 1 and the number of selected entries');
+          setVoteSubmitting(false);
+          return;
+        }
+        if (new Set(ranks).size !== ranks.length) {
+          setVoteError('Ranks must be unique');
+          setVoteSubmitting(false);
+          return;
+        }
       }
     } else if (selected.some((s) => s.rank)) {
       setVoteError('Do not supply ranks for this poll');
@@ -447,11 +660,10 @@ export default function App() {
     };
 
     try {
-      const res = await fetch(`/api/polls/${poll.id}/vote`, {
+      const res = await authedFetch(`/api/polls/${poll.id}/vote`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
@@ -468,393 +680,443 @@ export default function App() {
     }
   };
 
-  const createPoll = async () => {
-    setCreating(true);
-    setCreateError(null);
-    try {
-      const res = await fetch('/api/polls', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: createForm.title,
-          description: createForm.description,
-          submissionOpensAt: createForm.submissionOpensAt,
-          submissionClosesAt: createForm.submissionClosesAt,
-          votingOpensAt: createForm.votingOpensAt,
-          votingClosesAt: createForm.votingClosesAt,
-          hideEntriesUntilVoting: createForm.hideEntriesUntilVoting,
-          maxSelections: createForm.maxSelections,
-          requireRanking: createForm.votingMethod === 2,
-          maxSubmissionsPerMember: createForm.maxSubmissionsPerMember,
-          votingMethod: createForm.votingMethod
-        })
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || res.statusText);
-      }
-      const data: PollResponse = await res.json();
-      setPoll(data);
-    } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Failed to create poll');
-    } finally {
-      setCreating(false);
+  const transitionPoll = async (pollId: string, path: string) => {
+    if (path === 'open-voting') {
+      const currentMethod = pollById(pollId)?.votingMethod ?? 1;
+      setOpenVotingModal({ pollId, selectedMethod: currentMethod, submitting: false });
+      return;
     }
-  };
 
-  const transitionPoll = async (path: string) => {
-    if (!poll) return;
+    const confirmation: ConfirmDialogConfig = (() => {
+      switch (path) {
+        case 'open-submissions':
+          return {
+            title: 'Open submissions?',
+            body: 'Submissions will open immediately and members can start sending entries.',
+            confirmLabel: 'Open submissions'
+          };
+        case 'start-review':
+          return {
+            title: 'Start review?',
+            body: 'Stop new submissions and move this poll into the review stage?',
+            confirmLabel: 'Start review'
+          };
+        case 'close':
+          return {
+            title: 'Close poll?',
+            body: 'End voting and publish results for this poll?',
+            confirmLabel: 'Close poll'
+          };
+        default:
+          return {
+            title: 'Proceed with poll change?',
+            body: 'Do you want to continue with this action?',
+            confirmLabel: 'Continue'
+          };
+      }
+    })();
+
+    const confirmed = await requestConfirm(confirmation);
+    if (!confirmed) return;
+
     try {
-      const res = await fetch(`/api/polls/${poll.id}/${path}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await authedFetch(`/api/polls/${pollId}/${path}`, { method: 'POST' });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const data: PollResponse = await res.json();
-      setPoll(data);
+      setSelectedPollId(pollId);
+      await refreshPoll(true, pollId);
+      await fetchActivePolls();
+      if (path === 'close') {
+        await fetchHistory();
+      }
     } catch (err) {
       setPollError(err instanceof Error ? err.message : 'Failed to update poll');
     }
   };
 
+  const handleConfirmOpenVoting = async () => {
+    if (!openVotingModal) return;
+    setPollError(null);
+    setOpenVotingModal((prev) => (prev ? { ...prev, submitting: true } : prev));
+
+    try {
+      const targetId = openVotingModal.pollId;
+      const currentMethod = pollById(targetId)?.votingMethod;
+      const desiredMethod = openVotingModal.selectedMethod;
+
+      if (currentMethod !== desiredMethod) {
+        const updateRes = await authedFetch(`/api/polls/${targetId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ votingMethod: desiredMethod })
+        });
+        if (!updateRes.ok) {
+          const text = await updateRes.text();
+          throw new Error(text || updateRes.statusText);
+        }
+      }
+
+      const res = await authedFetch(`/api/polls/${targetId}/open-voting`, { method: 'POST' });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+
+      setSelectedPollId(targetId);
+      await refreshPoll(true, targetId);
+      await fetchActivePolls();
+    } catch (err) {
+      setPollError(err instanceof Error ? err.message : 'Failed to open voting');
+    } finally {
+      setOpenVotingModal(null);
+    }
+  };
+
+  const handleCancelOpenVoting = () => setOpenVotingModal(null);
+
+  const deletePoll = async (pollId: string) => {
+    const wasClosed = poll?.id === pollId && (poll.status === 3 || poll.status === 4);
+    const confirmed = await requestConfirm({
+      title: 'Delete poll?',
+      body: 'Delete this poll and its assets? This cannot be undone.',
+      confirmLabel: 'Delete poll',
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await authedFetch(`/api/polls/${pollId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+
+      if (selectedPollId === pollId) {
+        clearSelectedPollData();
+        setSelectedPollId(null);
+      }
+
+      setHistory((prev) => prev.filter((p) => p.id !== pollId));
+      await fetchActivePolls();
+      await fetchHistory();
+      navigate(wasClosed ? '/history' : '/polls/current');
+    } catch (err) {
+      setPollError(err instanceof Error ? err.message : 'Failed to delete poll');
+    }
+  };
+
+  const updatePollMetadata = async (pollId: string, updates: { title?: string; description?: string }) => {
+    const payload: Record<string, unknown> = {};
+    if (updates.title !== undefined) payload.title = updates.title;
+    if (updates.description !== undefined) payload.description = updates.description;
+
+    try {
+      const res = await authedFetch(`/api/polls/${pollId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      const updated: PollResponse = await res.json();
+      setSelectedPollId(updated.id);
+      await refreshPoll(true, updated.id);
+      await fetchActivePolls();
+      return updated;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update poll';
+      setPollError(message);
+      throw err;
+    }
+  };
+
+  const updateSubmissionSettings = async (pollId: string, updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null }) => {
+    const payload: Record<string, unknown> = {};
+    if (updates.maxSubmissionsPerMember !== undefined) payload.maxSubmissionsPerMember = updates.maxSubmissionsPerMember;
+    if (updates.submissionClosesAt === null) payload.clearSubmissionClosesAt = true;
+    else if (updates.submissionClosesAt !== undefined) payload.submissionClosesAt = updates.submissionClosesAt;
+
+    try {
+      const res = await authedFetch(`/api/polls/${pollId}/submission-settings`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      const updated: PollResponse = await res.json();
+      setSelectedPollId(updated.id);
+      await refreshPoll(true, updated.id);
+      await fetchActivePolls();
+      return updated;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update submission settings';
+      setPollError(message);
+      throw err;
+    }
+  };
+
+  const updateVotingSettings = async (pollId: string, updates: { maxSelections?: number; votingClosesAt?: string | null }) => {
+    const payload: Record<string, unknown> = {};
+    if (updates.maxSelections !== undefined) payload.maxSelections = updates.maxSelections;
+    if (updates.votingClosesAt === null) payload.clearVotingClosesAt = true;
+    else if (updates.votingClosesAt !== undefined) payload.votingClosesAt = updates.votingClosesAt;
+
+    try {
+      const res = await authedFetch(`/api/polls/${pollId}/voting-settings`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      const updated: PollResponse = await res.json();
+      setSelectedPollId(updated.id);
+      await refreshPoll(true, updated.id);
+      await fetchActivePolls();
+      return updated;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update voting settings';
+      setPollError(message);
+      throw err;
+    }
+  };
+
+  const handleSelectPoll = async (pollId: string) => {
+    setSelectedPollId(pollId);
+    setPollError(null);
+    try {
+      await refreshPoll(true, pollId);
+      if (poll?.isAdmin && (poll.status === 2 || poll.status === 5)) {
+        await fetchVotingBreakdown(pollId);
+      }
+    } catch (err) {
+      setPollError(err instanceof Error ? err.message : 'Failed to load poll');
+    }
+  };
+
+  const refreshActiveAndSelected = async () => {
+    const actives = await fetchActivePolls();
+    let targetId = selectedPollId;
+    if (!targetId || (actives.length > 0 && !actives.some((p) => p.id === targetId))) {
+      targetId = actives[0]?.id ?? null;
+    }
+    setSelectedPollId(targetId);
+    if (targetId) {
+      await refreshPoll(true, targetId);
+    } else {
+      clearSelectedPollData();
+      setPollError(null);
+    }
+  };
+
+  const loginCta = useMemo(() => {
+    if (sessionState === 'loading') return 'Checking your account…';
+    if (config?.discordAuthorizeUrl) return 'Sign in with Discord';
+    return 'Sign in';
+  }, [config?.discordAuthorizeUrl, sessionState]);
+
+  const handleLogin = () => {
+    if (config?.discordAuthorizeUrl) {
+      window.location.href = config.discordAuthorizeUrl;
+    }
+  };
+
+  const isBootstrapping = sessionState === 'idle' || sessionState === 'loading';
+
   return (
-    <div className="page">
-      <header>
-        <div>
-          <p className="eyebrow">OpenVoting</p>
-          <h1>Discord login + API check</h1>
-          <p className="lede">Paste a JWT (or complete the Discord OAuth) and hit “Check my account”.</p>
-          {configError && <p className="error">Config error: {configError}</p>}
-        </div>
-        {config?.discordAuthorizeUrl && (
-          <a className="btn primary" href={config.discordAuthorizeUrl}>Start Discord login</a>
-        )}
-      </header>
-
-      <section className="card">
-        <label htmlFor="token">JWT token</label>
-        <textarea
-          id="token"
-          value={token}
-          onChange={(e) => saveToken(e.target.value)}
-          placeholder="Paste the JWT returned by POST /api/auth/discord"
-          rows={4}
+    <PageShell topbar={
+      <Topbar
+        sessionState={sessionState}
+        me={me}
+        config={config}
+        loginCta={loginCta}
+        onLogin={handleLogin}
+        onLogout={logout}
+      />
+    } flash={flash} configError={configError}>
+      {isBootstrapping ? (
+        <section className="card splash">
+          <p className="eyebrow">Loading</p>
+          <h2>Preparing your session…</h2>
+          <p className="muted">Checking server config and your sign-in status.</p>
+        </section>
+      ) : (
+      <Routes>
+        <Route
+          path="/"
+          element={<Home sessionState={sessionState} config={config} onLogin={handleLogin} />}
         />
-        <div className="actions">
-          <button className="btn" onClick={() => saveToken('')}>Clear</button>
-          <button className="btn primary" onClick={fetchMe} disabled={!token || status === 'loading'}>
-            {status === 'loading' ? 'Checking…' : 'Check my account'}
-          </button>
-        </div>
-        {error && <p className="error">{error}</p>}
-        {status === 'ok' && me && (
-          <div className="result">
-            <p><strong>Name:</strong> {me.displayName}</p>
-            <p><strong>Member ID:</strong> {me.memberId}</p>
-            <p><strong>Community:</strong> {me.communityId}</p>
-            <p><strong>Joined:</strong> {new Date(me.joinedAt).toLocaleString()}</p>
-            <p><strong>Admin:</strong> {me.isAdmin ? 'Yes' : 'No'}</p>
-            <p className={me.isEligible ? 'ok' : 'error'}>
-              <strong>Eligible:</strong> {me.isEligible ? 'Yes' : me.ineligibleReason ?? 'No'}
-            </p>
-          </div>
-        )}
-      </section>
-
-      {token && (
-        <section className="card">
-          <div className="section-head">
-            <h2>Current poll</h2>
-            <button className="btn" onClick={fetchCurrentPoll}>Refresh</button>
-          </div>
-          {pollError && <p className="error">{pollError}</p>}
-          {!poll && <p>No active poll.</p>}
-          {poll && (
-            <div className="result">
-              <p><strong>Title:</strong> {poll.title}</p>
-              <p><strong>Status:</strong> {PollStatusLabel(poll.status)}</p>
-              <p><strong>Method:</strong> {VotingMethodLabel(poll.votingMethod)}</p>
-              <p><strong>Submissions:</strong> {new Date(poll.submissionOpensAt).toLocaleString()} → {new Date(poll.submissionClosesAt).toLocaleString()}</p>
-              <p><strong>Voting:</strong> {new Date(poll.votingOpensAt).toLocaleString()} → {new Date(poll.votingClosesAt).toLocaleString()}</p>
-              {poll.mustHaveJoinedBefore && <p><strong>Join cutoff:</strong> {new Date(poll.mustHaveJoinedBefore).toLocaleString()}</p>}
-              {poll.requiredRoleIds.length > 0 && <p><strong>Required roles:</strong> {poll.requiredRoleIds.join(', ')}</p>}
-              <p><strong>Can submit:</strong> {poll.canSubmit ? 'Yes' : 'No'}</p>
-              <p><strong>Can vote:</strong> {poll.canVote ? 'Yes' : 'No'}</p>
-              {me?.isAdmin && poll.isAdmin && (
-                <div className="actions">
-                  {poll.status === 0 && <button className="btn primary" onClick={() => transitionPoll('open-submissions')}>Open submissions</button>}
-                  {poll.status === 1 && <button className="btn primary" onClick={() => transitionPoll('open-voting')}>Open voting</button>}
-                  {poll.status === 2 && <button className="btn" onClick={() => transitionPoll('close')}>Close poll</button>}
-                </div>
-              )}
-            </div>
-          )}
-        </section>
+        <Route
+          path="/polls/current"
+          element={
+            <ActivePollsPage
+              sessionState={sessionState}
+              me={me}
+              activePolls={activePolls}
+              pollError={pollError}
+              loading={activeLoading}
+              onRefresh={refreshActiveAndSelected}
+              createForm={createForm}
+              setCreateForm={setCreateForm}
+              creating={creating}
+              createError={createError}
+              onCreatePoll={createPoll}
+            />
+          }
+        />
+        <Route
+          path="/polls/current/:pollId"
+          element={
+            <CurrentPollPage
+              sessionState={sessionState}
+              me={me}
+              poll={poll}
+              pollError={pollError}
+              pollDetail={pollDetail}
+              entries={entries}
+              entriesError={entriesError}
+              entriesLoading={entriesLoading}
+              voteState={voteState}
+              voteError={voteError}
+              voteSubmitting={voteSubmitting}
+              voteInfo={voteInfo}
+              votingBreakdown={votingBreakdown}
+              votingBreakdownError={votingBreakdownError}
+              entryForm={entryForm}
+              entryFiles={entryFiles}
+              entrySubmitError={entrySubmitError}
+              entrySubmitting={entrySubmitting}
+              assetCache={assetCache}
+              onRefreshPoll={refreshActiveAndSelected}
+              onSelectPoll={handleSelectPoll}
+              onRefreshEntries={() => fetchEntries()}
+              onToggleSelection={toggleSelection}
+              onUpdateRank={updateRank}
+              onSubmitVote={submitVote}
+              onSubmitEntry={submitEntry}
+              onEntryFormChange={setEntryForm}
+              onEntryFilesChange={setEntryFiles}
+              onDisqualify={disqualifyEntry}
+              onRequalify={requalifyEntry}
+              onDeleteEntry={deleteEntry}
+              onTransition={transitionPoll}
+              onDeletePoll={deletePoll}
+              onUpdateMetadata={updatePollMetadata}
+              onUpdateSubmissionSettings={updateSubmissionSettings}
+              onUpdateVotingSettings={updateVotingSettings}
+              onRefreshBreakdown={onRefreshBreakdown}
+            />
+          }
+        />
+        <Route
+          path="/polls/:pollId"
+          element={
+            <CurrentPollPage
+              sessionState={sessionState}
+              me={me}
+              poll={poll}
+              pollError={pollError}
+              pollDetail={pollDetail}
+              entries={entries}
+              entriesError={entriesError}
+              entriesLoading={entriesLoading}
+              voteState={voteState}
+              voteError={voteError}
+              voteSubmitting={voteSubmitting}
+              voteInfo={voteInfo}
+              votingBreakdown={votingBreakdown}
+              votingBreakdownError={votingBreakdownError}
+              entryForm={entryForm}
+              entryFiles={entryFiles}
+              entrySubmitError={entrySubmitError}
+              entrySubmitting={entrySubmitting}
+              assetCache={assetCache}
+              onRefreshPoll={refreshActiveAndSelected}
+              onSelectPoll={handleSelectPoll}
+              onRefreshEntries={() => fetchEntries()}
+              onToggleSelection={toggleSelection}
+              onUpdateRank={updateRank}
+              onSubmitVote={submitVote}
+              onSubmitEntry={submitEntry}
+              onEntryFormChange={setEntryForm}
+              onEntryFilesChange={setEntryFiles}
+              onDisqualify={disqualifyEntry}
+              onRequalify={requalifyEntry}
+              onDeleteEntry={deleteEntry}
+              onTransition={transitionPoll}
+              onDeletePoll={deletePoll}
+              onUpdateMetadata={updatePollMetadata}
+              onUpdateSubmissionSettings={updateSubmissionSettings}
+              onUpdateVotingSettings={updateVotingSettings}
+              onRefreshBreakdown={onRefreshBreakdown}
+            />
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <HistoryPage
+              sessionState={sessionState}
+              history={history}
+              historyError={historyError}
+              assetCache={assetCache}
+              onRefresh={fetchHistory}
+            />
+          }
+        />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
       )}
-
-      {poll && (
-        <section className="card">
-          <div className="section-head">
-            <h2>Entries</h2>
-            <button className="btn" onClick={() => fetchEntries()}>Refresh entries</button>
-          </div>
-          {entriesError && <p className="error">{entriesError}</p>}
-          {entriesLoading && <p>Loading entries…</p>}
-          {!entriesLoading && entries !== null && entries.length === 0 && <p>No entries visible.</p>}
-          {!entriesLoading && entries && entries.length > 0 && (
-            <ul className="entries">
-              {entries.map((e) => (
-                <li key={e.id}>
-                  <div className="entry-head">
-                    <strong>{e.displayName}</strong>
-                    <span className="muted">{shortId(e.id)}</span>
-                  </div>
-                  {e.description && <p>{e.description}</p>}
-                  {assetCache[e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? '']?.url && (
-                    <img
-                      src={assetCache[e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? '']!.url}
-                      alt={e.displayName}
-                      className="entry-img"
-                    />
-                  )}
-                  <p className="muted">Original asset: {shortId(e.originalAssetId)}</p>
-                  {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-
-      {me?.isAdmin && (
-        <section className="card">
-          <h2>Create poll (admin)</h2>
-          <div className="form-grid">
-            <label>Title
-              <input value={createForm.title} onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })} />
-            </label>
-            <label>Description
-              <input value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
-            </label>
-            <label>Submission opens
-              <input type="datetime-local" value={toLocal(createForm.submissionOpensAt)} onChange={(e) => setCreateForm({ ...createForm, submissionOpensAt: fromLocal(e.target.value) })} />
-            </label>
-            <label>Submission closes
-              <input type="datetime-local" value={toLocal(createForm.submissionClosesAt)} onChange={(e) => setCreateForm({ ...createForm, submissionClosesAt: fromLocal(e.target.value) })} />
-            </label>
-            <label>Voting opens
-              <input type="datetime-local" value={toLocal(createForm.votingOpensAt)} onChange={(e) => setCreateForm({ ...createForm, votingOpensAt: fromLocal(e.target.value) })} />
-            </label>
-            <label>Voting closes
-              <input type="datetime-local" value={toLocal(createForm.votingClosesAt)} onChange={(e) => setCreateForm({ ...createForm, votingClosesAt: fromLocal(e.target.value) })} />
-            </label>
-            <label>Max selections
-              <input type="number" min={1} value={createForm.maxSelections} onChange={(e) => setCreateForm({ ...createForm, maxSelections: Number(e.target.value) })} />
-            </label>
-            <label>Max submissions per member
-              <input type="number" min={1} value={createForm.maxSubmissionsPerMember} onChange={(e) => setCreateForm({ ...createForm, maxSubmissionsPerMember: Number(e.target.value) })} />
-            </label>
-            <label>
-              <input type="checkbox" checked={createForm.hideEntriesUntilVoting} onChange={(e) => setCreateForm({ ...createForm, hideEntriesUntilVoting: e.target.checked })} /> Hide entries until voting
-            </label>
-            <label>Voting method
-              <select
-                value={createForm.votingMethod}
-                onChange={(e) => {
-                  const nextMethod = Number(e.target.value);
-                  setCreateForm({
-                    ...createForm,
-                    votingMethod: nextMethod,
-                    requireRanking: nextMethod === 2
-                  });
-                }}
-              >
-                <option value={1}>Approval</option>
-                <option value={2}>Instant Runoff (IRV)</option>
-              </select>
-            </label>
-            <label>
-              <input type="checkbox" checked={createForm.votingMethod === 2} disabled /> Ranking required for IRV
-            </label>
-          </div>
-          {createError && <p className="error">{createError}</p>}
-          <div className="actions">
-            <button className="btn primary" onClick={createPoll} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
-          </div>
-        </section>
-      )}
-
-      {poll?.canSubmit && (
-        <section className="card">
-          <h2>Submit entry</h2>
-          <div className="form-grid">
-            <label>Display name
-              <input value={entryForm.displayName} onChange={(e) => setEntryForm({ ...entryForm, displayName: e.target.value })} />
-            </label>
-            <label>Description
-              <input value={entryForm.description} onChange={(e) => setEntryForm({ ...entryForm, description: e.target.value })} />
-            </label>
-            <label>Original asset ID
-              <input value={entryForm.originalAssetId} onChange={(e) => setEntryForm({ ...entryForm, originalAssetId: e.target.value })} />
-            </label>
-            <label>Or upload original asset
-              <input type="file" onChange={(e) => setEntryFiles({ ...entryFiles, original: e.target.files?.[0] ?? undefined })} />
-            </label>
-            <label>Teaser asset ID (optional)
-              <input value={entryForm.teaserAssetId} onChange={(e) => setEntryForm({ ...entryForm, teaserAssetId: e.target.value })} />
-            </label>
-            <label>Or upload teaser asset
-              <input type="file" onChange={(e) => setEntryFiles({ ...entryFiles, teaser: e.target.files?.[0] ?? undefined })} />
-            </label>
-            <label>Public asset ID (optional)
-              <input value={entryForm.publicAssetId} onChange={(e) => setEntryForm({ ...entryForm, publicAssetId: e.target.value })} />
-            </label>
-            <label>Or upload public asset
-              <input type="file" onChange={(e) => setEntryFiles({ ...entryFiles, public: e.target.files?.[0] ?? undefined })} />
-            </label>
-          </div>
-          {entrySubmitError && <p className="error">{entrySubmitError}</p>}
-          <div className="actions">
-            <button className="btn primary" onClick={submitEntry} disabled={entrySubmitting}>{entrySubmitting ? 'Submitting…' : 'Submit entry'}</button>
-          </div>
-        </section>
-      )}
-
-      {poll?.canVote && entries && entries.length > 0 && (
-        <section className="card">
-          <h2>Vote</h2>
-          <p className="lede">Select up to {poll.maxSelections} entries{poll.requireRanking ? ' and provide unique ranks starting at 1.' : '.'}</p>
-          {voteError && <p className="error">{voteError}</p>}
-          <div className="entries vote-list">
-            {entries.map((e) => {
-              const current = voteState[e.id] ?? { selected: false, rank: '' };
-              const asset = assetCache[e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? ''];
-              return (
-                <div className="entry-vote" key={e.id}>
-                  <label>
+      {openVotingModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && handleCancelOpenVoting()}>
+          <div className="modal-card">
+            <p className="eyebrow">Voting</p>
+            <h3>Open voting</h3>
+            <p className="muted">Choose the voting method to use. This cannot be changed after voting starts.</p>
+            <div className="method-cards">
+              {votingMethodOptions.map((opt) => (
+                <label key={opt.id} className={`radio-card ${openVotingModal.selectedMethod === opt.id ? 'selected' : ''}`}>
+                  <div className="radio-head">
                     <input
-                      type="checkbox"
-                      checked={current.selected}
-                      onChange={(ev) => toggleSelection(e.id, ev.target.checked)}
+                      type="radio"
+                      name="voting-method"
+                      value={opt.id}
+                      checked={openVotingModal.selectedMethod === opt.id}
+                      onChange={() => setOpenVotingModal((prev) => (prev ? { ...prev, selectedMethod: opt.id } : prev))}
                     />
-                    <span className="entry-title">{e.displayName}</span>
-                    <span className="muted">{shortId(e.id)}</span>
-                  </label>
-                  {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
-                  {poll.requireRanking && current.selected && (
-                    <input
-                      type="number"
-                      min={1}
-                      max={entries.length}
-                      value={current.rank}
-                      onChange={(ev) => updateRank(e.id, ev.target.value)}
-                      placeholder="Rank"
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div className="actions">
-            <button className="btn primary" onClick={submitVote} disabled={voteSubmitting}>{voteSubmitting ? 'Submitting…' : 'Submit vote'}</button>
-          </div>
-          {voteInfo && (
-            <p className="muted">Last submitted: {voteInfo.submittedAt ? new Date(voteInfo.submittedAt).toLocaleString() : 'Pending'}</p>
-          )}
-        </section>
-      )}
-
-      {token && (
-        <section className="card">
-          <div className="section-head">
-            <h2>Past polls</h2>
-            <button className="btn" onClick={fetchHistory}>Refresh</button>
-          </div>
-          {historyError && <p className="error">{historyError}</p>}
-          {history.length === 0 && !historyError && <p>No past polls.</p>}
-          {history.length > 0 && (
-            <ul className="entries">
-              {history.map((p) => (
-                <li key={p.id}>
-                  <div className="entry-head">
-                    <strong>{p.title}</strong>
-                    <span className="muted">{VotingMethodLabel(p.votingMethod)}</span>
-                  </div>
-                  <p className="muted">Closed: {new Date(p.votingClosesAt).toLocaleString()}</p>
-                  {p.winners.length === 0 && <p>No votes recorded.</p>}
-                  {p.winners.length > 0 && (
                     <div>
-                      <p className="winner-badge">{WinnerLabel(p.winners.length)}</p>
-                      <ul className="winners">
-                        {p.winners.map((w) => (
-                          <li key={w.entryId} className="winner-chip">
-                            <div>
-                              <strong>{w.displayName}</strong>
-                              <span className="muted"> — {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+                      <strong>{opt.name}</strong>
+                      <p className="muted">{opt.summary}</p>
                     </div>
-                  )}
-                </li>
+                  </div>
+                  <ul>
+                    {opt.steps.map((s, idx) => (
+                      <li key={idx}>{s}</li>
+                    ))}
+                  </ul>
+                </label>
               ))}
-            </ul>
-          )}
-        </section>
+            </div>
+            <div className="modal-actions">
+              <button className="ghost" onClick={handleCancelOpenVoting} disabled={openVotingModal.submitting}>Cancel</button>
+              <button className="primary" onClick={handleConfirmOpenVoting} disabled={openVotingModal.submitting}>
+                {openVotingModal.submitting ? 'Opening…' : 'Open voting'}
+              </button>
+            </div>
+            <p className="muted">Voting method cannot be modified after the vote has started.</p>
+          </div>
+        </div>
       )}
-    </div>
+      <ConfirmDialog config={confirmConfig} onConfirm={() => settleConfirm(true)} onCancel={() => settleConfirm(false)} />
+    </PageShell>
   );
-}
-
-function PollStatusLabel(status: number) {
-  switch (status) {
-    case 0:
-      return 'Draft';
-    case 1:
-      return 'Submissions open';
-    case 2:
-      return 'Voting open';
-    case 3:
-      return 'Closed';
-    case 4:
-      return 'Cancelled';
-    default:
-      return `Unknown (${status})`;
-  }
-}
-
-function VotingMethodLabel(method: number) {
-  switch (method) {
-    case 1:
-      return 'Approval';
-    case 2:
-      return 'Instant Runoff (IRV)';
-    default:
-      return `Unknown (${method})`;
-  }
-}
-
-function WinnerLabel(count: number) {
-  return count > 1 ? 'Winners (tie)' : 'Winner';
-}
-
-function toLocal(iso: string) {
-  const d = new Date(iso);
-  const offsetMs = d.getTimezoneOffset() * 60 * 1000;
-  return new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
-}
-
-function fromLocal(local: string) {
-  return new Date(local).toISOString();
-}
-
-function shortId(id: string) {
-  return id.length > 8 ? `${id.slice(0, 4)}…${id.slice(-4)}` : id;
 }

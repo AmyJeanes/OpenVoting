@@ -1,0 +1,176 @@
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { AuthPrompt } from './AuthPrompt';
+import type { AssetUploadResponse, PollDetailResponse, SessionState } from '../types';
+import { formatWindow, pollStatusLabel, votingMethodLabel } from '../utils/format';
+
+export type PollDetailPageProps = {
+  sessionState: SessionState;
+  fetchDetail: (id: string) => Promise<PollDetailResponse>;
+  assetCache: Record<string, AssetUploadResponse>;
+};
+
+export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDetailPageProps) {
+  const { pollId } = useParams();
+  const [detail, setDetail] = useState<PollDetailResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!pollId) return;
+    let active = true;
+    setLoading(true);
+    setError(null);
+    fetchDetail(pollId)
+      .then((data) => {
+        if (active) setDetail(data);
+      })
+      .catch((err) => {
+        if (active) setError(err instanceof Error ? err.message : 'Failed to load poll');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [fetchDetail, pollId]);
+
+  if (sessionState !== 'authenticated') {
+    return <AuthPrompt />;
+  }
+
+  if (!pollId) {
+    return (
+      <section className="card">
+        <p className="error">No poll id provided.</p>
+        <Link className="ghost" to="/history">Back to history</Link>
+      </section>
+    );
+  }
+
+  if (loading) {
+    return (
+      <section className="card">
+        <p className="muted">Loading poll…</p>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="card">
+        <p className="error">{error}</p>
+        <Link className="ghost" to="/history">Back to history</Link>
+      </section>
+    );
+  }
+
+  if (!detail) {
+    return (
+      <section className="card">
+        <p className="muted">No poll found.</p>
+        <Link className="ghost" to="/history">Back to history</Link>
+      </section>
+    );
+  }
+
+  return (
+    <div className="stack">
+      <section className="card">
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">Poll details</p>
+            <h2>{detail.title}</h2>
+            <p className="muted">{detail.description}</p>
+          </div>
+          <div className="actions">
+            <span className="pill subtle">{votingMethodLabel(detail.votingMethod)}</span>
+            <span className="pill">{pollStatusLabel(detail.status)}</span>
+          </div>
+        </div>
+        <div className="details-grid">
+          <div>
+            <p className="muted">Submissions</p>
+            <p className="metric">{formatWindow(detail.submissionOpensAt, detail.submissionClosesAt)}</p>
+          </div>
+          <div>
+            <p className="muted">Voting</p>
+            <p className="metric">{formatWindow(detail.votingOpensAt, detail.votingClosesAt)}</p>
+          </div>
+          <div>
+            <p className="muted">Selections</p>
+            <p className="metric">Up to {detail.maxSelections}</p>
+          </div>
+          <div>
+            <p className="muted">Visibility</p>
+            <p className="metric">{detail.hideEntriesUntilVoting ? 'Hidden until voting' : 'Entries visible'}</p>
+          </div>
+        </div>
+        {detail.winners.length > 0 && (
+          <div className="winners">
+            {detail.winners.map((w) => (
+              <div key={w.entryId} className="winner-chip">
+                <div>
+                  <strong>{w.displayName}</strong>
+                  <span className="muted"> · {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
+                </div>
+                {w.assetId && assetCache[w.assetId]?.url && (
+                  <img src={assetCache[w.assetId]!.url} alt={w.displayName} className="winner-img" />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="card">
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">Entries</p>
+            <h3>Full breakdown</h3>
+          </div>
+          <Link className="ghost" to="/history">Back to history</Link>
+        </div>
+        {detail.entries.length === 0 && <p className="muted">No entries recorded.</p>}
+        {detail.entries.length > 0 && (
+          <ul className="entries">
+            {detail.entries.map((e) => {
+              const assetId = e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? '';
+              const asset = assetCache[assetId];
+              return (
+                <li key={e.id} className="entry-card">
+                  <div className="entry-head">
+                    <div>
+                      <p className="entry-title">{e.displayName}</p>
+                      <p className="muted">Submitted {new Date(e.createdAt).toLocaleString()}</p>
+                      {e.submittedByDisplayName && <p className="muted">By {e.submittedByDisplayName}</p>}
+                      {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
+                    </div>
+                    <div className="badges">
+                      {typeof e.position === 'number' && <span className="pill subtle">#{e.position}</span>}
+                      {e.isWinner && <span className="pill">Winner</span>}
+                    </div>
+                  </div>
+                  {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
+                  <p className="muted">{e.description}</p>
+                  <div className="actions">
+                    <span className="pill subtle">{detail.votingMethod === 2 ? `${e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0} first-choice` : `${e.approvalVotes} approvals`}</span>
+                  </div>
+                  {detail.votingMethod === 2 && e.rankCounts.length > 0 && (
+                    <div className="muted">
+                      {e.rankCounts.map((r) => (
+                        <span key={r.rank} className="pill subtle">Rank {r.rank}: {r.votes}</span>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}

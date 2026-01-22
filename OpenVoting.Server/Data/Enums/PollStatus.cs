@@ -6,5 +6,6 @@ public enum PollStatus
   SubmissionOpen = 1,
   VotingOpen = 2,
   Closed = 3,
-  Cancelled = 4
+  Cancelled = 4,
+  Review = 5
 }

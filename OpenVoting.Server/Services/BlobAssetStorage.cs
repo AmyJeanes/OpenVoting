@@ -9,6 +9,7 @@ namespace OpenVoting.Server.Services;
 public interface IAssetStorage
 {
 	Task<Asset> SaveAsync(IFormFile file, CancellationToken cancellationToken);
+	Task DeleteAsync(string storageKey, CancellationToken cancellationToken);
 }
 
 public sealed class BlobAssetStorage : IAssetStorage
@@ -64,5 +65,17 @@ public sealed class BlobAssetStorage : IAssetStorage
 			Sha256 = sha,
 			CreatedAt = DateTimeOffset.UtcNow
 		};
+	}
+
+	public async Task DeleteAsync(string storageKey, CancellationToken cancellationToken)
+	{
+		if (string.IsNullOrWhiteSpace(storageKey))
+		{
+			return;
+		}
+
+		var container = _serviceClient.GetBlobContainerClient(_settings.ContainerName);
+		var blob = container.GetBlobClient(storageKey);
+		await blob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: cancellationToken);
 	}
 }

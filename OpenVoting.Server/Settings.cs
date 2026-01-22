@@ -5,6 +5,7 @@ public sealed class Settings
 	public DiscordSettings Discord { get; init; } = new();
 	public JwtSettings Jwt { get; init; } = new();
 	public BlobStorageSettings BlobStorage { get; init; } = new();
+	public string ServerName { get; init; } = "OpenVoting";
 }
 
 public sealed class DiscordSettings
