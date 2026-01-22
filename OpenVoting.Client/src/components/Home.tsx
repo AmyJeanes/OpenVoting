@@ -12,7 +12,7 @@ export function Home({ sessionState, config, onLogin }: HomeProps) {
   return (
     <section className="card hero">
       <div>
-        <p className="eyebrow">OpenVoting</p>
+        <p className="eyebrow">Live voting</p>
         <h2>Run shareable polls without the chaos.</h2>
         <p className="lede">Authenticate with Discord, share direct links for live competitions, and keep admin tools separate from the voting surface.</p>
         <div className="actions">
@@ -21,9 +21,9 @@ export function Home({ sessionState, config, onLogin }: HomeProps) {
               {config?.discordAuthorizeUrl ? 'Start sign-in' : 'Loading login…'}
             </button>
           ) : (
-            <Link className="primary" to="/polls/current">Go to live poll</Link>
+               <Link className="primary" to="/polls/live">Go to live poll</Link>
           )}
-          <Link className="ghost" to="/history">See past polls</Link>
+            <Link className="ghost" to="/polls/history">See past polls</Link>
         </div>
       </div>
       <div className="hero-card">

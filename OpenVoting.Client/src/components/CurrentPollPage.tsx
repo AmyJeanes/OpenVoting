@@ -32,11 +32,8 @@ export type CurrentPollProps = {
   entryForm: {
     displayName: string;
     description: string;
-    originalAssetId: string;
-    teaserAssetId: string;
-    publicAssetId: string;
   };
-  entryFiles: { original?: File; teaser?: File; public?: File };
+  entryFiles: { original?: File };
   entrySubmitError: string | null;
   entrySubmitting: boolean;
   assetCache: Record<string, AssetUploadResponse>;
@@ -408,7 +405,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
             {poll?.description && <p className="muted">{poll.description}</p>}
           </div>
           <div className="actions">
-            <Link className="ghost" to="/polls/current">Back to live polls</Link>
+            <Link className="ghost" to="/polls/live">Back to live polls</Link>
             <button className="ghost" onClick={onRefreshPoll}>Refresh</button>
           </div>
         </div>
@@ -421,7 +418,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
               <p className="metric">{pollStatusLabel(poll.status)}</p>
             </div>
             <div>
-              <p className="muted">Method</p>
+              <p className="muted">Voting method</p>
               <div className="metric-row">
                 <p className="metric">{votingMethodLabel(poll.votingMethod)}</p>
                 <VotingMethodInfo method={poll.votingMethod} />
@@ -604,6 +601,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
             <ul className="entries entry-grid">
               {entries.map((e) => {
                 const breakdown = breakdownByEntryId.get(e.id);
+                const asset = assetCache[e.originalAssetId];
                 return (
                   <li key={e.id} className="entry-card">
                     <div className="entry-head">
@@ -613,9 +611,9 @@ export function CurrentPollPage(props: CurrentPollProps) {
                         {e.submittedByDisplayName && <p className="muted">By {e.submittedByDisplayName}</p>}
                       </div>
                     </div>
-                    {assetCache[e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? '']?.url && (
+                    {asset?.url && (
                       <img
-                        src={assetCache[e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? '']!.url}
+                        src={asset.url}
                         alt={e.displayName}
                         className="entry-img"
                       />
@@ -691,23 +689,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
             <label>Description
               <input value={entryForm.description} onChange={(e) => onEntryFormChange({ ...entryForm, description: e.target.value })} />
             </label>
-            <label>Original asset ID
-              <input value={entryForm.originalAssetId} onChange={(e) => onEntryFormChange({ ...entryForm, originalAssetId: e.target.value })} />
-            </label>
-            <label>Or upload original asset
-              <input type="file" onChange={(e) => onEntryFilesChange({ ...entryFiles, original: e.target.files?.[0] ?? undefined })} />
-            </label>
-            <label>Teaser asset ID (optional)
-              <input value={entryForm.teaserAssetId} onChange={(e) => onEntryFormChange({ ...entryForm, teaserAssetId: e.target.value })} />
-            </label>
-            <label>Or upload teaser asset
-              <input type="file" onChange={(e) => onEntryFilesChange({ ...entryFiles, teaser: e.target.files?.[0] ?? undefined })} />
-            </label>
-            <label>Public asset ID (optional)
-              <input value={entryForm.publicAssetId} onChange={(e) => onEntryFormChange({ ...entryForm, publicAssetId: e.target.value })} />
-            </label>
-            <label>Or upload public asset
-              <input type="file" onChange={(e) => onEntryFilesChange({ ...entryFiles, public: e.target.files?.[0] ?? undefined })} />
+            <label>Upload image
+              <input type="file" accept="image/*" onChange={(e) => onEntryFilesChange({ ...entryFiles, original: e.target.files?.[0] ?? undefined })} />
             </label>
           </div>
           {entrySubmitError && <p className="error">{entrySubmitError}</p>}
@@ -725,7 +708,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
           </div>
           <ul className="entries entry-grid">
             {myEntries.map((e) => {
-              const asset = assetCache[e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? ''];
+              const asset = assetCache[e.originalAssetId];
               return (
                 <li key={e.id} className="entry-card">
                   <div className="entry-head">
@@ -775,7 +758,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
           <div className="vote-grid">
             {entries.map((e) => {
               const current = voteState[e.id] ?? { selected: false, rank: '' };
-              const asset = assetCache[e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? ''];
+              const asset = assetCache[e.originalAssetId];
               const isSelected = current.selected;
               return (
                 <div key={e.id} className={`entry-card vote-card ${isSelected ? 'selected' : ''}`}>
@@ -877,8 +860,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
           {pollDetail.entries.length > 0 && (
             <ul className="entries">
               {pollDetail.entries.map((e) => {
-                const assetId = e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? '';
-                const asset = assetCache[assetId];
+                const asset = assetCache[e.originalAssetId];
                 const firstChoice = pollDetail.votingMethod === 2 ? e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0 : undefined;
                 return (
                   <li key={e.id} className="entry-card">

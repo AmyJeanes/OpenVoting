@@ -322,24 +322,6 @@ public sealed class PollEntriesController : ControllerBase
 			return BadRequest("Original asset not found");
 		}
 
-		if (request.TeaserAssetId.HasValue)
-		{
-			var teaserExists = await _db.Assets.AnyAsync(a => a.Id == request.TeaserAssetId.Value, cancellationToken);
-			if (!teaserExists)
-			{
-				return BadRequest("Teaser asset not found");
-			}
-		}
-
-		if (request.PublicAssetId.HasValue)
-		{
-			var publicExists = await _db.Assets.AnyAsync(a => a.Id == request.PublicAssetId.Value, cancellationToken);
-			if (!publicExists)
-			{
-				return BadRequest("Public asset not found");
-			}
-		}
-
 		var entry = new PollEntry
 		{
 			Id = Guid.NewGuid(),
@@ -348,8 +330,8 @@ public sealed class PollEntriesController : ControllerBase
 			DisplayName = request.DisplayName,
 			Description = request.Description,
 			OriginalAssetId = request.OriginalAssetId,
-			TeaserAssetId = request.TeaserAssetId,
-			PublicAssetId = request.PublicAssetId,
+			TeaserAssetId = null,
+			PublicAssetId = null,
 			CreatedAt = now,
 			IsDisqualified = false
 		};

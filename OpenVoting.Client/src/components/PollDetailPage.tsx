@@ -45,7 +45,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
     return (
       <section className="card">
         <p className="error">No poll id provided.</p>
-        <Link className="ghost" to="/history">Back to history</Link>
+          <Link className="ghost" to="/polls/history">Back to history</Link>
       </section>
     );
   }
@@ -62,7 +62,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
     return (
       <section className="card">
         <p className="error">{error}</p>
-        <Link className="ghost" to="/history">Back to history</Link>
+          <Link className="ghost" to="/polls/history">Back to history</Link>
       </section>
     );
   }
@@ -71,7 +71,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
     return (
       <section className="card">
         <p className="muted">No poll found.</p>
-        <Link className="ghost" to="/history">Back to history</Link>
+          <Link className="ghost" to="/polls/history">Back to history</Link>
       </section>
     );
   }
@@ -131,7 +131,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
             <p className="eyebrow">Entries</p>
             <h3>Full breakdown</h3>
           </div>
-          <Link className="ghost" to="/history">Back to history</Link>
+            <Link className="ghost" to="/polls/history">Back to history</Link>
         </div>
         {detail.entries.length === 0 && <p className="muted">No entries recorded.</p>}
         {detail.entries.length > 0 && (

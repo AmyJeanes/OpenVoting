@@ -1,12 +1,11 @@
 /// <reference types="w3c-web-usb" />
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import './app.css';
 import {
   ActivePollsPage,
   CurrentPollPage,
   HistoryPage,
-  Home,
   NotFound,
   PageShell,
   Topbar,
@@ -37,10 +36,7 @@ const defaultCreateForm = {
 
 const defaultEntryForm = {
   displayName: '',
-  description: '',
-  originalAssetId: '',
-  teaserAssetId: '',
-  publicAssetId: ''
+  description: ''
 };
 
 export default function App() {
@@ -63,7 +59,7 @@ export default function App() {
   const [assetCache, setAssetCache] = useState<Record<string, AssetUploadResponse>>({});
 
   const [entryForm, setEntryForm] = useState(defaultEntryForm);
-  const [entryFiles, setEntryFiles] = useState<{ original?: File; teaser?: File; public?: File }>({});
+  const [entryFiles, setEntryFiles] = useState<{ original?: File }>({});
   const [entrySubmitting, setEntrySubmitting] = useState(false);
   const [entrySubmitError, setEntrySubmitError] = useState<string | null>(null);
 
@@ -123,7 +119,7 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    const name = config?.serverName?.trim() || 'OpenVoting';
+    const name = config?.serverName?.trim() || 'Voting';
     document.title = `${name} Voting`;
   }, [config?.serverName]);
 
@@ -268,7 +264,7 @@ export default function App() {
       setSelectedPollId(created.id);
       await fetchActivePolls();
       await refreshPoll(true, created.id);
-      navigate('/polls/current');
+      navigate('/polls/live');
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create poll');
     } finally {
@@ -460,12 +456,10 @@ export default function App() {
     }
   };
 
-  const loadAssetsForEntries = (data: Array<{ originalAssetId: string; teaserAssetId?: string; publicAssetId?: string }>) => {
+  const loadAssetsForEntries = (data: Array<{ originalAssetId: string }>) => {
     const ids = new Set<string>();
     data.forEach((e) => {
-      if (e.publicAssetId) ids.add(e.publicAssetId);
-      else if (e.teaserAssetId) ids.add(e.teaserAssetId);
-      else if (e.originalAssetId) ids.add(e.originalAssetId);
+      if (e.originalAssetId) ids.add(e.originalAssetId);
     });
     ids.forEach((id) => loadAsset(id));
   };
@@ -489,16 +483,12 @@ export default function App() {
     setEntrySubmitError(null);
     setEntrySubmitting(true);
     try {
-      const ensureAsset = async (explicitId: string, file?: File) => {
-        if (explicitId) return explicitId;
-        if (!file) throw new Error('Provide an asset file or ID');
-        const upload = await uploadAsset(file);
-        return upload.id;
-      };
+      if (!entryFiles.original) {
+        throw new Error('Upload an image to submit.');
+      }
 
-      const originalId = await ensureAsset(entryForm.originalAssetId, entryFiles.original);
-      const teaserId = entryForm.teaserAssetId || (entryFiles.teaser ? (await uploadAsset(entryFiles.teaser)).id : '');
-      const publicId = entryForm.publicAssetId || (entryFiles.public ? (await uploadAsset(entryFiles.public)).id : '');
+      const upload = await uploadAsset(entryFiles.original);
+      const originalId = upload.id;
 
       const res = await authedFetch(`/api/polls/${poll.id}/entries`, {
         method: 'POST',
@@ -508,9 +498,7 @@ export default function App() {
         body: JSON.stringify({
           displayName: entryForm.displayName.trim(),
           description: entryForm.description.trim() || undefined,
-          originalAssetId: originalId,
-          teaserAssetId: teaserId || undefined,
-          publicAssetId: publicId || undefined
+          originalAssetId: originalId
         })
       });
       if (!res.ok) {
@@ -801,7 +789,7 @@ export default function App() {
       setHistory((prev) => prev.filter((p) => p.id !== pollId));
       await fetchActivePolls();
       await fetchHistory();
-      navigate(wasClosed ? '/history' : '/polls/current');
+      navigate(wasClosed ? '/polls/history' : '/polls/live');
     } catch (err) {
       setPollError(err instanceof Error ? err.message : 'Failed to delete poll');
     }
@@ -931,6 +919,7 @@ export default function App() {
   };
 
   const isBootstrapping = sessionState === 'idle' || sessionState === 'loading';
+  const hasLivePolls = activePolls.length > 0;
 
   return (
     <PageShell topbar={
@@ -939,6 +928,7 @@ export default function App() {
         me={me}
         config={config}
         loginCta={loginCta}
+        hasLivePolls={hasLivePolls}
         onLogin={handleLogin}
         onLogout={logout}
       />
@@ -951,12 +941,9 @@ export default function App() {
         </section>
       ) : (
       <Routes>
+        <Route path="/" element={<Navigate to="/polls/live" replace />} />
         <Route
-          path="/"
-          element={<Home sessionState={sessionState} config={config} onLogin={handleLogin} />}
-        />
-        <Route
-          path="/polls/current"
+          path="/polls/live"
           element={
             <ActivePollsPage
               sessionState={sessionState}
@@ -974,7 +961,7 @@ export default function App() {
           }
         />
         <Route
-          path="/polls/current/:pollId"
+          path="/polls/live/:pollId"
           element={
             <CurrentPollPage
               sessionState={sessionState}
@@ -1062,7 +1049,7 @@ export default function App() {
           }
         />
         <Route
-          path="/history"
+          path="/polls/history"
           element={
             <HistoryPage
               sessionState={sessionState}

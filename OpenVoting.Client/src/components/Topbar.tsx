@@ -6,25 +6,35 @@ export type TopbarProps = {
   me: MeResponse | null;
   config: ConfigResponse | null;
   loginCta: string;
+  hasLivePolls: boolean;
   onLogin: () => void;
   onLogout: (message?: string) => void;
 };
 
-export function Topbar({ sessionState, me, config, loginCta, onLogin, onLogout }: TopbarProps) {
-  const serverName = config?.serverName?.trim() || 'OpenVoting';
+export function Topbar({ sessionState, me, config, loginCta, hasLivePolls, onLogin, onLogout }: TopbarProps) {
+  const serverName = config?.serverName?.trim() || 'Voting';
 
   return (
     <header className="topbar">
       <div className="brand">
-        <Link to="/">
-          <h1>{serverName} Voting</h1>
+        <Link to="/polls/live" className="brand-link">
+          <div className="brand-mark">VP</div>
+          <div className="brand-copy">
+            {hasLivePolls && (
+              <div className="brand-row">
+                <span className="pill live-pill"><span className="live-dot" aria-hidden="true" />Live</span>
+              </div>
+            )}
+            <h1 className="brand-title">{serverName} Voting</h1>
+            <p className="brand-sub">Real-time competitions with Discord sign-in.</p>
+          </div>
         </Link>
       </div>
       <nav className="nav">
-          <NavLink to="/polls/current" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-            Live polls
+        <NavLink to="/polls/live" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+          Live polls
         </NavLink>
-        <NavLink to="/history" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+        <NavLink to="/polls/history" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
           Past polls
         </NavLink>
       </nav>
