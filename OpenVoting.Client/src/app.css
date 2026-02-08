@@ -602,11 +602,20 @@ textarea {
     color: var(--link);
 }
 
-.toast {
+.toast-stack {
     position: fixed;
     top: 18px;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+    z-index: 1100;
+    pointer-events: none;
+}
+
+.toast {
+    position: relative;
     background: var(--surface);
     border: 1px solid var(--selected-border);
     border-radius: 12px;
@@ -615,19 +624,33 @@ textarea {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    z-index: 1100;
     animation: dropfade 180ms ease-out;
     cursor: pointer;
+    pointer-events: auto;
+    min-width: 240px;
+    max-width: 420px;
+}
+
+.toast.success {
+    background: var(--toast-success-bg);
+    border-color: var(--toast-success-border);
+    color: var(--toast-success-text);
+}
+
+.toast.error {
+    background: var(--toast-error-bg);
+    border-color: var(--toast-error-border);
+    color: var(--toast-error-text);
 }
 
 @keyframes dropfade {
     from {
         opacity: 0;
-        transform: translate(-50%, -10px);
+        transform: translateY(-8px);
     }
     to {
         opacity: 1;
-        transform: translate(-50%, 0);
+        transform: translateY(0);
     }
 }
 

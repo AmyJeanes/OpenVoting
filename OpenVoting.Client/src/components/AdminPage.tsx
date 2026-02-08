@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { AuthPrompt } from './AuthPrompt';
+import { useToast } from './ToastProvider';
 import type { Dispatch, SetStateAction } from 'react';
 import type { FieldRequirement, SessionState } from '../types';
 
@@ -27,6 +29,12 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
   if (!me?.isAdmin) {
     return <section className="card"><p>You need admin access to manage polls.</p></section>;
   }
+
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    if (createError) showToast(createError, { tone: 'error' });
+  }, [createError, showToast]);
 
   const requirementOptions = [
     { value: 0, label: 'Off' },
@@ -66,7 +74,6 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
             </select>
           </label>
         </div>
-        {createError && <p className="error">{createError}</p>}
         <div className="actions">
           <button className="primary" onClick={onCreatePoll} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
         </div>

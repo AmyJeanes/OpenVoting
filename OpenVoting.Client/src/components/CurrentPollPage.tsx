@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { ConfirmDialog, type ConfirmDialogConfig } from './ConfirmDialog';
 import { VotingMethodInfo } from './VotingMethodInfo';
+import { useToast } from './ToastProvider';
 import type {
   AssetUploadResponse,
   PollEntryResponse,
@@ -68,14 +69,12 @@ export function CurrentPollPage(props: CurrentPollProps) {
     entriesError,
     entriesLoading,
     voteState,
-    voteError,
     voteSubmitting,
     voteInfo,
     votingBreakdown,
     votingBreakdownError,
     entryForm,
     entryFiles,
-    entrySubmitError,
     entrySubmitting,
     assetCache,
     onRefreshPoll,
@@ -113,6 +112,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const submissionsRemaining = poll && poll.maxSubmissionsPerMember > 0
     ? Math.max(0, poll.maxSubmissionsPerMember - myEntries.length)
     : null;
+  const { showToast } = useToast();
   const [confirmConfig, setConfirmConfig] = useState<ConfirmDialogConfig | null>(null);
   const [pendingEntryId, setPendingEntryId] = useState<string | null>(null);
   const [pendingReason, setPendingReason] = useState('');
@@ -125,7 +125,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
   }, [votingBreakdown]);
   const [irvStage, setIrvStage] = useState<'select' | 'rank'>('select');
   const [rankedIds, setRankedIds] = useState<string[]>([]);
-  const [rankError, setRankError] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverAfter, setDragOverAfter] = useState(false);
@@ -202,9 +201,19 @@ export function CurrentPollPage(props: CurrentPollProps) {
   });
   const [submissionForm, setSubmissionForm] = useState({ maxSubmissionsPerMember: 1, submissionClosesAt: '' });
   const [votingForm, setVotingForm] = useState({ maxSelections: 1, votingClosesAt: '' });
-  const [settingsError, setSettingsError] = useState<string | null>(null);
-  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
+
+  useEffect(() => {
+    if (pollError) showToast(pollError, { tone: 'error' });
+  }, [pollError, showToast]);
+
+  useEffect(() => {
+    if (entriesError) showToast(entriesError, { tone: 'error' });
+  }, [entriesError, showToast]);
+
+  useEffect(() => {
+    if (votingBreakdownError) showToast(votingBreakdownError, { tone: 'error' });
+  }, [votingBreakdownError, showToast]);
 
   useEffect(() => {
     if (pollId) {
@@ -216,7 +225,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
     if (!poll?.requireRanking) {
       setIrvStage('select');
       setRankedIds([]);
-      setRankError(null);
       return;
     }
 
@@ -234,7 +242,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
       .map((e) => e.id);
 
     setIrvStage('select');
-    setRankError(null);
     setRankedIds(ordered);
   }, [poll?.id, poll?.requireRanking, voteInfo?.voteId, entries]);
 
@@ -277,11 +284,9 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
   const handleSaveSettings = async () => {
     if (!poll) return;
-    setSettingsError(null);
-    setSettingsMessage(null);
 
     if (metaForm.titleRequirement === 0 && metaForm.descriptionRequirement === 0 && metaForm.imageRequirement === 0) {
-      setSettingsError('Enable at least one submission field.');
+      showToast('Enable at least one submission field.', { tone: 'error' });
       return;
     }
 
@@ -290,7 +295,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
     const votingUpdates = buildVotingUpdates();
 
     if (!metaUpdates && !submissionUpdates && !votingUpdates) {
-      setSettingsMessage('Nothing to update');
+      showToast('Nothing to update', { tone: 'info' });
       return;
     }
 
@@ -299,9 +304,9 @@ export function CurrentPollPage(props: CurrentPollProps) {
       if (metaUpdates) await onUpdateMetadata(poll.id, metaUpdates);
       if (submissionUpdates) await onUpdateSubmissionSettings(poll.id, submissionUpdates);
       if (votingUpdates) await onUpdateVotingSettings(poll.id, votingUpdates);
-      setSettingsMessage('Poll settings updated');
+      showToast('Poll settings updated', { tone: 'success' });
     } catch (err) {
-      setSettingsError(err instanceof Error ? err.message : 'Failed to update poll settings');
+      showToast(err instanceof Error ? err.message : 'Failed to update poll settings', { tone: 'error' });
     } finally {
       setSettingsSaving(false);
     }
@@ -352,18 +357,19 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const handleProceedToRanking = () => {
     if (!poll || !poll.requireRanking) return;
     if (selectedEntries.length === 0) {
-      setRankError('Select at least one entry to rank.');
+      const message = 'Select at least one entry to rank.';
+      showToast(message, { tone: 'error' });
       return;
     }
     if (selectedEntries.length > poll.maxSelections) {
-      setRankError(`Select at most ${poll.maxSelections} entries.`);
+      const message = `Select at most ${poll.maxSelections} entries.`;
+      showToast(message, { tone: 'error' });
       return;
     }
     const selectedIds = selectedEntries.map((e) => e.id);
     const ordered = rankedIds.filter((id) => selectedIds.includes(id));
     const remaining = selectedIds.filter((id) => !ordered.includes(id));
     setRankedIds([...ordered, ...remaining]);
-    setRankError(null);
     setIrvStage('rank');
   };
 
@@ -408,7 +414,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
   const handleRankSubmit = () => {
     if (rankedIds.length === 0) {
-      setRankError('Select entries to rank.');
+      const message = 'Select entries to rank.';
+      showToast(message, { tone: 'error' });
       return;
     }
     onSubmitVote(rankedIds);
@@ -417,7 +424,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const handleClearSelection = () => {
     entries.forEach((e) => handleToggleSelection(e.id, false));
     setRankedIds([]);
-    setRankError(null);
   };
 
   useEffect(() => {
@@ -437,8 +443,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
       maxSelections: poll.maxSelections,
       votingClosesAt: isMaxTimestamp(poll.votingClosesAt) ? '' : toLocal(poll.votingClosesAt)
     });
-    setSettingsError(null);
-    setSettingsMessage(null);
   }, [poll?.id]);
 
   const dialogConfig = confirmConfig
@@ -479,7 +483,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
             <button className="ghost" onClick={onRefreshPoll}>Refresh</button>
           </div>
         </div>
-        {pollError && <p className="error">{pollError}</p>}
         {!poll && <p className="muted">No data for this poll. It may have closed or been removed.</p>}
         {poll && (
           <div className="details-grid">
@@ -537,9 +540,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
             {poll.status === 2 && <button className="ghost" onClick={() => onTransition(poll.id, 'close')}>Close poll</button>}
             <button className="ghost" onClick={() => onDeletePoll(poll.id)}>Delete poll</button>
           </div>
-
-          {settingsError && <p className="error">{settingsError}</p>}
-          {settingsMessage && <p className="muted">{settingsMessage}</p>}
 
           <div className="stack">
             <div>
@@ -652,8 +652,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
               {showAdminBreakdown && <button className="ghost" onClick={onRefreshBreakdown}>Refresh tallies</button>}
             </div>
           </div>
-          {showAdminBreakdown && votingBreakdownError && <p className="error">{votingBreakdownError}</p>}
-          {entriesError && <p className="error">{entriesError}</p>}
           {entriesLoading && <p className="muted">Loading entries…</p>}
           {!entriesLoading && entries.length === 0 && <p className="muted">No entries are visible yet.</p>}
           {showAdminBreakdown && !entriesLoading && entries.length > 0 && votingBreakdown.length === 0 && !votingBreakdownError && (
@@ -738,8 +736,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
                       </div>
                     )}
                   </li>
-                );
-              })}
+                    );
+                  })}
             </ul>
           )}
         </section>
@@ -769,7 +767,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
               </label>
             )}
           </div>
-          {entrySubmitError && <p className="error">{entrySubmitError}</p>}
           {submissionLimitReached && (
             <p className="muted">
               You have reached the submission limit for this poll
@@ -880,8 +877,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
                 : `Select up to ${poll.maxSelections} entries.`}
             </p>
           </div>
-          {rankError && <p className="error">{rankError}</p>}
-          {!isRankedMethod && voteError && <p className="error">{voteError}</p>}
           <div className="vote-grid">
             {entries.map((e) => {
               const current = voteState[e.id] ?? { selected: false, rank: '' };
@@ -949,8 +944,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
             <p className="muted">
               Drag to reorder. Your #1 is your first choice; if it drops out, your vote moves to your next ranked pick.
             </p>
-            {voteError && <p className="error">{voteError}</p>}
-            {rankError && <p className="error">{rankError}</p>}
             {rankedEntries.length === 0 && <p className="muted">No selections yet.</p>}
             {rankedEntries.length > 0 && (
               <ul className="rank-list">

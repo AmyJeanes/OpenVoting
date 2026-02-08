@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
+import { useToast } from './ToastProvider';
 import type { Dispatch, SetStateAction } from 'react';
 import type { FieldRequirement, PollResponse, SessionState } from '../types';
 import { formatWindow, pollStatusLabel, votingMethodLabel } from '../utils/format';
@@ -29,6 +31,16 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
   if (sessionState !== 'authenticated') {
     return <AuthPrompt />;
   }
+
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    if (createError) showToast(createError, { tone: 'error' });
+  }, [createError, showToast]);
+
+  useEffect(() => {
+    if (pollError) showToast(pollError, { tone: 'error' });
+  }, [pollError, showToast]);
 
   const requirementOptions = [
     { value: 0, label: 'Off' },
@@ -71,7 +83,6 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
               </select>
             </label>
           </div>
-          {createError && <p className="error">{createError}</p>}
           <div className="actions form-actions">
             <button className="primary" onClick={onCreatePoll} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
           </div>
@@ -88,7 +99,6 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
             {loading ? 'Refreshing…' : 'Refresh'}
           </button>
         </div>
-        {pollError && <p className="error">{pollError}</p>}
         {loading && <p className="muted">Loading live polls…</p>}
         {!loading && activePolls.length === 0 && !pollError && <p className="muted">No active polls right now.</p>}
         {!loading && activePolls.length > 0 && (

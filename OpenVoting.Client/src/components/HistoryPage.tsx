@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { VotingMethodInfo } from './VotingMethodInfo';
+import { useToast } from './ToastProvider';
 import type { AssetUploadResponse, PollHistoryResponse, SessionState } from '../types';
 import { votingMethodLabel } from '../utils/format';
 
@@ -17,6 +19,12 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
     return <AuthPrompt />;
   }
 
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    if (historyError) showToast(historyError, { tone: 'error' });
+  }, [historyError, showToast]);
+
   return (
     <section className="card">
       <div className="section-head">
@@ -26,7 +34,6 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
         </div>
         <button className="ghost" onClick={onRefresh}>Refresh</button>
       </div>
-      {historyError && <p className="error">{historyError}</p>}
       {history.length === 0 && !historyError && <p className="muted">No closed polls yet.</p>}
       {history.length > 0 && (
         <ul className="entries">

@@ -11,7 +11,8 @@ import {
   Topbar,
   ConfirmDialog,
   type ConfirmDialogConfig,
-  votingMethodOptions
+  votingMethodOptions,
+  useToast
 } from './components';
 import type {
   AssetUploadResponse,
@@ -73,7 +74,6 @@ export default function App() {
   const [voteSubmitting, setVoteSubmitting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
   const [voteInfo, setVoteInfo] = useState<VoteResponse | null>(null);
-  const [toast, setToast] = useState<{ id: number; message: string } | null>(null);
 
   const [createForm, setCreateForm] = useState(defaultCreateForm);
   const [creating, setCreating] = useState(false);
@@ -87,6 +87,8 @@ export default function App() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [votingBreakdown, setVotingBreakdown] = useState<VotingBreakdownEntry[]>([]);
   const [votingBreakdownError, setVotingBreakdownError] = useState<string | null>(null);
+
+  const { showToast } = useToast();
 
   const navigate = useNavigate();
 
@@ -239,7 +241,9 @@ export default function App() {
   const createPoll = async () => {
     setCreateError(null);
     if (createForm.titleRequirement === 0 && createForm.descriptionRequirement === 0 && createForm.imageRequirement === 0) {
-      setCreateError('Enable at least one submission field.');
+      const message = 'Enable at least one submission field.';
+      setCreateError(message);
+      showToast(message, { tone: 'error' });
       return;
     }
     const latestActive = activePolls.length === 0 ? await fetchActivePolls() : activePolls;
@@ -275,12 +279,15 @@ export default function App() {
         throw new Error(text || res.statusText);
       }
       const created: PollResponse = await res.json();
+      showToast('Poll created', { tone: 'success' });
       setSelectedPollId(created.id);
       await fetchActivePolls();
       await refreshPoll(true, created.id);
       navigate('/polls/live');
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Failed to create poll');
+      const message = err instanceof Error ? err.message : 'Failed to create poll';
+      setCreateError(message);
+      showToast(message, { tone: 'error' });
     } finally {
       setCreating(false);
     }
@@ -533,12 +540,20 @@ export default function App() {
     setEntrySubmitting(true);
     try {
       if (!poll.canSubmit) {
-        throw new Error('Submissions are closed for this poll.');
+        const message = 'Submissions are closed for this poll.';
+        setEntrySubmitError(message);
+        showToast(message, { tone: 'error' });
+        setEntrySubmitting(false);
+        return;
       }
 
       const ownEntryCount = entries.filter((e) => e.isOwn).length;
       if (poll.maxSubmissionsPerMember > 0 && ownEntryCount >= poll.maxSubmissionsPerMember) {
-        throw new Error('You have reached the submission limit for this poll.');
+        const message = 'You have reached the submission limit for this poll.';
+        setEntrySubmitError(message);
+        showToast(message, { tone: 'error' });
+        setEntrySubmitting(false);
+        return;
       }
 
       const titleRequirement = poll.titleRequirement;
@@ -548,17 +563,29 @@ export default function App() {
       const descriptionInput = entryForm.description.trim();
 
       if (titleRequirement === 2 && !displayNameInput) {
-        throw new Error('Display name is required.');
+        const message = 'Display name is required.';
+        setEntrySubmitError(message);
+        showToast(message, { tone: 'error' });
+        setEntrySubmitting(false);
+        return;
       }
 
       if (descriptionRequirement === 2 && !descriptionInput) {
-        throw new Error('Description is required.');
+        const message = 'Description is required.';
+        setEntrySubmitError(message);
+        showToast(message, { tone: 'error' });
+        setEntrySubmitting(false);
+        return;
       }
 
       const hasFile = !!entryFiles.original;
 
       if (imageRequirement === 2 && !hasFile) {
-        throw new Error('Upload an image to submit.');
+        const message = 'Upload an image to submit.';
+        setEntrySubmitError(message);
+        showToast(message, { tone: 'error' });
+        setEntrySubmitting(false);
+        return;
       }
 
       let originalId: string | undefined;
@@ -592,8 +619,11 @@ export default function App() {
       await fetchEntries(poll.id);
       setEntryForm(defaultEntryForm);
       setEntryFiles({});
+      showToast('Entry submitted', { tone: 'success' });
     } catch (err) {
-      setEntrySubmitError(err instanceof Error ? err.message : 'Failed to submit entry');
+      const message = err instanceof Error ? err.message : 'Failed to submit entry';
+      setEntrySubmitError(message);
+      showToast(message, { tone: 'error' });
     } finally {
       setEntrySubmitting(false);
     }
@@ -686,14 +716,6 @@ export default function App() {
     }));
   };
 
-  const showToast = (message: string) => {
-    const id = Date.now();
-    setToast({ id, message });
-    window.setTimeout(() => {
-      setToast((current) => (current?.id === id ? null : current));
-    }, 4000);
-  };
-
   const submitVote = async (rankedIds?: string[]) => {
     if (!poll) return;
     setVoteError(null);
@@ -722,38 +744,50 @@ export default function App() {
     }
 
     if (selected.length === 0) {
-      setVoteError('Select at least one entry');
+      const message = 'Select at least one entry';
+      setVoteError(message);
+      showToast(message, { tone: 'error' });
       setVoteSubmitting(false);
       return;
     }
 
     if (selected.length > poll.maxSelections) {
-      setVoteError(`Select at most ${poll.maxSelections} entries`);
+      const message = `Select at most ${poll.maxSelections} entries`;
+      setVoteError(message);
+      showToast(message, { tone: 'error' });
       setVoteSubmitting(false);
       return;
     }
 
     if (poll.requireRanking) {
       if (rankedIds && new Set(rankedIds).size !== rankedIds.length) {
-        setVoteError('Ranked choices must be unique');
+        const message = 'Ranked choices must be unique';
+        setVoteError(message);
+        showToast(message, { tone: 'error' });
         setVoteSubmitting(false);
         return;
       }
       const ranks = selected.map((s) => Number(s.rank));
       if (!rankedIds) {
         if (ranks.some((r) => Number.isNaN(r) || r < 1 || r > selected.length)) {
-          setVoteError('Ranks must be between 1 and the number of selected entries');
+          const message = 'Ranks must be between 1 and the number of selected entries';
+          setVoteError(message);
+          showToast(message, { tone: 'error' });
           setVoteSubmitting(false);
           return;
         }
         if (new Set(ranks).size !== ranks.length) {
-          setVoteError('Ranks must be unique');
+          const message = 'Ranks must be unique';
+          setVoteError(message);
+          showToast(message, { tone: 'error' });
           setVoteSubmitting(false);
           return;
         }
       }
     } else if (selected.some((s) => s.rank)) {
-      setVoteError('Do not supply ranks for this poll');
+      const message = 'Do not supply ranks for this poll';
+      setVoteError(message);
+      showToast(message, { tone: 'error' });
       setVoteSubmitting(false);
       return;
     }
@@ -776,9 +810,11 @@ export default function App() {
       }
       const data: VoteResponse = await res.json();
       setVoteInfo(data);
-      showToast('Vote saved');
+      showToast('Vote saved', { tone: 'success' });
     } catch (err) {
-      setVoteError(err instanceof Error ? err.message : 'Failed to submit vote');
+      const message = err instanceof Error ? err.message : 'Failed to submit vote';
+      setVoteError(message);
+      showToast(message, { tone: 'error' });
     } finally {
       setVoteSubmitting(false);
     }
@@ -1223,11 +1259,6 @@ export default function App() {
         </div>
       )}
       <ConfirmDialog config={confirmConfig} onConfirm={() => settleConfirm(true)} onCancel={() => settleConfirm(false)} />
-      {toast && (
-        <div className="toast" role="status" onClick={() => setToast(null)}>
-          <span>{toast.message}</span>
-        </div>
-      )}
     </PageShell>
   );
 }
