@@ -1,12 +1,23 @@
-import type { AssetUploadResponse, PollEntryResponse } from '../../types';
+import type { AssetUploadResponse, PollEntryResponse, PollResponse } from '../../types';
 
 export type PreviewSectionProps = {
+  poll: PollResponse;
   entries: PollEntryResponse[];
   assetCache: Record<string, AssetUploadResponse>;
   entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => string;
 };
 
-export function PreviewSection({ entries, assetCache, entryAssetId }: PreviewSectionProps) {
+function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
+  const hasCustomTitle = (entry.displayName || '').trim().length > 0;
+  if (poll.titleRequirement === 0) {
+    if (poll.isAdmin && entry.submittedByDisplayName) return `From ${entry.submittedByDisplayName}`;
+    return '';
+  }
+  if (hasCustomTitle) return entry.displayName;
+  return entry.submittedByDisplayName ? `By ${entry.submittedByDisplayName}` : 'Untitled entry';
+}
+
+export function PreviewSection({ poll, entries, assetCache, entryAssetId }: PreviewSectionProps) {
   return (
     <section className="card">
       <div className="section-head">
@@ -21,7 +32,7 @@ export function PreviewSection({ entries, assetCache, entryAssetId }: PreviewSec
             <li key={e.id} className="entry-card">
               <div className="entry-head">
                 <div>
-                  <p className="entry-title">{e.displayName}</p>
+                  <p className="entry-title">{entryTitle(poll, e)}</p>
                 </div>
               </div>
               {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}

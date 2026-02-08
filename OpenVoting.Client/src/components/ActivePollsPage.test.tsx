@@ -13,10 +13,7 @@ const renderWithProviders = (props: WrapperProps) => {
     const [createForm, setCreateForm] = useState<ActivePollsPageProps['createForm']>(props.createForm ?? {
       title: '',
       description: '',
-      votingMethod: 1,
-      titleRequirement: 1,
-      descriptionRequirement: 1,
-      imageRequirement: 1
+      votingMethod: 1
     });
 
     return (

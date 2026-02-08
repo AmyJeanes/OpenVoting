@@ -18,7 +18,7 @@ export function PollHeaderSection({ poll, onRefreshPoll }: PollHeaderSectionProp
           <p className="eyebrow">Poll</p>
           <h2>{poll ? poll.title : 'No active competition'}</h2>
           {poll && <span className={`pill ${poll.status === 0 ? 'admin' : 'subtle'}`}>Stage: {pollStatusLabel(poll.status)}</span>}
-          {poll && poll.description && <p className="muted">{poll.description}</p>}
+          {poll && poll.description && <p className="muted multiline">{poll.description}</p>}
         </div>
         <div className="actions">
           <Link className="ghost" to="/polls/live">Back to live polls</Link>

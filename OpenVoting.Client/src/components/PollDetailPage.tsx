@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
-import type { AssetUploadResponse, PollDetailResponse, SessionState } from '../types';
+import type { AssetUploadResponse, PollDetailResponse, PollWinnerResponse, SessionState } from '../types';
 import { formatWindow, pollStatusLabel, votingMethodLabel } from '../utils/format';
 
 export type PollDetailPageProps = {
@@ -78,6 +78,26 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
 
   const isTie = detail.winners.length > 1 && detail.winners.every((w) => w.votes === detail.winners[0].votes);
 
+  const winnerTitle = (winner: PollWinnerResponse) => {
+    const hasCustomTitle = (winner.displayName || '').trim().length > 0;
+    const titlesAllowed = detail.titleRequirement !== 0;
+    if (!titlesAllowed) {
+      return winner.submittedByDisplayName ? `By ${winner.submittedByDisplayName}` : 'Untitled entry';
+    }
+    if (hasCustomTitle) return winner.displayName;
+    return winner.submittedByDisplayName ? `By ${winner.submittedByDisplayName}` : 'Untitled entry';
+  };
+
+  const entryTitle = (entry: PollDetailResponse['entries'][number]) => {
+    const hasCustomTitle = (entry.displayName || '').trim().length > 0;
+    if (detail.titleRequirement === 0) {
+      if (entry.submittedByDisplayName) return `From ${entry.submittedByDisplayName}`;
+      return '';
+    }
+    if (hasCustomTitle) return entry.displayName;
+    return entry.submittedByDisplayName ? `By ${entry.submittedByDisplayName}` : 'Untitled entry';
+  };
+
   return (
     <div className="stack">
       <section className="card">
@@ -118,19 +138,25 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
                 <span>{detail.winners.length} winners tied for first place.</span>
               </div>
             )}
-            {detail.winners.map((w) => (
-              <div key={w.entryId} className="winner-chip">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span className="pill subtle">#1</span>
-                  {isTie && <span className="pill subtle">Tie</span>}
-                  <strong>{w.displayName}</strong>
-                  <span className="muted"> · {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
+            {detail.winners.map((w) => {
+              const titleText = winnerTitle(w);
+              const hasCustomTitle = (w.displayName || '').trim().length > 0;
+              const subtitle = detail.titleRequirement !== 0 && hasCustomTitle && w.submittedByDisplayName ? `By ${w.submittedByDisplayName}` : '';
+              return (
+                <div key={w.entryId} className="winner-chip">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="pill subtle">#1</span>
+                    {isTie && <span className="pill subtle">Tie</span>}
+                    <strong>{titleText}</strong>
+                    <span className="muted"> · {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
+                  </div>
+                  {subtitle && <div className="muted">{subtitle}</div>}
+                  {w.assetId && assetCache[w.assetId]?.url && (
+                    <img src={assetCache[w.assetId]!.url} alt={titleText} className="winner-img" />
+                  )}
                 </div>
-                {w.assetId && assetCache[w.assetId]?.url && (
-                  <img src={assetCache[w.assetId]!.url} alt={w.displayName} className="winner-img" />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
@@ -151,15 +177,13 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
               const asset = assetCache[assetId];
               const positionLabel = isTie && e.isWinner ? '#1' : (typeof e.position === 'number' ? `#${e.position}` : null);
               const hasTitle = (e.displayName || '').trim().length > 0;
-              const titleText = hasTitle
-                ? e.displayName
-                : (e.submittedByDisplayName ? `By ${e.submittedByDisplayName}` : 'Untitled entry');
+              const titleText = entryTitle(e);
               return (
                 <li key={e.id} className="entry-card">
                   <div className="entry-head">
                     <div>
                       <p className="entry-title">{titleText}</p>
-                      {e.submittedByDisplayName && hasTitle && <p className="muted">By {e.submittedByDisplayName}</p>}
+                      {e.submittedByDisplayName && hasTitle && detail.titleRequirement !== 0 && <p className="muted">By {e.submittedByDisplayName}</p>}
                       {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
                     </div>
                     <div className="badges">

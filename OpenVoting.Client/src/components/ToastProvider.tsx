@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 
 type ToastTone = 'info' | 'success' | 'error';
 
@@ -11,6 +11,7 @@ type Toast = {
   id: number;
   message: string;
   tone: ToastTone;
+  isExiting: boolean;
 };
 
 type ToastContextValue = {
@@ -19,11 +20,18 @@ type ToastContextValue = {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+const EXIT_ANIMATION_MS = 220;
+const DUPLICATE_SUPPRESSION_MS = 600;
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const lastToastRef = useRef<{ message: string; tone: ToastTone; timestamp: number } | null>(null);
 
   const dismiss = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    setToasts((prev) => prev.map((toast) => toast.id === id ? { ...toast, isExiting: true } : toast));
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, EXIT_ANIMATION_MS);
   }, []);
 
   const showToast = useCallback((message: string, options?: ToastOptions) => {
@@ -31,7 +39,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const tone: ToastTone = options?.tone ?? 'info';
     const duration = options?.durationMs ?? 4500;
 
-    setToasts((prev) => [...prev, { id, message, tone }]);
+    const now = Date.now();
+    const last = lastToastRef.current;
+    if (last && last.message === message && last.tone === tone && now - last.timestamp < DUPLICATE_SUPPRESSION_MS) {
+      return;
+    }
+    lastToastRef.current = { message, tone, timestamp: now };
+
+    setToasts((prev) => [...prev, { id, message, tone, isExiting: false }]);
     window.setTimeout(() => dismiss(id), duration);
   }, [dismiss]);
 
@@ -44,7 +59,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`toast ${toast.tone}`}
+            className={`toast ${toast.tone}${toast.isExiting ? ' leaving' : ''}`}
             role="alert"
             onClick={() => dismiss(toast.id)}
           >

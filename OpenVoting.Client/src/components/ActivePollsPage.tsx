@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { useToast } from './ToastProvider';
 import type { Dispatch, SetStateAction } from 'react';
-import type { FieldRequirement, PollResponse, SessionState } from '../types';
+import type { CreatePollForm, PollResponse, SessionState } from '../types';
 import { formatWindow, pollStatusLabel, votingMethodLabel } from '../utils/format';
 
 export type ActivePollsPageProps = {
@@ -13,15 +13,8 @@ export type ActivePollsPageProps = {
   pollError: string | null;
   loading: boolean;
   onRefresh: () => Promise<void> | void;
-  createForm: {
-    title: string;
-    description: string;
-    votingMethod: number;
-    titleRequirement: FieldRequirement;
-    descriptionRequirement: FieldRequirement;
-    imageRequirement: FieldRequirement;
-  };
-  setCreateForm: Dispatch<SetStateAction<ActivePollsPageProps['createForm']>>;
+  createForm: CreatePollForm;
+  setCreateForm: Dispatch<SetStateAction<CreatePollForm>>;
   creating: boolean;
   createError: string | null;
   onCreatePoll: () => void;
@@ -42,12 +35,6 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
     if (pollError) showToast(pollError, { tone: 'error' });
   }, [pollError, showToast]);
 
-  const requirementOptions = [
-    { value: 0, label: 'Off' },
-    { value: 1, label: 'Optional' },
-    { value: 2, label: 'Required' }
-  ];
-
   return (
     <div className="stack">
       {me?.isAdmin && (
@@ -64,26 +51,11 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
             <label>Title
               <input value={createForm.title} onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })} />
             </label>
-            <label>Description
-              <input value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
-            </label>
-            <label>Title field
-              <select value={createForm.titleRequirement} onChange={(e) => setCreateForm({ ...createForm, titleRequirement: Number(e.target.value) as FieldRequirement })}>
-                {requirementOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-            </label>
-            <label>Description field
-              <select value={createForm.descriptionRequirement} onChange={(e) => setCreateForm({ ...createForm, descriptionRequirement: Number(e.target.value) as FieldRequirement })}>
-                {requirementOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-            </label>
-            <label>Image field
-              <select value={createForm.imageRequirement} onChange={(e) => setCreateForm({ ...createForm, imageRequirement: Number(e.target.value) as FieldRequirement })}>
-                {requirementOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
+            <label className="full-row">Description
+              <textarea rows={3} value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
             </label>
           </div>
-          <div className="actions form-actions">
+          <div className="actions form-actions spacious">
             <button className="primary" onClick={onCreatePoll} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
           </div>
         </section>
@@ -111,7 +83,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                 <div className="entry-head">
                   <div>
                     <p className="entry-title">{p.title}</p>
-                    {p.description && <p className="muted">{p.description}</p>}
+                    {p.description && <p className="muted multiline">{p.description}</p>}
                     <p className="muted">Submissions: {formatWindow(p.submissionOpensAt, p.submissionClosesAt)}</p>
                     {(p.status === 2 || p.status === 3 || p.status === 4) && (
                       <p className="muted">Voting: {formatWindow(p.votingOpensAt, p.votingClosesAt)}</p>

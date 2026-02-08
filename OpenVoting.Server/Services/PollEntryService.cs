@@ -343,7 +343,7 @@ public sealed class PollEntryService : IPollEntryService
 		var resolvedDisplayName = request.DisplayName?.Trim() ?? string.Empty;
 		if (titleRequirement == FieldRequirement.Off || string.IsNullOrWhiteSpace(resolvedDisplayName))
 		{
-			resolvedDisplayName = string.IsNullOrWhiteSpace(poll.Title) ? "Entry" : poll.Title;
+			resolvedDisplayName = string.Empty;
 		}
 
 		string? resolvedDescription = descriptionRequirement switch

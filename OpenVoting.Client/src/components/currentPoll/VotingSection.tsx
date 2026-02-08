@@ -15,6 +15,16 @@ export type VotingSectionProps = {
   onClearSelection: () => void;
 };
 
+function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
+  const hasCustomTitle = (entry.displayName || '').trim().length > 0;
+  if (poll.titleRequirement === 0) {
+    if (poll.isAdmin && entry.submittedByDisplayName) return `From ${entry.submittedByDisplayName}`;
+    return '';
+  }
+  if (hasCustomTitle) return entry.displayName;
+  return entry.submittedByDisplayName ? `By ${entry.submittedByDisplayName}` : 'Untitled entry';
+}
+
 export function VotingSection(props: VotingSectionProps) {
   const {
     poll,
@@ -69,9 +79,9 @@ export function VotingSection(props: VotingSectionProps) {
                     onClick={(ev) => ev.stopPropagation()}
                     onChange={(ev) => onToggleSelection(e.id, ev.target.checked)}
                   />
-                  <span className="entry-title">{e.displayName}</span>
+                  <span className="entry-title">{entryTitle(poll, e)}</span>
                 </label>
-                {e.submittedByDisplayName && <span className="muted">By {e.submittedByDisplayName}</span>}
+                {e.submittedByDisplayName && poll.titleRequirement !== 0 && <span className="muted">By {e.submittedByDisplayName}</span>}
               </div>
               {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
               {e.description && <p className="muted">{e.description}</p>}

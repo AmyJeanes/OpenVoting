@@ -16,6 +16,15 @@ export type AdminEntriesSectionProps = {
   onAskDelete: (entryId: string) => void;
 };
 
+function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
+  const hasCustomTitle = (entry.displayName || '').trim().length > 0;
+  if (poll.titleRequirement === 0) {
+    return entry.submittedByDisplayName ? `From ${entry.submittedByDisplayName}` : 'From participant';
+  }
+  if (hasCustomTitle) return entry.displayName;
+  return entry.submittedByDisplayName ? `By ${entry.submittedByDisplayName}` : 'Untitled entry';
+}
+
 export function AdminEntriesSection(props: AdminEntriesSectionProps) {
   const {
     poll,
@@ -65,9 +74,9 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
               <li key={e.id} className="entry-card">
                 <div className="entry-head">
                   <div>
-                    <p className="entry-title">{e.displayName}</p>
+                    <p className="entry-title">{entryTitle(poll, e)}</p>
                     {e.description && <p className="muted">{e.description}</p>}
-                    {e.submittedByDisplayName && <p className="muted">By {e.submittedByDisplayName}</p>}
+                    {e.submittedByDisplayName && poll.titleRequirement !== 0 && <p className="muted">By {e.submittedByDisplayName}</p>}
                   </div>
                 </div>
                 {asset?.url && (

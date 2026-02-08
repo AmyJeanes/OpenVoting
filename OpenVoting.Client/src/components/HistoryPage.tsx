@@ -20,6 +20,12 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
   }
 
   const { showToast } = useToast();
+  const winnerTitle = (winner: PollHistoryResponse['winners'][number]) => {
+    const hasTitle = (winner.displayName || '').trim().length > 0;
+    if (hasTitle) return winner.displayName;
+    if (winner.submittedByDisplayName) return winner.submittedByDisplayName;
+    return 'Untitled entry';
+  };
 
   useEffect(() => {
     if (historyError) showToast(historyError, { tone: 'error' });
@@ -53,14 +59,20 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                 {p.winners.length === 0 && <p className="muted">No votes recorded.</p>}
                 {p.winners.length > 0 && (
                   <div className="winners" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-                    {p.winners.map((w) => (
-                      <div key={w.entryId} className="winner-chip" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4, width: '100%', maxWidth: 220 }}>
-                        <div>
-                          <strong>{w.displayName}</strong>
-                          <span className="muted"> · {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
+                    {p.winners.map((w) => {
+                      const hasTitle = (w.displayName || '').trim().length > 0;
+                      const titleText = winnerTitle(w);
+                      const subtitle = hasTitle && w.submittedByDisplayName ? `by ${w.submittedByDisplayName}` : '';
+                      return (
+                        <div key={w.entryId} className="winner-chip" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4, width: '100%', maxWidth: 220 }}>
+                          <div>
+                            <strong>{titleText}</strong>
+                            <span className="muted"> · {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
+                          </div>
+                          {subtitle && <div className="muted">{subtitle}</div>}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 <div className="actions" style={{ marginTop: 8 }}>
@@ -81,27 +93,36 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                         {preview.map((w, idx) => {
                           const asset = w.assetId ? assetCache[w.assetId] : undefined;
-                          const label = w.displayName?.slice(0, 1)?.toUpperCase() ?? '?';
+                          const labelSource = (w.displayName || w.submittedByDisplayName || '').trim();
+                          const label = labelSource.slice(0, 1).toUpperCase() || '?';
+                          const titleText = winnerTitle(w);
                           return asset?.url ? (
-                            <img
+                            <a
                               key={w.entryId}
-                              src={asset.url}
-                              alt={w.displayName}
-                              title={w.displayName}
-                              style={{
-                                width: 74,
-                                height: 74,
-                                objectFit: 'cover',
-                                borderRadius: '50%',
-                                border: '2px solid var(--surface)',
-                                boxShadow: 'var(--shadow-soft)',
-                                marginLeft: idx === 0 ? 0 : -14
-                              }}
-                            />
+                              href={asset.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={titleText}
+                              style={{ marginLeft: idx === 0 ? 0 : -14 }}
+                            >
+                              <img
+                                src={asset.url}
+                                alt={titleText}
+                                style={{
+                                  width: 74,
+                                  height: 74,
+                                  objectFit: 'cover',
+                                  borderRadius: '50%',
+                                  border: '2px solid var(--surface)',
+                                  boxShadow: 'var(--shadow-soft)',
+                                  cursor: 'zoom-in'
+                                }}
+                              />
+                            </a>
                           ) : (
                             <div
                               key={w.entryId}
-                              title={w.displayName}
+                              title={titleText}
                               style={{
                                 width: 74,
                                 height: 74,
@@ -127,7 +148,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                       <div style={{ textAlign: 'center', width: '100%' }}>
                         <div style={{ fontWeight: 700 }}>{p.winners.length} winners tied</div>
                         <div className="muted" style={{ marginTop: 2 }}>
-                          {p.winners.map((w) => w.displayName).slice(0, 3).join(', ')}{p.winners.length > 3 ? '…' : ''}
+                          {p.winners.map((w) => winnerTitle(w)).slice(0, 3).join(', ')}{p.winners.length > 3 ? '…' : ''}
                         </div>
                         <div style={{ marginTop: 6 }}><span className="pill tie">Tie</span></div>
                       </div>
@@ -138,12 +159,13 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                 const w = p.winners[0];
                 const asset = w.assetId ? assetCache[w.assetId] : undefined;
                 if (!asset?.url) return null;
+                const titleText = winnerTitle(w);
                 return (
-                  <a href={asset.url} target="_blank" rel="noopener noreferrer" title={w.displayName} style={{ marginLeft: 'auto', textDecoration: 'none', color: 'inherit' }}>
+                  <a href={asset.url} target="_blank" rel="noopener noreferrer" title={titleText} style={{ marginLeft: 'auto', textDecoration: 'none', color: 'inherit' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                      <img src={asset.url} alt={w.displayName} style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--border-strong)', cursor: 'zoom-in' }} />
+                      <img src={asset.url} alt={titleText} style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--border-strong)', cursor: 'zoom-in' }} />
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontWeight: 700 }}>{w.displayName}</div>
+                        <div style={{ fontWeight: 700 }}>{titleText}</div>
                         <div className="muted">{w.votes} vote{w.votes === 1 ? '' : 's'}</div>
                         <div style={{ marginTop: 6 }}><span className="pill winner">Winner</span></div>
                       </div>

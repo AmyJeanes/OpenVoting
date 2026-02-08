@@ -384,6 +384,10 @@ button.ghost {
     color: var(--text-muted);
 }
 
+.multiline {
+    white-space: pre-line;
+}
+
 .card h1,
 .card h2,
 .card h3 {
@@ -629,6 +633,20 @@ textarea {
     pointer-events: auto;
     min-width: 240px;
     max-width: 420px;
+    max-height: 320px;
+    overflow: hidden;
+    transition: opacity 200ms ease, transform 220ms ease, max-height 220ms ease, margin 220ms ease, padding 220ms ease;
+    transform-origin: top right;
+    will-change: opacity, transform;
+}
+
+.toast.leaving {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+    max-height: 0;
+    margin: 0;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 .toast.success {
@@ -819,7 +837,7 @@ textarea {
 }
 
 .form-actions.spacious {
-    margin-top: 8px;
+    margin-top: 14px;
 }
 
 .form-grid .full-row {

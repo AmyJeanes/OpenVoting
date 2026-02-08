@@ -6,8 +6,6 @@ This app is heavily work-in-progress. Please check back later!
 TODO:
 - General UX tidy up and consistency
 - Mobile support / responsive design
-- Make title / description configurable per poll e.g. disable for logo contests
-- Improve error handling
 - Show if you've voted yet clearly incl on list page
 - Show voting instructions more clearly (select up to X entries etc)
 - Voting details could all be under a dropdown to reduce clutter
@@ -23,5 +21,3 @@ TODO:
 - Fix grid view for vote entries
 - Add Discord bot for a command to easy one-time login link without having to sign in via browser Discord (where people are often not logged in)
 - Fill out README with overview, setup instructions, etc.
-- Decide if this is gonna be exclusively designed for logos / art contests or more general voting use cases
-- Add proper server-side unit tests

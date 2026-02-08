@@ -10,6 +10,12 @@ export type MeResponse = {
 
 export type FieldRequirement = 0 | 1 | 2; // Off, Optional, Required
 
+export type CreatePollForm = {
+  title: string;
+  description: string;
+  votingMethod: number;
+};
+
 export type PollResponse = {
   id: string;
   title: string;
@@ -39,6 +45,7 @@ export type PollWinnerResponse = {
   displayName: string;
   votes: number;
   assetId?: string;
+  submittedByDisplayName?: string;
 };
 
 export type PollDetailRankCount = {

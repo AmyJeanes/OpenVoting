@@ -198,10 +198,13 @@ public sealed class PollService : IPollService
 		var winners = isClosed || isAdmin ? ComputeWinners(poll).ToList() : new List<PollWinnerResponse>();
 		var entryVotes = poll.Votes.SelectMany(v => v.Choices).ToList();
 
+		var hideTitles = poll.TitleRequirement == FieldRequirement.Off;
 		var entryData = poll.Entries
 			.OrderBy(e => e.CreatedAt)
 			.Select(e =>
 			{
+				var entryDisplayName = hideTitles ? string.Empty : e.DisplayName;
+
 				var approvals = entryVotes.Count(c => c.EntryId == e.Id);
 				var rankGroups = entryVotes
 					.Where(c => c.EntryId == e.Id && c.Rank.HasValue)
@@ -214,7 +217,7 @@ public sealed class PollService : IPollService
 
 				return new EntryData(
 					e.Id,
-					e.DisplayName,
+					entryDisplayName,
 					e.Description,
 					e.OriginalAssetId,
 					e.TeaserAssetId,
@@ -260,6 +263,9 @@ public sealed class PollService : IPollService
 			HideEntriesUntilVoting = poll.HideEntriesUntilVoting,
 			MaxSelections = poll.MaxSelections,
 			RequireRanking = poll.RequireRanking,
+			TitleRequirement = poll.TitleRequirement,
+			DescriptionRequirement = poll.DescriptionRequirement,
+			ImageRequirement = poll.ImageRequirement,
 			Winners = winners,
 			Entries = orderedEntries
 		};
@@ -297,6 +303,7 @@ public sealed class PollService : IPollService
 			return PollResult<IReadOnlyList<VotingBreakdownEntryResponse>>.NotFound();
 		}
 
+		var hideTitles = poll.TitleRequirement == FieldRequirement.Off;
 		var entryVotes = poll.Votes.SelectMany(v => v.Choices).ToList();
 		var breakdown = poll.Entries
 			.OrderBy(e => e.CreatedAt)
@@ -312,7 +319,7 @@ public sealed class PollService : IPollService
 				return new VotingBreakdownEntryResponse
 				{
 					EntryId = e.Id,
-					DisplayName = e.DisplayName,
+					DisplayName = hideTitles ? string.Empty : e.DisplayName,
 					Approvals = approvals,
 					RankCounts = rankGroups
 				};
@@ -408,6 +415,24 @@ public sealed class PollService : IPollService
 		if (request.Description is not null && !string.Equals(request.Description, poll.Description, StringComparison.Ordinal))
 		{
 			poll.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+			hasChanges = true;
+		}
+
+		if (request.TitleRequirement.HasValue && request.TitleRequirement.Value != poll.TitleRequirement)
+		{
+			poll.TitleRequirement = request.TitleRequirement.Value;
+			hasChanges = true;
+		}
+
+		if (request.DescriptionRequirement.HasValue && request.DescriptionRequirement.Value != poll.DescriptionRequirement)
+		{
+			poll.DescriptionRequirement = request.DescriptionRequirement.Value;
+			hasChanges = true;
+		}
+
+		if (request.ImageRequirement.HasValue && request.ImageRequirement.Value != poll.ImageRequirement)
+		{
+			poll.ImageRequirement = request.ImageRequirement.Value;
 			hasChanges = true;
 		}
 
@@ -798,6 +823,9 @@ public sealed class PollService : IPollService
 			MaxSelections = poll.MaxSelections,
 			RequireRanking = requireRanking,
 			MaxSubmissionsPerMember = poll.MaxSubmissionsPerMember,
+			TitleRequirement = poll.TitleRequirement,
+			DescriptionRequirement = poll.DescriptionRequirement,
+			ImageRequirement = poll.ImageRequirement,
 			MustHaveJoinedBefore = poll.MustHaveJoinedBefore,
 			RequiredRoleIds = requiredRoles,
 			CanSubmit = canSubmit,
@@ -821,11 +849,16 @@ public sealed class PollService : IPollService
 
 	private List<PollWinnerResponse> ComputeWinners(Poll poll)
 	{
+		var hideTitles = poll.TitleRequirement == FieldRequirement.Off;
 		var eligibleEntries = poll.Entries
 			.Where(e => !e.IsDisqualified)
 			.ToDictionary(
 				e => e.Id,
-				e => new EntryInfo(e.DisplayName, e.PublicAssetId ?? e.TeaserAssetId ?? e.OriginalAssetId)
+				e => new EntryInfo(
+					hideTitles ? string.Empty : e.DisplayName,
+					e.PublicAssetId ?? e.TeaserAssetId ?? e.OriginalAssetId,
+					e.SubmittedByMember?.DisplayName ?? string.Empty
+				)
 			);
 
 		if (eligibleEntries.Count == 0)
@@ -855,7 +888,7 @@ public sealed class PollService : IPollService
 		var max = counts.Values.DefaultIfEmpty().Max();
 		return counts
 			.Where(kvp => kvp.Value == max)
-			.Select(kvp => new PollWinnerResponse(kvp.Key, entries[kvp.Key].DisplayName, kvp.Value, entries[kvp.Key].AssetId))
+			.Select(kvp => new PollWinnerResponse(kvp.Key, entries[kvp.Key].DisplayName, kvp.Value, entries[kvp.Key].AssetId, entries[kvp.Key].SubmittedByDisplayName))
 			.ToList();
 	}
 
@@ -924,7 +957,7 @@ public sealed class PollService : IPollService
 		var top = finalCounts.Values.DefaultIfEmpty().Max();
 		return finalCounts
 			.Where(kvp => kvp.Value == top)
-			.Select(kvp => new PollWinnerResponse(kvp.Key, entries[kvp.Key].DisplayName, kvp.Value, entries[kvp.Key].AssetId))
+			.Select(kvp => new PollWinnerResponse(kvp.Key, entries[kvp.Key].DisplayName, kvp.Value, entries[kvp.Key].AssetId, entries[kvp.Key].SubmittedByDisplayName))
 			.ToList();
 	}
 
@@ -984,7 +1017,7 @@ public sealed class PollService : IPollService
 		bool IsWinner,
 		string SubmittedByDisplayName);
 
-	private readonly record struct EntryInfo(string DisplayName, Guid? AssetId);
+	private readonly record struct EntryInfo(string DisplayName, Guid? AssetId, string SubmittedByDisplayName);
 }
 
 public sealed record PollResult<T>(PollOutcome Outcome, T? Response, string? Message)

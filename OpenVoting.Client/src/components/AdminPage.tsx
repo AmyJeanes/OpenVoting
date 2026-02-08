@@ -2,20 +2,13 @@ import { useEffect } from 'react';
 import { AuthPrompt } from './AuthPrompt';
 import { useToast } from './ToastProvider';
 import type { Dispatch, SetStateAction } from 'react';
-import type { FieldRequirement, SessionState } from '../types';
+import type { CreatePollForm, SessionState } from '../types';
 
 export type AdminPageProps = {
   sessionState: SessionState;
   me: { isAdmin: boolean } | null;
-  createForm: {
-    title: string;
-    description: string;
-    votingMethod: number;
-    titleRequirement: FieldRequirement;
-    descriptionRequirement: FieldRequirement;
-    imageRequirement: FieldRequirement;
-  };
-  setCreateForm: Dispatch<SetStateAction<AdminPageProps['createForm']>>;
+  createForm: CreatePollForm;
+  setCreateForm: Dispatch<SetStateAction<CreatePollForm>>;
   creating: boolean;
   createError: string | null;
   onCreatePoll: () => void;
@@ -36,12 +29,6 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
     if (createError) showToast(createError, { tone: 'error' });
   }, [createError, showToast]);
 
-  const requirementOptions = [
-    { value: 0, label: 'Off' },
-    { value: 1, label: 'Optional' },
-    { value: 2, label: 'Required' }
-  ];
-
   return (
     <div className="stack">
       <section className="card">
@@ -55,26 +42,11 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
           <label>Title
             <input value={createForm.title} onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })} />
           </label>
-          <label>Description
-            <input value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
-          </label>
-          <label>Title field
-            <select value={createForm.titleRequirement} onChange={(e) => setCreateForm({ ...createForm, titleRequirement: Number(e.target.value) as FieldRequirement })}>
-              {requirementOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
-          </label>
-          <label>Description field
-            <select value={createForm.descriptionRequirement} onChange={(e) => setCreateForm({ ...createForm, descriptionRequirement: Number(e.target.value) as FieldRequirement })}>
-              {requirementOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
-          </label>
-          <label>Image field
-            <select value={createForm.imageRequirement} onChange={(e) => setCreateForm({ ...createForm, imageRequirement: Number(e.target.value) as FieldRequirement })}>
-              {requirementOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
+          <label className="full-row">Description
+            <textarea rows={3} value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
           </label>
         </div>
-        <div className="actions">
+        <div className="actions form-actions spacious">
           <button className="primary" onClick={onCreatePoll} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
         </div>
       </section>

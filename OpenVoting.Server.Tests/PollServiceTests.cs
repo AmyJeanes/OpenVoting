@@ -56,6 +56,123 @@ public class PollServiceTests
 	}
 
 	[Test]
+	public async Task UpdateMetadata_WithFieldRequirementChanges_PersistsAndReturns()
+	{
+		await using var db = TestDbContextFactory.CreateContext(useSqlite: true);
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		db.Communities.Add(new Community { Id = communityId, Platform = Platform.Discord, ExternalCommunityId = "guild", Name = "Guild" });
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "Admin",
+			JoinedAt = DateTimeOffset.UtcNow.AddMonths(-1)
+		});
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Title = "Test",
+			Description = "Desc",
+			TitleRequirement = FieldRequirement.Required,
+			DescriptionRequirement = FieldRequirement.Optional,
+			ImageRequirement = FieldRequirement.Required,
+			SubmissionOpensAt = DateTimeOffset.UtcNow,
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddDays(2),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddDays(3)
+		};
+
+		db.Polls.Add(poll);
+		await db.SaveChangesAsync();
+
+		var service = new PollService(db, NullLogger<PollService>.Instance, new FakeAssetStorage());
+		var result = await service.UpdateMetadataAsync(
+			TestAuthHelper.CreatePrincipal(memberId, communityId, isAdmin: true),
+			poll.Id,
+			new UpdatePollMetadataRequest
+			{
+				TitleRequirement = FieldRequirement.Optional,
+				DescriptionRequirement = FieldRequirement.Off,
+				ImageRequirement = FieldRequirement.Optional
+			},
+			CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollOutcome.Ok));
+		var response = result.Response!;
+		Assert.Multiple(() =>
+		{
+			Assert.That(response.TitleRequirement, Is.EqualTo(FieldRequirement.Optional));
+			Assert.That(response.DescriptionRequirement, Is.EqualTo(FieldRequirement.Off));
+			Assert.That(response.ImageRequirement, Is.EqualTo(FieldRequirement.Optional));
+		});
+
+		var updated = await db.Polls.FirstAsync(p => p.Id == poll.Id);
+		Assert.Multiple(() =>
+		{
+			Assert.That(updated.TitleRequirement, Is.EqualTo(FieldRequirement.Optional));
+			Assert.That(updated.DescriptionRequirement, Is.EqualTo(FieldRequirement.Off));
+			Assert.That(updated.ImageRequirement, Is.EqualTo(FieldRequirement.Optional));
+		});
+	}
+
+	[Test]
+	public async Task GetPoll_ReturnsFieldRequirements()
+	{
+		await using var db = TestDbContextFactory.CreateContext(useSqlite: true);
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		db.Communities.Add(new Community { Id = communityId, Platform = Platform.Discord, ExternalCommunityId = "guild", Name = "Guild" });
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "Admin",
+			JoinedAt = DateTimeOffset.UtcNow.AddMonths(-1)
+		});
+
+		db.Polls.Add(new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Title = "Test",
+			TitleRequirement = FieldRequirement.Optional,
+			DescriptionRequirement = FieldRequirement.Required,
+			ImageRequirement = FieldRequirement.Off,
+			SubmissionOpensAt = DateTimeOffset.UtcNow,
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddDays(2),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddDays(3)
+		});
+
+		await db.SaveChangesAsync();
+
+		var service = new PollService(db, NullLogger<PollService>.Instance, new FakeAssetStorage());
+		var poll = await db.Polls.FirstAsync();
+		var result = await service.GetPollAsync(
+			TestAuthHelper.CreatePrincipal(memberId, communityId, isAdmin: true),
+			poll.Id,
+			CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollOutcome.Ok));
+		var response = result.Response!;
+		Assert.Multiple(() =>
+		{
+			Assert.That(response.TitleRequirement, Is.EqualTo(FieldRequirement.Optional));
+			Assert.That(response.DescriptionRequirement, Is.EqualTo(FieldRequirement.Required));
+			Assert.That(response.ImageRequirement, Is.EqualTo(FieldRequirement.Off));
+		});
+	}
+
+	[Test]
 	public async Task OpenVoting_WithWrongStatus_ReturnsBadRequest()
 	{
 		await using var db = TestDbContextFactory.CreateContext();

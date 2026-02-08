@@ -1,13 +1,23 @@
-import type { AssetUploadResponse, PollEntryResponse } from '../../types';
+import type { AssetUploadResponse, PollEntryResponse, PollResponse } from '../../types';
 
 export type MySubmissionsSectionProps = {
+  poll: PollResponse;
   entries: PollEntryResponse[];
   assetCache: Record<string, AssetUploadResponse>;
   entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => string;
   onAskDelete: (entryId: string) => void;
 };
 
-export function MySubmissionsSection({ entries, assetCache, entryAssetId, onAskDelete }: MySubmissionsSectionProps) {
+function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
+  const hasCustomTitle = (entry.displayName || '').trim().length > 0;
+  if (poll.titleRequirement === 0) {
+    return entry.submittedByDisplayName ? `From ${entry.submittedByDisplayName}` : 'From participant';
+  }
+  if (hasCustomTitle) return entry.displayName;
+  return entry.submittedByDisplayName ? `By ${entry.submittedByDisplayName}` : 'Untitled entry';
+}
+
+export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, onAskDelete }: MySubmissionsSectionProps) {
   return (
     <section className="card">
       <div className="section-head">
@@ -19,10 +29,7 @@ export function MySubmissionsSection({ entries, assetCache, entryAssetId, onAskD
           const assetId = e.originalAssetId || entryAssetId(e);
           const asset = assetCache[assetId];
           const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
-          const hasTitle = (e.displayName || '').trim().length > 0;
-          const titleText = hasTitle
-            ? e.displayName
-            : (e.submittedByDisplayName ? `By ${e.submittedByDisplayName}` : 'Untitled entry');
+          const titleText = entryTitle(poll, e);
           return (
             <li key={e.id} className="entry-card">
               <div className="entry-head">

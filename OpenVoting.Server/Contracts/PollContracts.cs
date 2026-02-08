@@ -17,6 +17,9 @@ public sealed class PollResponse
 	public int MaxSelections { get; init; }
 	public bool RequireRanking { get; init; }
 	public int MaxSubmissionsPerMember { get; init; }
+	public FieldRequirement TitleRequirement { get; init; }
+	public FieldRequirement DescriptionRequirement { get; init; }
+	public FieldRequirement ImageRequirement { get; init; }
 	public DateTimeOffset? MustHaveJoinedBefore { get; init; }
 	public IReadOnlyList<string> RequiredRoleIds { get; init; } = Array.Empty<string>();
 	public bool CanSubmit { get; init; }
@@ -36,6 +39,9 @@ public sealed class UpdatePollMetadataRequest
 	public string? Title { get; init; }
 	public string? Description { get; init; }
 	public VotingMethod? VotingMethod { get; init; }
+	public FieldRequirement? TitleRequirement { get; init; }
+	public FieldRequirement? DescriptionRequirement { get; init; }
+	public FieldRequirement? ImageRequirement { get; init; }
 }
 
 public sealed class UpdateSubmissionSettingsRequest
@@ -70,7 +76,7 @@ public sealed class VotingBreakdownEntryResponse
 	public IReadOnlyList<PollDetailRankCountResponse> RankCounts { get; init; } = Array.Empty<PollDetailRankCountResponse>();
 }
 
-public sealed record PollWinnerResponse(Guid EntryId, string DisplayName, int Votes, Guid? AssetId);
+public sealed record PollWinnerResponse(Guid EntryId, string DisplayName, int Votes, Guid? AssetId, string SubmittedByDisplayName);
 
 public sealed class PollDetailResponse
 {
@@ -86,6 +92,9 @@ public sealed class PollDetailResponse
 	public bool HideEntriesUntilVoting { get; init; }
 	public int MaxSelections { get; init; }
 	public bool RequireRanking { get; init; }
+	public FieldRequirement TitleRequirement { get; init; }
+	public FieldRequirement DescriptionRequirement { get; init; }
+	public FieldRequirement ImageRequirement { get; init; }
 	public IReadOnlyList<PollWinnerResponse> Winners { get; init; } = Array.Empty<PollWinnerResponse>();
 	public IReadOnlyList<PollDetailEntryResponse> Entries { get; init; } = Array.Empty<PollDetailEntryResponse>();
 }

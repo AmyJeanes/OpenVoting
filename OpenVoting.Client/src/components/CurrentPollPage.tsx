@@ -553,6 +553,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
       {poll?.status === 1 && myEntries.length > 0 && (
         <MySubmissionsSection
+          poll={poll}
           entries={myEntries}
           assetCache={assetCache}
           entryAssetId={entryAssetId}
@@ -571,7 +572,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
       )}
 
       {showBlurredPreview && (
-        <PreviewSection entries={entries} assetCache={assetCache} entryAssetId={entryAssetId} />
+        <PreviewSection poll={poll} entries={entries} assetCache={assetCache} entryAssetId={entryAssetId} />
       )}
 
       {poll?.canVote && !isClosed && entries.length > 0 && (

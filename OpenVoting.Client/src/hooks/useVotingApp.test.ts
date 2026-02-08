@@ -58,7 +58,7 @@ describe('useVotingApp', () => {
 
   it('logs out and clears token on unauthorized me response', async () => {
     localStorage.setItem('ov_token', 'abc');
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test', redirectUri: 'https://app.test' });

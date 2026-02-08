@@ -9,6 +9,7 @@ import type {
   PollHistoryResponse,
   PollResponse,
   FieldRequirement,
+  CreatePollForm,
   SessionState,
   VoteResponse,
   VotingBreakdownEntry
@@ -17,13 +18,10 @@ import { useToast } from '../components';
 
 const tokenKey = 'ov_token';
 
-const defaultCreateForm = {
+const defaultCreateForm: CreatePollForm = {
   title: '',
   description: '',
-  votingMethod: 1,
-  titleRequirement: 2 as FieldRequirement,
-  descriptionRequirement: 1 as FieldRequirement,
-  imageRequirement: 2 as FieldRequirement
+  votingMethod: 1
 };
 
 const defaultEntryForm = {
@@ -228,12 +226,6 @@ export function useVotingApp() {
 
   const createPoll = async () => {
     setCreateError(null);
-    if (createForm.titleRequirement === 0 && createForm.descriptionRequirement === 0 && createForm.imageRequirement === 0) {
-      const message = 'Enable at least one submission field.';
-      setCreateError(message);
-      showToast(message, { tone: 'error' });
-      return;
-    }
     const latestActive = activePolls.length === 0 ? await fetchActivePolls() : activePolls;
     const activeCount = latestActive.length;
     if (activeCount > 0) {
@@ -251,10 +243,7 @@ export function useVotingApp() {
       const payload: Record<string, unknown> = {
         title: createForm.title,
         description: createForm.description || undefined,
-        votingMethod: createForm.votingMethod,
-        titleRequirement: createForm.titleRequirement,
-        descriptionRequirement: createForm.descriptionRequirement,
-        imageRequirement: createForm.imageRequirement
+        votingMethod: createForm.votingMethod
       };
 
       const res = await authedFetch('/api/polls', {
