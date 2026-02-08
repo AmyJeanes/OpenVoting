@@ -48,7 +48,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
             <span className="pill subtle">Admin</span>
           </div>
           <div className="form-grid">
-            <label>Title
+            <label className="full-row">Title
               <input value={createForm.title} onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })} />
             </label>
             <label className="full-row">Description
@@ -74,7 +74,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
         {loading && <p className="muted">Loading live polls…</p>}
         {!loading && activePolls.length === 0 && !pollError && <p className="muted">No active polls right now.</p>}
         {!loading && activePolls.length > 0 && (
-          <ul className="entries">
+          <ul className="entries poll-list">
             {activePolls.map((p) => {
               const statusPillClass = p.status === 0 ? 'pill compact admin' : 'pill compact subtle';
               const entryClass = p.status === 0 ? 'entry-card draft' : 'entry-card';
@@ -82,7 +82,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                 <li key={p.id} className={entryClass}>
                 <div className="entry-head">
                   <div>
-                    <p className="entry-title">{p.title}</p>
+                    <p className="entry-title live-title">{p.title}</p>
                     {p.description && <p className="muted multiline">{p.description}</p>}
                     <p className="muted">Submissions: {formatWindow(p.submissionOpensAt, p.submissionClosesAt)}</p>
                     {(p.status === 2 || p.status === 3 || p.status === 4) && (

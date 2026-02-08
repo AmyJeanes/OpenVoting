@@ -157,7 +157,7 @@ public sealed class PollService : IPollService
 
 		var polls = await _db.Polls
 			.Where(p => p.CommunityId == member!.CommunityId && p.Status == PollStatus.Closed)
-			.Include(p => p.Entries)
+			.Include(p => p.Entries).ThenInclude(e => e.SubmittedByMember)
 			.Include(p => p.Votes).ThenInclude(v => v.Choices)
 			.OrderByDescending(p => p.VotingClosesAt)
 			.Take(20)

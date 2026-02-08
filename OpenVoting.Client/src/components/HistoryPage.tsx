@@ -27,6 +27,8 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
     return 'Untitled entry';
   };
 
+  const winnerUser = (winner: PollHistoryResponse['winners'][number]) => winner.submittedByDisplayName || winner.displayName || 'Anonymous';
+
   useEffect(() => {
     if (historyError) showToast(historyError, { tone: 'error' });
   }, [historyError, showToast]);
@@ -42,135 +44,96 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
       </div>
       {history.length === 0 && !historyError && <p className="muted">No closed polls yet.</p>}
       {history.length > 0 && (
-        <ul className="entries">
+        <ul className="entries poll-list">
           {history.map((p) => (
-            <li key={p.id} className="entry-card" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ flex: 1 }}>
-                <div className="entry-head" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
-                  <div>
-                    <p className="entry-title"><Link to={`/polls/${p.id}`}>{p.title}</Link></p>
-                    <p className="muted">Closed {new Date(p.votingClosesAt).toLocaleString()}</p>
-                  </div>
-                  <div className="metric-row">
-                    <span className="pill subtle">{votingMethodLabel(p.votingMethod)}</span>
-                    <VotingMethodInfo method={p.votingMethod} />
-                  </div>
-                </div>
-                {p.winners.length === 0 && <p className="muted">No votes recorded.</p>}
-                {p.winners.length > 0 && (
-                  <div className="winners" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-                    {p.winners.map((w) => {
-                      const hasTitle = (w.displayName || '').trim().length > 0;
-                      const titleText = winnerTitle(w);
-                      const subtitle = hasTitle && w.submittedByDisplayName ? `by ${w.submittedByDisplayName}` : '';
-                      return (
-                        <div key={w.entryId} className="winner-chip" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4, width: '100%', maxWidth: 220 }}>
-                          <div>
-                            <strong>{titleText}</strong>
-                            <span className="muted"> · {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
-                          </div>
-                          {subtitle && <div className="muted">{subtitle}</div>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                <div className="actions" style={{ marginTop: 8 }}>
-                  <Link className="ghost" to={`/polls/${p.id}`}>View poll details</Link>
-                </div>
-              </div>
-
-              {/* Right-aligned winner preview; show a tie cluster when multiple winners are tied */}
-              {p.winners.length > 0 && (() => {
+            <li key={p.id} className="entry-card history-item">
+              {(() => {
+                const closedText = `Closed ${new Date(p.votingClosesAt).toLocaleString()}`;
                 const isTie = p.winners.length > 1 && p.winners.every((w) => w.votes === p.winners[0].votes);
 
-                if (isTie) {
-                  const preview = p.winners.slice(0, 3);
-                  const remaining = p.winners.length - preview.length;
+                const renderThumb = (winner: PollHistoryResponse['winners'][number]) => {
+                  const asset = winner.assetId ? assetCache[winner.assetId] : undefined;
+                  const titleText = winnerTitle(winner);
+                  const voteLabel = `${winner.votes} vote${winner.votes === 1 ? '' : 's'}`;
+                  const labelSource = winnerUser(winner).trim();
+                  const fallbackLabel = labelSource.slice(0, 1).toUpperCase() || '?';
 
-                  return (
-                    <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: 160, padding: '4px 0' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                        {preview.map((w, idx) => {
-                          const asset = w.assetId ? assetCache[w.assetId] : undefined;
-                          const labelSource = (w.displayName || w.submittedByDisplayName || '').trim();
-                          const label = labelSource.slice(0, 1).toUpperCase() || '?';
-                          const titleText = winnerTitle(w);
-                          return asset?.url ? (
-                            <a
-                              key={w.entryId}
-                              href={asset.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={titleText}
-                              style={{ marginLeft: idx === 0 ? 0 : -14 }}
-                            >
-                              <img
-                                src={asset.url}
-                                alt={titleText}
-                                style={{
-                                  width: 74,
-                                  height: 74,
-                                  objectFit: 'cover',
-                                  borderRadius: '50%',
-                                  border: '2px solid var(--surface)',
-                                  boxShadow: 'var(--shadow-soft)',
-                                  cursor: 'zoom-in'
-                                }}
-                              />
-                            </a>
-                          ) : (
-                            <div
-                              key={w.entryId}
-                              title={titleText}
-                              style={{
-                                width: 74,
-                                height: 74,
-                                borderRadius: '50%',
-                                border: '2px solid var(--surface)',
-                                background: 'var(--ghost-bg)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: 800,
-                                color: 'var(--text-muted)',
-                                marginLeft: idx === 0 ? 0 : -14
-                              }}
-                            >
-                              {label}
-                            </div>
-                          );
-                        })}
-                        {remaining > 0 && (
-                          <div style={{ marginLeft: 6, fontWeight: 700, color: 'var(--text-muted)' }}>+{remaining}</div>
-                        )}
+                  return asset?.url ? (
+                    <a
+                      key={winner.entryId}
+                      href={asset.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={titleText}
+                      className="history-thumb"
+                    >
+                      <img src={asset.url} alt={titleText} />
+                      <div className="history-thumb-label pill winner">
+                        <span className="history-thumb-title">{winnerUser(winner)}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="history-thumb-count">{voteLabel}</span>
                       </div>
-                      <div style={{ textAlign: 'center', width: '100%' }}>
-                        <div style={{ fontWeight: 700 }}>{p.winners.length} winners tied</div>
-                        <div className="muted" style={{ marginTop: 2 }}>
-                          {p.winners.map((w) => winnerTitle(w)).slice(0, 3).join(', ')}{p.winners.length > 3 ? '…' : ''}
-                        </div>
-                        <div style={{ marginTop: 6 }}><span className="pill tie">Tie</span></div>
+                    </a>
+                  ) : (
+                    <div key={winner.entryId} className="history-thumb history-thumb--fallback" title={titleText}>
+                      <div className="history-thumb-fallback">{fallbackLabel}</div>
+                      <div className="history-thumb-label pill winner">
+                        <span className="history-thumb-title">{winnerUser(winner)}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="history-thumb-count">{voteLabel}</span>
                       </div>
                     </div>
                   );
-                }
+                };
 
-                const w = p.winners[0];
-                const asset = w.assetId ? assetCache[w.assetId] : undefined;
-                if (!asset?.url) return null;
-                const titleText = winnerTitle(w);
                 return (
-                  <a href={asset.url} target="_blank" rel="noopener noreferrer" title={titleText} style={{ marginLeft: 'auto', textDecoration: 'none', color: 'inherit' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                      <img src={asset.url} alt={titleText} style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--border-strong)', cursor: 'zoom-in' }} />
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontWeight: 700 }}>{titleText}</div>
-                        <div className="muted">{w.votes} vote{w.votes === 1 ? '' : 's'}</div>
-                        <div style={{ marginTop: 6 }}><span className="pill winner">Winner</span></div>
+                  <>
+                    <div className="history-top">
+                      <div>
+                        <p className="history-title"><Link to={`/polls/${p.id}`}>{p.title}</Link></p>
+                        <div className="history-subtitle" />
                       </div>
                     </div>
-                  </a>
+
+                    {p.winners.length === 0 && <p className="muted">No votes recorded.</p>}
+
+                    {p.winners.length > 0 && (
+                      <>
+                        <div className="history-body">
+                          <div className="history-side" />
+
+                          <div className={`history-preview-grid ${isTie ? 'is-tie' : ''}`}>
+                            {isTie ? p.winners.slice(0, 2).map(renderThumb) : renderThumb(p.winners[0])}
+                            {isTie && p.winners.length > 2 && (
+                              <div className="history-thumb history-thumb--remaining">+{p.winners.length - 2}</div>
+                            )}
+                          </div>
+
+                          <div className="history-meta">
+                            <div className="history-meta-top">
+                              <span className="pill subtle">{votingMethodLabel(p.votingMethod)}</span>
+                              <VotingMethodInfo method={p.votingMethod} />
+                            </div>
+                            <div className="history-meta-title">{isTie ? `${p.winners.length} winners tied` : 'Winner'}</div>
+                            <div className="history-meta-note">{closedText}</div>
+                            <div className="history-meta-pills">
+                              {isTie ? (
+                                <span className="pill tie">Tie</span>
+                              ) : (
+                                p.winners.map((w) => (
+                                  <span key={w.entryId} className="pill winner">{winnerUser(w)} · {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="history-actions">
+                          <Link className="primary" to={`/polls/${p.id}`}>View poll details</Link>
+                        </div>
+                      </>
+                    )}
+                  </>
                 );
               })()}
             </li>
