@@ -25,6 +25,10 @@ public sealed class Poll
   public int MaxSelections { get; set; } = 5;
   public bool RequireRanking { get; set; } = true;
 
+  public FieldRequirement TitleRequirement { get; set; } = FieldRequirement.Required;
+  public FieldRequirement DescriptionRequirement { get; set; } = FieldRequirement.Optional;
+  public FieldRequirement ImageRequirement { get; set; } = FieldRequirement.Required;
+
   public int MaxSubmissionsPerMember { get; set; } = 1;
   public bool HideEntriesUntilVoting { get; set; } = true;
 

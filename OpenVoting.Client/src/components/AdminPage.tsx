@@ -1,5 +1,6 @@
 import { AuthPrompt } from './AuthPrompt';
-import type { SessionState } from '../types';
+import type { Dispatch, SetStateAction } from 'react';
+import type { FieldRequirement, SessionState } from '../types';
 
 export type AdminPageProps = {
   sessionState: SessionState;
@@ -8,8 +9,11 @@ export type AdminPageProps = {
     title: string;
     description: string;
     votingMethod: number;
+    titleRequirement: FieldRequirement;
+    descriptionRequirement: FieldRequirement;
+    imageRequirement: FieldRequirement;
   };
-  setCreateForm: (form: AdminPageProps['createForm']) => void;
+  setCreateForm: Dispatch<SetStateAction<AdminPageProps['createForm']>>;
   creating: boolean;
   createError: string | null;
   onCreatePoll: () => void;
@@ -23,6 +27,12 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
   if (!me?.isAdmin) {
     return <section className="card"><p>You need admin access to manage polls.</p></section>;
   }
+
+  const requirementOptions = [
+    { value: 0, label: 'Off' },
+    { value: 1, label: 'Optional' },
+    { value: 2, label: 'Required' }
+  ];
 
   return (
     <div className="stack">
@@ -39,6 +49,21 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
           </label>
           <label>Description
             <input value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
+          </label>
+          <label>Title field
+            <select value={createForm.titleRequirement} onChange={(e) => setCreateForm({ ...createForm, titleRequirement: Number(e.target.value) as FieldRequirement })}>
+              {requirementOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
+          </label>
+          <label>Description field
+            <select value={createForm.descriptionRequirement} onChange={(e) => setCreateForm({ ...createForm, descriptionRequirement: Number(e.target.value) as FieldRequirement })}>
+              {requirementOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
+          </label>
+          <label>Image field
+            <select value={createForm.imageRequirement} onChange={(e) => setCreateForm({ ...createForm, imageRequirement: Number(e.target.value) as FieldRequirement })}>
+              {requirementOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
           </label>
         </div>
         {createError && <p className="error">{createError}</p>}

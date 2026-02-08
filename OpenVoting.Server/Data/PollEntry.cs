@@ -12,8 +12,8 @@ public sealed class PollEntry
   public string DisplayName { get; set; } = string.Empty;
   public string? Description { get; set; }
 
-  public Guid OriginalAssetId { get; set; }
-  public Asset OriginalAsset { get; set; } = null!;
+  public Guid? OriginalAssetId { get; set; }
+  public Asset? OriginalAsset { get; set; }
 
   public Guid? TeaserAssetId { get; set; }
   public Asset? TeaserAsset { get; set; }

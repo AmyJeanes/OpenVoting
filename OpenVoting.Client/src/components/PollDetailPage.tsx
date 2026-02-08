@@ -76,6 +76,8 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
     );
   }
 
+  const isTie = detail.winners.length > 1 && detail.winners.every((w) => w.votes === detail.winners[0].votes);
+
   return (
     <div className="stack">
       <section className="card">
@@ -83,7 +85,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
           <div>
             <p className="eyebrow">Poll details</p>
             <h2>{detail.title}</h2>
-            <p className="muted">{detail.description}</p>
+            {detail.description && <p className="muted">{detail.description}</p>}
           </div>
           <div className="actions">
             <span className="pill subtle">{votingMethodLabel(detail.votingMethod)}</span>
@@ -110,9 +112,17 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
         </div>
         {detail.winners.length > 0 && (
           <div className="winners">
+            {isTie && (
+              <div className="muted" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span className="pill subtle">Tie</span>
+                <span>{detail.winners.length} winners tied for first place.</span>
+              </div>
+            )}
             {detail.winners.map((w) => (
               <div key={w.entryId} className="winner-chip">
-                <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span className="pill subtle">#1</span>
+                  {isTie && <span className="pill subtle">Tie</span>}
                   <strong>{w.displayName}</strong>
                   <span className="muted"> · {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
                 </div>
@@ -139,17 +149,22 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
             {detail.entries.map((e) => {
               const assetId = e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? '';
               const asset = assetCache[assetId];
+              const positionLabel = isTie && e.isWinner ? '#1' : (typeof e.position === 'number' ? `#${e.position}` : null);
+              const hasTitle = (e.displayName || '').trim().length > 0;
+              const titleText = hasTitle
+                ? e.displayName
+                : (e.submittedByDisplayName ? `By ${e.submittedByDisplayName}` : 'Untitled entry');
               return (
                 <li key={e.id} className="entry-card">
                   <div className="entry-head">
                     <div>
-                      <p className="entry-title">{e.displayName}</p>
-                      <p className="muted">Submitted {new Date(e.createdAt).toLocaleString()}</p>
-                      {e.submittedByDisplayName && <p className="muted">By {e.submittedByDisplayName}</p>}
+                      <p className="entry-title">{titleText}</p>
+                      {e.submittedByDisplayName && hasTitle && <p className="muted">By {e.submittedByDisplayName}</p>}
                       {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
                     </div>
                     <div className="badges">
-                      {typeof e.position === 'number' && <span className="pill subtle">#{e.position}</span>}
+                      {positionLabel && <span className="pill subtle">{positionLabel}</span>}
+                      {isTie && e.isWinner && <span className="pill subtle">Tie</span>}
                       {e.isWinner && <span className="pill">Winner</span>}
                     </div>
                   </div>

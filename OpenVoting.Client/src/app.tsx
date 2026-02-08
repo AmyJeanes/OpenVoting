@@ -21,6 +21,7 @@ import type {
   PollEntryResponse,
   PollHistoryResponse,
   PollResponse,
+  FieldRequirement,
   SessionState,
   VoteResponse,
   VotingBreakdownEntry
@@ -29,9 +30,12 @@ import type {
 const tokenKey = 'ov_token';
 
 const defaultCreateForm = {
-  title: 'New competition',
+  title: '',
   description: '',
-  votingMethod: 1
+  votingMethod: 1,
+  titleRequirement: 2 as FieldRequirement,
+  descriptionRequirement: 1 as FieldRequirement,
+  imageRequirement: 2 as FieldRequirement
 };
 
 const defaultEntryForm = {
@@ -234,6 +238,10 @@ export default function App() {
 
   const createPoll = async () => {
     setCreateError(null);
+    if (createForm.titleRequirement === 0 && createForm.descriptionRequirement === 0 && createForm.imageRequirement === 0) {
+      setCreateError('Enable at least one submission field.');
+      return;
+    }
     const latestActive = activePolls.length === 0 ? await fetchActivePolls() : activePolls;
     const activeCount = latestActive.length;
     if (activeCount > 0) {
@@ -251,7 +259,10 @@ export default function App() {
       const payload: Record<string, unknown> = {
         title: createForm.title,
         description: createForm.description || undefined,
-        votingMethod: createForm.votingMethod
+        votingMethod: createForm.votingMethod,
+        titleRequirement: createForm.titleRequirement,
+        descriptionRequirement: createForm.descriptionRequirement,
+        imageRequirement: createForm.imageRequirement
       };
 
       const res = await authedFetch('/api/polls', {
@@ -521,18 +532,47 @@ export default function App() {
     setEntrySubmitError(null);
     setEntrySubmitting(true);
     try {
-      if (!entryFiles.original) {
-        throw new Error('Upload an image to submit.');
+      if (!poll.canSubmit) {
+        throw new Error('Submissions are closed for this poll.');
       }
 
-      if (!entryForm.displayName.trim()) {
+      const ownEntryCount = entries.filter((e) => e.isOwn).length;
+      if (poll.maxSubmissionsPerMember > 0 && ownEntryCount >= poll.maxSubmissionsPerMember) {
+        throw new Error('You have reached the submission limit for this poll.');
+      }
+
+      const titleRequirement = poll.titleRequirement;
+      const descriptionRequirement = poll.descriptionRequirement;
+      const imageRequirement = poll.imageRequirement;
+      const displayNameInput = entryForm.displayName.trim();
+      const descriptionInput = entryForm.description.trim();
+
+      if (titleRequirement === 2 && !displayNameInput) {
         throw new Error('Display name is required.');
       }
 
-      await validateImageFile(entryFiles.original);
+      if (descriptionRequirement === 2 && !descriptionInput) {
+        throw new Error('Description is required.');
+      }
 
-      const upload = await uploadAsset(entryFiles.original);
-      const originalId = upload.id;
+      const hasFile = !!entryFiles.original;
+
+      if (imageRequirement === 2 && !hasFile) {
+        throw new Error('Upload an image to submit.');
+      }
+
+      let originalId: string | undefined;
+
+      if (hasFile) {
+        await validateImageFile(entryFiles.original!);
+        const upload = await uploadAsset(entryFiles.original!);
+        originalId = upload.id;
+      }
+
+      const payloadDisplayName = titleRequirement === 0
+        ? poll.title || 'Entry'
+        : displayNameInput || poll.title || 'Entry';
+      const payloadDescription = descriptionRequirement === 0 ? undefined : descriptionInput || undefined;
 
       const res = await authedFetch(`/api/polls/${poll.id}/entries`, {
         method: 'POST',
@@ -540,8 +580,8 @@ export default function App() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          displayName: entryForm.displayName.trim(),
-          description: entryForm.description.trim() || undefined,
+          displayName: payloadDisplayName,
+          description: payloadDescription,
           originalAssetId: originalId
         })
       });
@@ -560,6 +600,11 @@ export default function App() {
   };
 
   const handleEntryFilesChange = (files: { original?: File }) => {
+    if (poll?.imageRequirement === 0) {
+      setEntryFiles({});
+      return;
+    }
+
     setEntrySubmitError(null);
 
     const file = files.original;
@@ -866,10 +911,13 @@ export default function App() {
     }
   };
 
-  const updatePollMetadata = async (pollId: string, updates: { title?: string; description?: string }) => {
+  const updatePollMetadata = async (pollId: string, updates: { title?: string; description?: string; titleRequirement?: FieldRequirement; descriptionRequirement?: FieldRequirement; imageRequirement?: FieldRequirement }) => {
     const payload: Record<string, unknown> = {};
     if (updates.title !== undefined) payload.title = updates.title;
     if (updates.description !== undefined) payload.description = updates.description;
+    if (updates.titleRequirement !== undefined) payload.titleRequirement = updates.titleRequirement;
+    if (updates.descriptionRequirement !== undefined) payload.descriptionRequirement = updates.descriptionRequirement;
+    if (updates.imageRequirement !== undefined) payload.imageRequirement = updates.imageRequirement;
 
     try {
       const res = await authedFetch(`/api/polls/${pollId}`, {

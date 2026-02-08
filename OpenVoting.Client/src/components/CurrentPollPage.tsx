@@ -8,6 +8,7 @@ import type {
   PollEntryResponse,
   PollDetailResponse,
   PollResponse,
+  FieldRequirement,
   SessionState,
   VoteResponse,
   VotingBreakdownEntry
@@ -51,7 +52,7 @@ export type CurrentPollProps = {
   onDeleteEntry: (entryId: string) => void;
   onTransition: (pollId: string, path: string) => void;
   onDeletePoll: (pollId: string) => void;
-  onUpdateMetadata: (pollId: string, updates: { title?: string; description?: string }) => Promise<unknown>;
+  onUpdateMetadata: (pollId: string, updates: { title?: string; description?: string; titleRequirement?: FieldRequirement; descriptionRequirement?: FieldRequirement; imageRequirement?: FieldRequirement }) => Promise<unknown>;
   onUpdateSubmissionSettings: (pollId: string, updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null }) => Promise<unknown>;
   onUpdateVotingSettings: (pollId: string, updates: { maxSelections?: number; votingClosesAt?: string | null }) => Promise<unknown>;
   onRefreshBreakdown: () => Promise<void> | void;
@@ -99,13 +100,19 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
   const { pollId } = useParams();
   const isClosed = poll?.status === 3 || poll?.status === 4;
-  const showSubmissionSettings = !!poll && poll.status === 1;
+  const showSubmissionSettings = !!poll && (poll.status === 0 || poll.status === 1);
   const showVotingSettings = !!poll && poll.status === 2;
   const showVotingWindow = !!poll && (poll.status === 2 || isClosed) && !isMaxTimestamp(poll.votingOpensAt);
   const showAdminEntries = !!poll && !isClosed && poll.isAdmin;
   const showAdminBreakdown = !!poll && poll.isAdmin && poll.status === 2;
-  const showBlurredPreview = !!poll && !poll.isAdmin && poll.hideEntriesUntilVoting && (poll.status === 1 || poll.status === 5) && entries.length > 0;
+  const showBlurredPreview = !!poll && poll.imageRequirement !== 0 && !poll.isAdmin && poll.hideEntriesUntilVoting && (poll.status === 1 || poll.status === 5) && entries.length > 0;
+  const showEntryTitleField = poll?.titleRequirement !== 0;
+  const showEntryDescriptionField = poll?.descriptionRequirement !== 0;
   const myEntries = useMemo(() => entries.filter((e) => e.isOwn), [entries]);
+  const submissionLimitReached = !!poll && poll.maxSubmissionsPerMember > 0 && myEntries.length >= poll.maxSubmissionsPerMember;
+  const submissionsRemaining = poll && poll.maxSubmissionsPerMember > 0
+    ? Math.max(0, poll.maxSubmissionsPerMember - myEntries.length)
+    : null;
   const [confirmConfig, setConfirmConfig] = useState<ConfirmDialogConfig | null>(null);
   const [pendingEntryId, setPendingEntryId] = useState<string | null>(null);
   const [pendingReason, setPendingReason] = useState('');
@@ -169,21 +176,35 @@ export function CurrentPollPage(props: CurrentPollProps) {
   }, [rankedIds]);
   const selectedEntries = useMemo(() => entries.filter((e) => voteState[e.id]?.selected), [entries, voteState]);
   const rankedEntries = useMemo(() => rankedIds.map((id) => entries.find((e) => e.id === id)).filter((e): e is PollEntryResponse => !!e), [entries, rankedIds]);
-  const preferTeaserAsset = poll?.hideEntriesUntilVoting && !poll?.isAdmin && (poll.status === 1 || poll.status === 5);
-  const entryAssetId = (entry: { publicAssetId?: string; originalAssetId: string; teaserAssetId?: string }) => {
+  const preferTeaserAsset = poll?.hideEntriesUntilVoting && !poll?.isAdmin && (poll.status === 1 || poll.status === 5) && entries.length > 0;
+  const tiedForFirst = !!pollDetail && pollDetail.winners.length > 1 && pollDetail.winners.every((w) => w.votes === pollDetail.winners[0].votes);
+  const entryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => {
+    if (poll?.imageRequirement === 0) {
+      return '';
+    }
+
     if (preferTeaserAsset && entry.teaserAssetId) {
       return entry.teaserAssetId;
     }
     return entry.publicAssetId ?? entry.originalAssetId ?? entry.teaserAssetId ?? '';
   };
-  const [metaForm, setMetaForm] = useState({ title: '', description: '' });
+  const requirementOptions: Array<{ value: FieldRequirement; label: string }> = [
+    { value: 0, label: 'Off' },
+    { value: 1, label: 'Optional' },
+    { value: 2, label: 'Required' }
+  ];
+  const [metaForm, setMetaForm] = useState({
+    title: '',
+    description: '',
+    titleRequirement: 2 as FieldRequirement,
+    descriptionRequirement: 1 as FieldRequirement,
+    imageRequirement: 2 as FieldRequirement
+  });
   const [submissionForm, setSubmissionForm] = useState({ maxSubmissionsPerMember: 1, submissionClosesAt: '' });
   const [votingForm, setVotingForm] = useState({ maxSelections: 1, votingClosesAt: '' });
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
-  const [metaSaving, setMetaSaving] = useState(false);
-  const [submissionSaving, setSubmissionSaving] = useState(false);
-  const [votingSaving, setVotingSaving] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   useEffect(() => {
     if (pollId) {
@@ -217,89 +238,72 @@ export function CurrentPollPage(props: CurrentPollProps) {
     setRankedIds(ordered);
   }, [poll?.id, poll?.requireRanking, voteInfo?.voteId, entries]);
 
-  const handleSaveMeta = async () => {
-    if (!poll) return;
-    setSettingsError(null);
-    setSettingsMessage(null);
-    setMetaSaving(true);
-    try {
-      const updates: { title?: string; description?: string } = {};
-      if (metaForm.title !== poll.title) updates.title = metaForm.title;
-      if ((metaForm.description || '') !== (poll.description ?? '')) updates.description = metaForm.description;
-
-      if (Object.keys(updates).length === 0) {
-        setSettingsMessage('Nothing to update');
-        return;
-      }
-
-      await onUpdateMetadata(poll.id, updates);
-      setSettingsMessage('Poll details updated');
-    } catch (err) {
-      setSettingsError(err instanceof Error ? err.message : 'Failed to update poll');
-    } finally {
-      setMetaSaving(false);
-    }
+  const buildMetaUpdates = () => {
+    if (!poll) return null;
+    const updates: { title?: string; description?: string; titleRequirement?: FieldRequirement; descriptionRequirement?: FieldRequirement; imageRequirement?: FieldRequirement } = {};
+    if (metaForm.title !== poll.title) updates.title = metaForm.title;
+    if ((metaForm.description || '') !== (poll.description ?? '')) updates.description = metaForm.description;
+    if (metaForm.titleRequirement !== poll.titleRequirement) updates.titleRequirement = metaForm.titleRequirement;
+    if (metaForm.descriptionRequirement !== poll.descriptionRequirement) updates.descriptionRequirement = metaForm.descriptionRequirement;
+    if (metaForm.imageRequirement !== poll.imageRequirement) updates.imageRequirement = metaForm.imageRequirement;
+    return Object.keys(updates).length > 0 ? updates : null;
   };
 
-  const handleSaveSubmissionSettings = async () => {
-    if (!poll) return;
-    setSettingsError(null);
-    setSettingsMessage(null);
-    setSubmissionSaving(true);
-    try {
-      const updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null } = {};
-      const currentClose = isMaxTimestamp(poll.submissionClosesAt) ? '' : toLocal(poll.submissionClosesAt);
-
-      if (submissionForm.maxSubmissionsPerMember !== poll.maxSubmissionsPerMember) {
-        updates.maxSubmissionsPerMember = submissionForm.maxSubmissionsPerMember;
-      }
-
-      if (submissionForm.submissionClosesAt !== currentClose) {
-        updates.submissionClosesAt = submissionForm.submissionClosesAt === '' ? null : fromLocal(submissionForm.submissionClosesAt);
-      }
-
-      if (Object.keys(updates).length === 0) {
-        setSettingsMessage('Nothing to update');
-        return;
-      }
-
-      await onUpdateSubmissionSettings(poll.id, updates);
-      setSettingsMessage('Submission settings updated');
-    } catch (err) {
-      setSettingsError(err instanceof Error ? err.message : 'Failed to update submission settings');
-    } finally {
-      setSubmissionSaving(false);
+  const buildSubmissionUpdates = () => {
+    if (!poll || !showSubmissionSettings) return null;
+    const updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null } = {};
+    const currentClose = isMaxTimestamp(poll.submissionClosesAt) ? '' : toLocal(poll.submissionClosesAt);
+    if (submissionForm.maxSubmissionsPerMember !== poll.maxSubmissionsPerMember) {
+      updates.maxSubmissionsPerMember = submissionForm.maxSubmissionsPerMember;
     }
+    if (submissionForm.submissionClosesAt !== currentClose) {
+      updates.submissionClosesAt = submissionForm.submissionClosesAt === '' ? null : fromLocal(submissionForm.submissionClosesAt);
+    }
+    return Object.keys(updates).length > 0 ? updates : null;
   };
 
-  const handleSaveVotingSettings = async () => {
+  const buildVotingUpdates = () => {
+    if (!poll || !showVotingSettings) return null;
+    const updates: { maxSelections?: number; votingClosesAt?: string | null } = {};
+    const currentClose = isMaxTimestamp(poll.votingClosesAt) ? '' : toLocal(poll.votingClosesAt);
+    if (votingForm.maxSelections !== poll.maxSelections) {
+      updates.maxSelections = votingForm.maxSelections;
+    }
+    if (votingForm.votingClosesAt !== currentClose) {
+      updates.votingClosesAt = votingForm.votingClosesAt === '' ? null : fromLocal(votingForm.votingClosesAt);
+    }
+    return Object.keys(updates).length > 0 ? updates : null;
+  };
+
+  const handleSaveSettings = async () => {
     if (!poll) return;
     setSettingsError(null);
     setSettingsMessage(null);
-    setVotingSaving(true);
+
+    if (metaForm.titleRequirement === 0 && metaForm.descriptionRequirement === 0 && metaForm.imageRequirement === 0) {
+      setSettingsError('Enable at least one submission field.');
+      return;
+    }
+
+    const metaUpdates = buildMetaUpdates();
+    const submissionUpdates = buildSubmissionUpdates();
+    const votingUpdates = buildVotingUpdates();
+
+    if (!metaUpdates && !submissionUpdates && !votingUpdates) {
+      setSettingsMessage('Nothing to update');
+      return;
+    }
+
+    setSettingsSaving(true);
     try {
-      const updates: { maxSelections?: number; votingClosesAt?: string | null } = {};
-      const currentClose = isMaxTimestamp(poll.votingClosesAt) ? '' : toLocal(poll.votingClosesAt);
-
-      if (votingForm.maxSelections !== poll.maxSelections) {
-        updates.maxSelections = votingForm.maxSelections;
-      }
-
-      if (votingForm.votingClosesAt !== currentClose) {
-        updates.votingClosesAt = votingForm.votingClosesAt === '' ? null : fromLocal(votingForm.votingClosesAt);
-      }
-
-      if (Object.keys(updates).length === 0) {
-        setSettingsMessage('Nothing to update');
-        return;
-      }
-
-      await onUpdateVotingSettings(poll.id, updates);
-      setSettingsMessage('Voting settings updated');
+      if (metaUpdates) await onUpdateMetadata(poll.id, metaUpdates);
+      if (submissionUpdates) await onUpdateSubmissionSettings(poll.id, submissionUpdates);
+      if (votingUpdates) await onUpdateVotingSettings(poll.id, votingUpdates);
+      setSettingsMessage('Poll settings updated');
     } catch (err) {
-      setSettingsError(err instanceof Error ? err.message : 'Failed to update voting settings');
+      setSettingsError(err instanceof Error ? err.message : 'Failed to update poll settings');
     } finally {
-      setVotingSaving(false);
+      setSettingsSaving(false);
     }
   };
 
@@ -420,7 +424,10 @@ export function CurrentPollPage(props: CurrentPollProps) {
     if (!poll) return;
     setMetaForm({
       title: poll.title,
-      description: poll.description ?? ''
+      description: poll.description ?? '',
+      titleRequirement: poll.titleRequirement,
+      descriptionRequirement: poll.descriptionRequirement,
+      imageRequirement: poll.imageRequirement
     });
     setSubmissionForm({
       maxSubmissionsPerMember: poll.maxSubmissionsPerMember,
@@ -465,7 +472,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
             <p className="eyebrow">Poll</p>
             <h2>{poll ? poll.title : 'No active competition'}</h2>
             {poll && <span className={`pill ${poll.status === 0 ? 'admin' : 'subtle'}`}>Stage: {pollStatusLabel(poll.status)}</span>}
-            {poll?.description && <p className="muted">{poll.description}</p>}
+            {poll && poll.description && <p className="muted">{poll.description}</p>}
           </div>
           <div className="actions">
             <Link className="ghost" to="/polls/live">Back to live polls</Link>
@@ -541,12 +548,30 @@ export function CurrentPollPage(props: CurrentPollProps) {
                 <label>Title
                   <input value={metaForm.title} onChange={(e) => setMetaForm({ ...metaForm, title: e.target.value })} />
                 </label>
-                <label>Description
-                  <input value={metaForm.description} onChange={(e) => setMetaForm({ ...metaForm, description: e.target.value })} />
+                <label>Title field
+                  <select value={metaForm.titleRequirement} onChange={(e) => setMetaForm({ ...metaForm, titleRequirement: Number(e.target.value) as FieldRequirement })}>
+                    {requirementOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 </label>
-              </div>
-              <div className="actions form-actions spacious">
-                <button className="ghost" onClick={handleSaveMeta} disabled={metaSaving}>{metaSaving ? 'Saving…' : 'Save basics'}</button>
+                <label>Description field
+                  <select value={metaForm.descriptionRequirement} onChange={(e) => setMetaForm({ ...metaForm, descriptionRequirement: Number(e.target.value) as FieldRequirement })}>
+                    {requirementOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>Image field
+                  <select value={metaForm.imageRequirement} onChange={(e) => setMetaForm({ ...metaForm, imageRequirement: Number(e.target.value) as FieldRequirement })}>
+                    {requirementOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="full-row">Description
+                  <textarea rows={3} value={metaForm.description} onChange={(e) => setMetaForm({ ...metaForm, description: e.target.value })} />
+                </label>
               </div>
             </div>
 
@@ -570,12 +595,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
                     />
                   </label>
                 </div>
-                <div className="actions form-actions spacious">
-                  <button className="ghost" onClick={handleSaveSubmissionSettings} disabled={submissionSaving}>
-                    {submissionSaving ? 'Saving…' : 'Save submission settings'}
-                  </button>
-                  <span className="muted">Leave blank to close manually.</span>
-                </div>
+                <p className="muted">Leave blank to close manually.</p>
               </div>
             )}
 
@@ -603,14 +623,15 @@ export function CurrentPollPage(props: CurrentPollProps) {
                     />
                   </label>
                 </div>
-                <div className="actions form-actions spacious">
-                  <button className="ghost" onClick={handleSaveVotingSettings} disabled={votingSaving}>
-                    {votingSaving ? 'Saving…' : 'Save voting settings'}
-                  </button>
-                  <span className="muted">Leave blank to close manually.</span>
-                </div>
+                <p className="muted">Leave blank to close manually.</p>
               </div>
             )}
+
+            <div className="actions form-actions spacious">
+              <button className="ghost" onClick={handleSaveSettings} disabled={settingsSaving}>
+                {settingsSaving ? 'Saving…' : 'Save poll settings'}
+              </button>
+            </div>
           </div>
         </section>
       )}
@@ -644,6 +665,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
                 const breakdown = breakdownByEntryId.get(e.id);
       const assetId = entryAssetId(e);
       const asset = assetCache[assetId];
+      const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
                 return (
                   <li key={e.id} className="entry-card">
                     <div className="entry-head">
@@ -656,7 +678,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
                     {asset?.url && (
                       // Admins can click to view the original uploaded image.
                       <a
-                        href={assetCache[e.originalAssetId]?.url || asset.url}
+                        href={originalUrl || asset.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="View full original image"
@@ -723,25 +745,45 @@ export function CurrentPollPage(props: CurrentPollProps) {
         </section>
       )}
 
-      {poll?.canSubmit && !isClosed && (
+      {poll && !isClosed && (
         <section className="card">
           <div className="section-head">
             <h3>Submit an entry</h3>
           </div>
           <div className="form-grid">
-            <label>Display name
-              <input value={entryForm.displayName} onChange={(e) => onEntryFormChange({ ...entryForm, displayName: e.target.value })} />
-            </label>
-            <label>Description
-              <input value={entryForm.description} onChange={(e) => onEntryFormChange({ ...entryForm, description: e.target.value })} />
-            </label>
-            <label>Upload image
-              <input type="file" accept="image/*" onChange={(e) => onEntryFilesChange({ ...entryFiles, original: e.target.files?.[0] ?? undefined })} />
-            </label>
+            <div className="form-row full-row">
+              {showEntryTitleField && (
+                <label className="grow">Title
+                  <input value={entryForm.displayName} onChange={(e) => onEntryFormChange({ ...entryForm, displayName: e.target.value })} />
+                </label>
+              )}
+              {poll.imageRequirement !== 0 && (
+                <label className="auto">Upload image {poll.imageRequirement === 1 ? '(optional)' : ''}
+                  <input type="file" accept="image/*" onChange={(e) => onEntryFilesChange({ ...entryFiles, original: e.target.files?.[0] ?? undefined })} />
+                </label>
+              )}
+            </div>
+            {showEntryDescriptionField && (
+              <label className="full-row">Description
+                <textarea rows={3} value={entryForm.description} onChange={(e) => onEntryFormChange({ ...entryForm, description: e.target.value })} />
+              </label>
+            )}
           </div>
           {entrySubmitError && <p className="error">{entrySubmitError}</p>}
+          {submissionLimitReached && (
+            <p className="muted">
+              You have reached the submission limit for this poll
+              {poll.maxSubmissionsPerMember > 0 ? ` (${poll.maxSubmissionsPerMember} total).` : '.'}
+            </p>
+          )}
+          {!submissionLimitReached && submissionsRemaining !== null && (
+            <p className="muted">Submissions remaining: {submissionsRemaining} of {poll.maxSubmissionsPerMember}.</p>
+          )}
+          {!poll.canSubmit && !submissionLimitReached && <p className="muted">Submissions are closed for this poll.</p>}
           <div className="actions form-actions">
-            <button className="primary" onClick={onSubmitEntry} disabled={entrySubmitting}>{entrySubmitting ? 'Submitting…' : 'Submit entry'}</button>
+            <button className="primary" onClick={onSubmitEntry} disabled={entrySubmitting || submissionLimitReached || !poll.canSubmit}>
+              {entrySubmitting ? 'Submitting…' : 'Submit entry'}
+            </button>
           </div>
         </section>
       )}
@@ -758,18 +800,22 @@ export function CurrentPollPage(props: CurrentPollProps) {
               // so the image won't appear blurred to you.
               const assetId = e.originalAssetId || entryAssetId(e);
               const asset = assetCache[assetId];
+              const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
+              const hasTitle = (e.displayName || '').trim().length > 0;
+              const titleText = hasTitle
+                ? e.displayName
+                : (e.submittedByDisplayName ? `By ${e.submittedByDisplayName}` : 'Untitled entry');
               return (
                 <li key={e.id} className="entry-card">
                   <div className="entry-head">
                     <div>
-                      <p className="entry-title">{e.displayName}</p>
+                      <p className="entry-title">{titleText}</p>
                       {e.description && <p className="muted">{e.description}</p>}
-                      <p className="muted">Submitted {new Date(e.createdAt).toLocaleString()}</p>
                     </div>
                   </div>
                   {asset?.url && (
                     <a
-                      href={assetCache[e.originalAssetId]?.url || asset.url}
+                      href={originalUrl || asset.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       title="View full original image"
@@ -948,13 +994,17 @@ export function CurrentPollPage(props: CurrentPollProps) {
                       <div className="rank-title">#{idx + 1} · {e.displayName}</div>
                       {e.submittedByDisplayName && <p className="muted">By {e.submittedByDisplayName}</p>}
                     </div>
-                    {assetCache[entryAssetId(e)]?.url && (
-                      <img
-                        src={assetCache[entryAssetId(e)]!.url}
-                        alt={e.displayName}
-                        className="rank-img"
-                      />
-                    )}
+                    {(() => {
+                      const assetId = entryAssetId(e);
+                      const asset = assetId ? assetCache[assetId] : undefined;
+                      return asset?.url ? (
+                        <img
+                          src={asset.url}
+                          alt={e.displayName}
+                          className="rank-img"
+                        />
+                      ) : null;
+                    })()}
                   </li>
                 ))}
               </ul>
@@ -985,26 +1035,33 @@ export function CurrentPollPage(props: CurrentPollProps) {
           {pollDetail.entries.length > 0 && (
             <ul className="entries entry-grid">
               {pollDetail.entries.map((e) => {
-		      const assetId = entryAssetId(e);
-		      const asset = assetCache[assetId];
+                const assetId = entryAssetId(e);
+                const asset = assetCache[assetId];
+                const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
                 const firstChoice = pollDetail.votingMethod === 2 ? e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0 : undefined;
+                const isTieWinner = tiedForFirst && e.isWinner;
+                const positionLabel = isTieWinner ? '#1' : (typeof e.position === 'number' ? `#${e.position}` : null);
+                const hasTitle = (e.displayName || '').trim().length > 0;
+                const titleText = hasTitle
+                  ? e.displayName
+                  : (e.submittedByDisplayName ? `By ${e.submittedByDisplayName}` : 'Untitled entry');
                 return (
                   <li key={e.id} className={`entry-card ${e.isWinner ? 'winner' : ''}`}>
                     <div className="entry-head">
                       <div>
-                        <p className="entry-title">{e.displayName}</p>
-                        <p className="muted">Submitted {new Date(e.createdAt).toLocaleString()}</p>
-                        {e.submittedByDisplayName && <p className="muted">By {e.submittedByDisplayName}</p>}
+                        <p className="entry-title">{titleText}</p>
+                        {e.submittedByDisplayName && hasTitle && <p className="muted">By {e.submittedByDisplayName}</p>}
                         {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
                       </div>
                       <div className="badges">
-                        {typeof e.position === 'number' && <span className="pill subtle">#{e.position}</span>}
+                        {positionLabel && <span className="pill subtle">{positionLabel}</span>}
                         {e.isWinner && <span className="pill winner">Winner</span>}
+                        {isTieWinner && <span className="pill tie">Tie</span>}
                       </div>
                     </div>
                     {asset?.url && (
                       <a
-                        href={assetCache[e.originalAssetId]?.url || asset.url}
+                        href={originalUrl || asset.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="View full original image"

@@ -961,7 +961,7 @@ public sealed class PollsController : ControllerBase
 		Guid Id,
 		string DisplayName,
 		string? Description,
-		Guid OriginalAssetId,
+		Guid? OriginalAssetId,
 		Guid? TeaserAssetId,
 		Guid? PublicAssetId,
 		bool IsDisqualified,
@@ -1068,7 +1068,7 @@ public sealed class PollDetailEntryResponse
 	public Guid Id { get; init; }
 	public string DisplayName { get; init; } = string.Empty;
 	public string? Description { get; init; }
-	public Guid OriginalAssetId { get; init; }
+	public Guid? OriginalAssetId { get; init; }
 	public Guid? TeaserAssetId { get; init; }
 	public Guid? PublicAssetId { get; init; }
 	public bool IsDisqualified { get; init; }

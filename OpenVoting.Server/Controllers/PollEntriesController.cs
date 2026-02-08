@@ -60,13 +60,13 @@ public sealed class PollEntriesController : ControllerBase
 				   DisplayName = e.DisplayName,
 				   Description = e.Description,
 				   // Only expose unblurred asset IDs if admin, owner, or not in submission phase
-				   OriginalAssetId = (authUser.IsAdmin || e.SubmittedByMemberId == member.Id || poll.Status != PollStatus.SubmissionOpen)
-					   ? e.OriginalAssetId
-					   : Guid.Empty,
+			   OriginalAssetId = (authUser.IsAdmin || e.SubmittedByMemberId == member.Id || poll.Status != PollStatus.SubmissionOpen)
+				   ? e.OriginalAssetId
+				   : null,
 				   TeaserAssetId = e.TeaserAssetId,
-				   PublicAssetId = (authUser.IsAdmin || e.SubmittedByMemberId == member.Id || poll.Status != PollStatus.SubmissionOpen)
-					   ? e.PublicAssetId
-					   : Guid.Empty,
+			   PublicAssetId = (authUser.IsAdmin || e.SubmittedByMemberId == member.Id || poll.Status != PollStatus.SubmissionOpen)
+				   ? e.PublicAssetId
+				   : null,
 				   IsDisqualified = e.IsDisqualified,
 				   DisqualificationReason = e.DisqualificationReason,
 				   CreatedAt = e.CreatedAt,
@@ -297,14 +297,29 @@ public sealed class PollEntriesController : ControllerBase
 			return Problem(statusCode: StatusCodes.Status403Forbidden, detail: submitCheck.Reason);
 		}
 
-		if (string.IsNullOrWhiteSpace(request.DisplayName))
+		var titleRequirement = poll.TitleRequirement;
+		var descriptionRequirement = poll.DescriptionRequirement;
+		var imageRequirement = poll.ImageRequirement;
+
+		if (titleRequirement == FieldRequirement.Required && string.IsNullOrWhiteSpace(request.DisplayName))
 		{
-			return BadRequest("DisplayName is required");
+			return BadRequest("Display name is required");
 		}
 
-		if (request.OriginalAssetId == Guid.Empty)
+		if (descriptionRequirement == FieldRequirement.Required && string.IsNullOrWhiteSpace(request.Description))
 		{
-			return BadRequest("OriginalAssetId is required");
+			return BadRequest("Description is required");
+		}
+		var hasImage = request.OriginalAssetId.HasValue && request.OriginalAssetId.Value != Guid.Empty;
+
+		if (imageRequirement == FieldRequirement.Off && hasImage)
+		{
+			return BadRequest("Images are disabled for this poll");
+		}
+
+		if (imageRequirement == FieldRequirement.Required && !hasImage)
+		{
+			return BadRequest("An image is required for this poll");
 		}
 
 		var now = DateTimeOffset.UtcNow;
@@ -319,52 +334,71 @@ public sealed class PollEntriesController : ControllerBase
 			return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Submission limit reached for this poll");
 		}
 
-		var originalAsset = await _db.Assets.FirstOrDefaultAsync(a => a.Id == request.OriginalAssetId, cancellationToken);
-		if (originalAsset is null)
-		{
-			return BadRequest("Original asset not found");
-		}
-
-		if (!originalAsset.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-		{
-			return BadRequest("Original asset must be an image");
-		}
-
+		Asset? originalAsset = null;
 		Asset? publicAsset = null;
 		Asset? teaserAsset = null;
 
-		try
+		if (hasImage)
 		{
-			(publicAsset, teaserAsset) = await CreateDerivedAssetsAsync(originalAsset, cancellationToken);
-		}
-		catch (InvalidOperationException ex)
-		{
-			return BadRequest(ex.Message);
-		}
-		catch (Exception ex)
-		{
-			_logger.LogError(ex, "Failed to create derived assets for entry in poll {PollId}", poll.Id);
-			return Problem(statusCode: StatusCodes.Status500InternalServerError, detail: "Unable to process image. Please try again.");
+			originalAsset = await _db.Assets.FirstOrDefaultAsync(a => a.Id == request.OriginalAssetId, cancellationToken);
+			if (originalAsset is null)
+			{
+				return BadRequest("Original asset not found");
+			}
+
+			if (!originalAsset.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+			{
+				return BadRequest("Original asset must be an image");
+			}
+
+			try
+			{
+				(publicAsset, teaserAsset) = await CreateDerivedAssetsAsync(originalAsset, cancellationToken);
+			}
+			catch (InvalidOperationException ex)
+			{
+				return BadRequest(ex.Message);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Failed to create derived assets for entry in poll {PollId}", poll.Id);
+				return Problem(statusCode: StatusCodes.Status500InternalServerError, detail: "Unable to process image. Please try again.");
+			}
+
+			ArgumentNullException.ThrowIfNull(publicAsset);
+			ArgumentNullException.ThrowIfNull(teaserAsset);
 		}
 
-		ArgumentNullException.ThrowIfNull(publicAsset);
-		ArgumentNullException.ThrowIfNull(teaserAsset);
+		var resolvedDisplayName = request.DisplayName?.Trim() ?? string.Empty;
+		if (titleRequirement == FieldRequirement.Off || string.IsNullOrWhiteSpace(resolvedDisplayName))
+		{
+			resolvedDisplayName = string.IsNullOrWhiteSpace(poll.Title) ? "Entry" : poll.Title;
+		}
+
+		string? resolvedDescription = descriptionRequirement switch
+		{
+			FieldRequirement.Off => null,
+			_ => string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim()
+		};
 
 		var entry = new PollEntry
 		{
 			Id = Guid.NewGuid(),
 			PollId = poll.Id,
 			SubmittedByMemberId = member.Id,
-			DisplayName = request.DisplayName,
-			Description = request.Description,
-			OriginalAssetId = request.OriginalAssetId,
-			TeaserAssetId = teaserAsset.Id,
-			PublicAssetId = publicAsset.Id,
+			DisplayName = resolvedDisplayName,
+			Description = resolvedDescription,
+			OriginalAssetId = hasImage ? request.OriginalAssetId : null,
+			TeaserAssetId = teaserAsset?.Id,
+			PublicAssetId = publicAsset?.Id,
 			CreatedAt = now,
 			IsDisqualified = false
 		};
 
-		_db.Assets.AddRange(publicAsset, teaserAsset);
+		if (hasImage)
+		{
+			_db.Assets.AddRange(publicAsset!, teaserAsset!);
+		}
 		_db.PollEntries.Add(entry);
 		await _db.SaveChangesAsync(cancellationToken);
 
@@ -494,7 +528,7 @@ public sealed class SubmitEntryRequest
 {
 	public string DisplayName { get; init; } = string.Empty;
 	public string? Description { get; init; }
-	public Guid OriginalAssetId { get; init; }
+	public Guid? OriginalAssetId { get; init; }
 	public Guid? TeaserAssetId { get; init; }
 	public Guid? PublicAssetId { get; init; }
 }
@@ -509,7 +543,7 @@ public sealed class PollEntryResponse
 	public Guid Id { get; init; }
 	public string DisplayName { get; init; } = string.Empty;
 	public string? Description { get; init; }
-	public Guid OriginalAssetId { get; init; }
+	public Guid? OriginalAssetId { get; init; }
 	public Guid? TeaserAssetId { get; init; }
 	public Guid? PublicAssetId { get; init; }
 	public bool IsDisqualified { get; init; }

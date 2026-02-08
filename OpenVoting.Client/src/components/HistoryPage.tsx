@@ -61,8 +61,73 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                 </div>
               </div>
 
-              {/* Right-aligned large clickable icon for the first winner (if present) */}
+              {/* Right-aligned winner preview; show a tie cluster when multiple winners are tied */}
               {p.winners.length > 0 && (() => {
+                const isTie = p.winners.length > 1 && p.winners.every((w) => w.votes === p.winners[0].votes);
+
+                if (isTie) {
+                  const preview = p.winners.slice(0, 3);
+                  const remaining = p.winners.length - preview.length;
+
+                  return (
+                    <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: 160, padding: '4px 0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                        {preview.map((w, idx) => {
+                          const asset = w.assetId ? assetCache[w.assetId] : undefined;
+                          const label = w.displayName?.slice(0, 1)?.toUpperCase() ?? '?';
+                          return asset?.url ? (
+                            <img
+                              key={w.entryId}
+                              src={asset.url}
+                              alt={w.displayName}
+                              title={w.displayName}
+                              style={{
+                                width: 74,
+                                height: 74,
+                                objectFit: 'cover',
+                                borderRadius: '50%',
+                                border: '2px solid var(--surface)',
+                                boxShadow: 'var(--shadow-soft)',
+                                marginLeft: idx === 0 ? 0 : -14
+                              }}
+                            />
+                          ) : (
+                            <div
+                              key={w.entryId}
+                              title={w.displayName}
+                              style={{
+                                width: 74,
+                                height: 74,
+                                borderRadius: '50%',
+                                border: '2px solid var(--surface)',
+                                background: 'var(--ghost-bg)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 800,
+                                color: 'var(--text-muted)',
+                                marginLeft: idx === 0 ? 0 : -14
+                              }}
+                            >
+                              {label}
+                            </div>
+                          );
+                        })}
+                        {remaining > 0 && (
+                          <div style={{ marginLeft: 6, fontWeight: 700, color: 'var(--text-muted)' }}>+{remaining}</div>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'center', width: '100%' }}>
+                        <div style={{ fontWeight: 700 }}>{p.winners.length} winners tied</div>
+                        <div className="muted" style={{ marginTop: 2 }}>
+                          {p.winners.map((w) => w.displayName).slice(0, 3).join(', ')}{p.winners.length > 3 ? '…' : ''}
+                        </div>
+                        <div style={{ marginTop: 6 }}><span className="pill tie">Tie</span></div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 const w = p.winners[0];
                 const asset = w.assetId ? assetCache[w.assetId] : undefined;
                 if (!asset?.url) return null;

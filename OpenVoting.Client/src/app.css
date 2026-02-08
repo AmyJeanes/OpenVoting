@@ -338,6 +338,13 @@ button.ghost {
     border: 1px solid rgba(16, 185, 129, 0.12);
 }
 
+.pill.tie {
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: #0e0a24;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.18);
+    border: 1px solid rgba(99, 102, 241, 0.18);
+}
+
 /* Highlight the whole entry card for winners */
 .entry-card.winner {
     background: linear-gradient(180deg, rgba(34,197,94,0.12), rgba(34,197,94,0.06));
@@ -423,6 +430,16 @@ button.ghost {
     gap: 8px;
 }
 
+.badges {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    align-self: flex-start;
+}
+
 .entry-title {
     font-weight: 700;
     margin: 0;
@@ -441,6 +458,21 @@ button.ghost {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 12px;
+}
+
+.form-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.form-row .grow {
+    flex: 1 1 280px;
+}
+
+.form-row .auto {
+    flex: 0 0 auto;
 }
 
 label {
@@ -751,12 +783,24 @@ textarea {
     color: var(--admin-accent);
 }
 
+.admin-card .stack {
+    gap: 12px;
+}
+
+.admin-card .stack p {
+    margin: 4px 0;
+}
+
 .form-actions {
     margin-top: 6px;
 }
 
 .form-actions.spacious {
-    margin-top: 14px;
+    margin-top: 8px;
+}
+
+.form-grid .full-row {
+    grid-column: 1 / -1;
 }
 
 .admin-actions {

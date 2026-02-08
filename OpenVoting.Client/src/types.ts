@@ -8,6 +8,8 @@ export type MeResponse = {
   isAdmin: boolean;
 };
 
+export type FieldRequirement = 0 | 1 | 2; // Off, Optional, Required
+
 export type PollResponse = {
   id: string;
   title: string;
@@ -24,6 +26,9 @@ export type PollResponse = {
   maxSubmissionsPerMember: number;
   mustHaveJoinedBefore?: string;
   requiredRoleIds: string[];
+  titleRequirement: FieldRequirement;
+  descriptionRequirement: FieldRequirement;
+  imageRequirement: FieldRequirement;
   canSubmit: boolean;
   canVote: boolean;
   isAdmin: boolean;
@@ -45,7 +50,7 @@ export type PollDetailEntryResponse = {
   id: string;
   displayName: string;
   description?: string;
-  originalAssetId: string;
+  originalAssetId?: string;
   teaserAssetId?: string;
   publicAssetId?: string;
   isDisqualified: boolean;
@@ -71,6 +76,9 @@ export type PollDetailResponse = {
   hideEntriesUntilVoting: boolean;
   maxSelections: number;
   requireRanking: boolean;
+  titleRequirement: FieldRequirement;
+  descriptionRequirement: FieldRequirement;
+  imageRequirement: FieldRequirement;
   winners: PollWinnerResponse[];
   entries: PollDetailEntryResponse[];
 };
@@ -95,7 +103,7 @@ export type PollEntryResponse = {
   id: string;
   displayName: string;
   description?: string;
-  originalAssetId: string;
+  originalAssetId?: string;
   teaserAssetId?: string;
   publicAssetId?: string;
   isDisqualified: boolean;
