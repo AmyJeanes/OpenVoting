@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { ConfirmDialog, type ConfirmDialogConfig } from './ConfirmDialog';
-import { VotingMethodInfo } from './VotingMethodInfo';
 import { useToast } from './ToastProvider';
+import { PollHeaderSection } from './currentPoll/PollHeaderSection';
+import { AdminPanel } from './currentPoll/AdminPanel';
+import { AdminEntriesSection } from './currentPoll/AdminEntriesSection';
+import { SubmissionSection } from './currentPoll/SubmissionSection';
+import { MySubmissionsSection } from './currentPoll/MySubmissionsSection';
+import { PreviewSection } from './currentPoll/PreviewSection';
+import { VotingSection } from './currentPoll/VotingSection';
+import { RankingModal } from './currentPoll/RankingModal';
 import type {
   AssetUploadResponse,
   PollEntryResponse,
@@ -14,7 +21,7 @@ import type {
   VoteResponse,
   VotingBreakdownEntry
 } from '../types';
-import { formatWindow, fromLocal, isMaxTimestamp, pollStatusLabel, toLocal, votingMethodLabel } from '../utils/format';
+import { fromLocal, isMaxTimestamp, toLocal } from '../utils/format';
 
 export type CurrentPollProps = {
   sessionState: SessionState;
@@ -101,9 +108,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const isClosed = poll?.status === 3 || poll?.status === 4;
   const showSubmissionSettings = !!poll && (poll.status === 0 || poll.status === 1);
   const showVotingSettings = !!poll && poll.status === 2;
-  const showVotingWindow = !!poll && (poll.status === 2 || isClosed) && !isMaxTimestamp(poll.votingOpensAt);
   const showAdminEntries = !!poll && !isClosed && poll.isAdmin;
-  const showAdminBreakdown = !!poll && poll.isAdmin && poll.status === 2;
   const showBlurredPreview = !!poll && poll.imageRequirement !== 0 && !poll.isAdmin && poll.hideEntriesUntilVoting && (poll.status === 1 || poll.status === 5) && entries.length > 0;
   const showEntryTitleField = poll?.titleRequirement !== 0;
   const showEntryDescriptionField = poll?.descriptionRequirement !== 0;
@@ -470,550 +475,148 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
   return (
     <div className="stack">
-      <section className="card">
-        <div className="section-head">
-          <div>
-            <p className="eyebrow">Poll</p>
-            <h2>{poll ? poll.title : 'No active competition'}</h2>
-            {poll && <span className={`pill ${poll.status === 0 ? 'admin' : 'subtle'}`}>Stage: {pollStatusLabel(poll.status)}</span>}
-            {poll && poll.description && <p className="muted">{poll.description}</p>}
-          </div>
-          <div className="actions">
-            <Link className="ghost" to="/polls/live">Back to live polls</Link>
-            <button className="ghost" onClick={onRefreshPoll}>Refresh</button>
-          </div>
-        </div>
-        {!poll && <p className="muted">No data for this poll. It may have closed or been removed.</p>}
-        {poll && (
-          <div className="details-grid">
-            <div>
-              <p className="muted">Status</p>
-              <p className="metric">{pollStatusLabel(poll.status)}</p>
-            </div>
-            <div>
-              <p className="muted">Voting method</p>
-              <div className="metric-row">
-                <p className="metric">{votingMethodLabel(poll.votingMethod)}</p>
-                <VotingMethodInfo method={poll.votingMethod} />
-              </div>
-            </div>
-            <div>
-              <p className="muted">Submission window</p>
-              <p>{formatWindow(poll.submissionOpensAt, poll.submissionClosesAt)}</p>
-            </div>
-            {showVotingWindow && (
-              <div>
-                <p className="muted">Voting window</p>
-                <p>{formatWindow(poll.votingOpensAt, poll.votingClosesAt)}</p>
-              </div>
-            )}
-            {poll.mustHaveJoinedBefore && (
-              <div>
-                <p className="muted">Join cutoff</p>
-                <p>{new Date(poll.mustHaveJoinedBefore).toLocaleString()}</p>
-              </div>
-            )}
-            {poll.requiredRoleIds.length > 0 && (
-              <div>
-                <p className="muted">Required roles</p>
-                <p>{poll.requiredRoleIds.join(', ')}</p>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
+      <PollHeaderSection poll={poll} onRefreshPoll={onRefreshPoll} />
 
       {poll?.isAdmin && (
-        <section className="card admin-card">
-          <div className="section-head">
-            <div>
-              <p className="eyebrow">Admin</p>
-              <h3>Poll controls</h3>
-            </div>
-            <span className="pill">Admin</span>
-          </div>
-          <p className="muted">Only admins see this. Use with care.</p>
-          <div className="actions admin-actions">
-            {poll.status === 0 && <button className="primary" onClick={() => onTransition(poll.id, 'open-submissions')}>Open submissions</button>}
-            {poll.status === 1 && <button className="primary" onClick={() => onTransition(poll.id, 'start-review')}>Start review</button>}
-            {poll.status === 5 && <button className="primary" onClick={() => onTransition(poll.id, 'open-voting')}>Open voting</button>}
-            {poll.status === 2 && <button className="ghost" onClick={() => onTransition(poll.id, 'close')}>Close poll</button>}
-            <button className="ghost" onClick={() => onDeletePoll(poll.id)}>Delete poll</button>
-          </div>
-
-          <div className="stack">
-            <div>
-              <p className="eyebrow">Basics</p>
-              <div className="form-grid">
-                <label>Title
-                  <input value={metaForm.title} onChange={(e) => setMetaForm({ ...metaForm, title: e.target.value })} />
-                </label>
-                <label>Title field
-                  <select value={metaForm.titleRequirement} onChange={(e) => setMetaForm({ ...metaForm, titleRequirement: Number(e.target.value) as FieldRequirement })}>
-                    {requirementOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>Description field
-                  <select value={metaForm.descriptionRequirement} onChange={(e) => setMetaForm({ ...metaForm, descriptionRequirement: Number(e.target.value) as FieldRequirement })}>
-                    {requirementOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>Image field
-                  <select value={metaForm.imageRequirement} onChange={(e) => setMetaForm({ ...metaForm, imageRequirement: Number(e.target.value) as FieldRequirement })}>
-                    {requirementOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="full-row">Description
-                  <textarea rows={3} value={metaForm.description} onChange={(e) => setMetaForm({ ...metaForm, description: e.target.value })} />
-                </label>
-              </div>
-            </div>
-
-            {showSubmissionSettings && (
-              <div>
-                <p className="eyebrow">Submission stage</p>
-                <div className="form-grid">
-                  <label>Max submissions per member
-                    <input
-                      type="number"
-                      min={1}
-                      value={submissionForm.maxSubmissionsPerMember}
-                      onChange={(e) => setSubmissionForm({ ...submissionForm, maxSubmissionsPerMember: Math.max(1, Number(e.target.value)) })}
-                    />
-                  </label>
-                  <label>Auto-close submissions (optional)
-                    <input
-                      type="datetime-local"
-                      value={submissionForm.submissionClosesAt}
-                      onChange={(e) => setSubmissionForm({ ...submissionForm, submissionClosesAt: e.target.value })}
-                    />
-                  </label>
-                </div>
-                <p className="muted">Leave blank to close manually.</p>
-              </div>
-            )}
-
-            {showVotingSettings && (
-              <div>
-                <p className="eyebrow">Voting stage</p>
-                <p className="muted">
-                  Voting method: {votingMethodLabel(poll.votingMethod)} (locked once voting starts)
-                  {' '}<VotingMethodInfo method={poll.votingMethod} />
-                </p>
-                <div className="form-grid">
-                  <label>Max selections
-                    <input
-                      type="number"
-                      min={1}
-                      value={votingForm.maxSelections}
-                      onChange={(e) => setVotingForm({ ...votingForm, maxSelections: Math.max(1, Number(e.target.value)) })}
-                    />
-                  </label>
-                  <label>Auto-close voting (optional)
-                    <input
-                      type="datetime-local"
-                      value={votingForm.votingClosesAt}
-                      onChange={(e) => setVotingForm({ ...votingForm, votingClosesAt: e.target.value })}
-                    />
-                  </label>
-                </div>
-                <p className="muted">Leave blank to close manually.</p>
-              </div>
-            )}
-
-            <div className="actions form-actions spacious">
-              <button className="ghost" onClick={handleSaveSettings} disabled={settingsSaving}>
-                {settingsSaving ? 'Saving…' : 'Save poll settings'}
-              </button>
-            </div>
-          </div>
-        </section>
+        <AdminPanel
+          poll={poll}
+          showSubmissionSettings={showSubmissionSettings}
+          showVotingSettings={showVotingSettings}
+          metaForm={metaForm}
+          submissionForm={submissionForm}
+          votingForm={votingForm}
+          requirementOptions={requirementOptions}
+          settingsSaving={settingsSaving}
+          onMetaChange={setMetaForm}
+          onSubmissionChange={setSubmissionForm}
+          onVotingChange={setVotingForm}
+          onTransition={onTransition}
+          onDeletePoll={onDeletePoll}
+          onSave={handleSaveSettings}
+        />
       )}
 
-      {/* Winners summary removed from top-level poll detail; winners are highlighted in the full breakdown below */}
-
-      {showAdminEntries && (
-        <section className="card admin-card">
-          <div className="section-head">
-            <div>
-              <p className="eyebrow">Entries</p>
-              <h3>Admin view</h3>
-              <p className="muted">Only admins see unblurred entries before results are public.</p>
-            </div>
-            <div className="actions">
-              <span className="pill">Admin</span>
-              <button className="ghost" onClick={onRefreshEntries}>Refresh entries</button>
-              {showAdminBreakdown && <button className="ghost" onClick={onRefreshBreakdown}>Refresh tallies</button>}
-            </div>
-          </div>
-          {entriesLoading && <p className="muted">Loading entries…</p>}
-          {!entriesLoading && entries.length === 0 && <p className="muted">No entries are visible yet.</p>}
-          {showAdminBreakdown && !entriesLoading && entries.length > 0 && votingBreakdown.length === 0 && !votingBreakdownError && (
-            <p className="muted">No votes recorded yet.</p>
-          )}
-          {!entriesLoading && entries.length > 0 && (
-            <ul className="entries entry-grid">
-              {entries.map((e) => {
-                const breakdown = breakdownByEntryId.get(e.id);
-      const assetId = entryAssetId(e);
-      const asset = assetCache[assetId];
-      const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
-                return (
-                  <li key={e.id} className="entry-card">
-                    <div className="entry-head">
-                      <div>
-                        <p className="entry-title">{e.displayName}</p>
-                        {e.description && <p className="muted">{e.description}</p>}
-                        {e.submittedByDisplayName && <p className="muted">By {e.submittedByDisplayName}</p>}
-                      </div>
-                    </div>
-                    {asset?.url && (
-                      // Admins can click to view the original uploaded image.
-                      <a
-                        href={originalUrl || asset.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="View full original image"
-                      >
-                        <img src={asset.url} alt={e.displayName} className="entry-img" style={{ cursor: 'zoom-in' }} />
-                      </a>
-                    )}
-                    {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
-                    {showAdminBreakdown && !votingBreakdownError && (
-                      <div className="muted">
-                        {breakdown ? (
-                          <>
-                            <p>Approvals: {breakdown.approvals}</p>
-                            {breakdown.rankCounts.length > 0 && (
-                              <div className="pill-row">
-                                {breakdown.rankCounts.map((r) => (
-                                  <span key={r.rank} className="pill compact subtle">Rank {r.rank}: {r.votes}</span>
-                                ))}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <p>No votes yet.</p>
-                        )}
-                      </div>
-                    )}
-
-                    {poll.isAdmin && (
-                      <div className="actions">
-                        {e.isDisqualified ? (
-                          <button className="ghost" onClick={() => onRequalify(e.id)}>Requalify</button>
-                        ) : (
-                          <button className="ghost" onClick={() => {
-                            setPendingEntryId(e.id);
-                            setPendingReason('');
-                            setPendingAction('disqualify');
-                            setConfirmConfig({
-                              title: 'Disqualify entry?',
-                              body: 'Provide a reason. This hides the entry from voting tallies.',
-                              confirmLabel: 'Disqualify',
-                              cancelLabel: 'Cancel',
-                              tone: 'danger'
-                            });
-                          }}>Disqualify</button>
-                        )}
-                        <button className="ghost" onClick={() => {
-                          setPendingEntryId(e.id);
-                          setPendingAction('delete');
-                          setConfirmConfig({
-                            title: 'Delete entry?',
-                            body: 'This removes the entry and any uploaded assets.',
-                            confirmLabel: 'Delete',
-                            cancelLabel: 'Cancel',
-                            tone: 'danger'
-                          });
-                        }}>Delete</button>
-                      </div>
-                    )}
-                  </li>
-                    );
-                  })}
-            </ul>
-          )}
-        </section>
+      {showAdminEntries && poll && (
+        <AdminEntriesSection
+          poll={poll}
+          entries={entries}
+          entriesLoading={entriesLoading}
+          votingBreakdown={votingBreakdown}
+          votingBreakdownError={votingBreakdownError}
+          breakdownByEntryId={breakdownByEntryId}
+          assetCache={assetCache}
+          entryAssetId={entryAssetId}
+          onRefreshEntries={onRefreshEntries}
+          onRefreshBreakdown={onRefreshBreakdown}
+          onAskDisqualify={(entryId) => {
+            setPendingEntryId(entryId);
+            setPendingReason('');
+            setPendingAction('disqualify');
+            setConfirmConfig({
+              title: 'Disqualify entry?',
+              body: 'Provide a reason. This hides the entry from voting tallies.',
+              confirmLabel: 'Disqualify',
+              cancelLabel: 'Cancel',
+              tone: 'danger'
+            });
+          }}
+          onRequalify={onRequalify}
+          onAskDelete={(entryId) => {
+            setPendingEntryId(entryId);
+            setPendingAction('delete');
+            setConfirmConfig({
+              title: 'Delete entry?',
+              body: 'This removes the entry and any uploaded assets.',
+              confirmLabel: 'Delete',
+              cancelLabel: 'Cancel',
+              tone: 'danger'
+            });
+          }}
+        />
       )}
 
       {poll && !isClosed && (
-        <section className="card">
-          <div className="section-head">
-            <h3>Submit an entry</h3>
-          </div>
-          <div className="form-grid">
-            <div className="form-row full-row">
-              {showEntryTitleField && (
-                <label className="grow">Title
-                  <input value={entryForm.displayName} onChange={(e) => onEntryFormChange({ ...entryForm, displayName: e.target.value })} />
-                </label>
-              )}
-              {poll.imageRequirement !== 0 && (
-                <label className="auto">Upload image {poll.imageRequirement === 1 ? '(optional)' : ''}
-                  <input type="file" accept="image/*" onChange={(e) => onEntryFilesChange({ ...entryFiles, original: e.target.files?.[0] ?? undefined })} />
-                </label>
-              )}
-            </div>
-            {showEntryDescriptionField && (
-              <label className="full-row">Description
-                <textarea rows={3} value={entryForm.description} onChange={(e) => onEntryFormChange({ ...entryForm, description: e.target.value })} />
-              </label>
-            )}
-          </div>
-          {submissionLimitReached && (
-            <p className="muted">
-              You have reached the submission limit for this poll
-              {poll.maxSubmissionsPerMember > 0 ? ` (${poll.maxSubmissionsPerMember} total).` : '.'}
-            </p>
-          )}
-          {!submissionLimitReached && submissionsRemaining !== null && (
-            <p className="muted">Submissions remaining: {submissionsRemaining} of {poll.maxSubmissionsPerMember}.</p>
-          )}
-          {!poll.canSubmit && !submissionLimitReached && <p className="muted">Submissions are closed for this poll.</p>}
-          <div className="actions form-actions">
-            <button className="primary" onClick={onSubmitEntry} disabled={entrySubmitting || submissionLimitReached || !poll.canSubmit}>
-              {entrySubmitting ? 'Submitting…' : 'Submit entry'}
-            </button>
-          </div>
-        </section>
+        <SubmissionSection
+          poll={poll}
+          entryForm={entryForm}
+          entrySubmitting={entrySubmitting}
+          entryFiles={entryFiles}
+          submissionLimitReached={submissionLimitReached}
+          submissionsRemaining={submissionsRemaining}
+          showEntryTitleField={showEntryTitleField}
+          showEntryDescriptionField={showEntryDescriptionField}
+          onEntryFormChange={onEntryFormChange}
+          onEntryFilesChange={onEntryFilesChange}
+          onSubmitEntry={onSubmitEntry}
+        />
       )}
 
       {poll?.status === 1 && myEntries.length > 0 && (
-        <section className="card">
-          <div className="section-head">
-            <h3>Your submissions</h3>
-            <p className="muted">Visible to you; others remain hidden until voting if configured.</p>
-          </div>
-          <ul className="entries entry-grid">
-            {myEntries.map((e) => {
-              // For your own submissions always show the original asset (not teaser/public),
-              // so the image won't appear blurred to you.
-              const assetId = e.originalAssetId || entryAssetId(e);
-              const asset = assetCache[assetId];
-              const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
-              const hasTitle = (e.displayName || '').trim().length > 0;
-              const titleText = hasTitle
-                ? e.displayName
-                : (e.submittedByDisplayName ? `By ${e.submittedByDisplayName}` : 'Untitled entry');
-              return (
-                <li key={e.id} className="entry-card">
-                  <div className="entry-head">
-                    <div>
-                      <p className="entry-title">{titleText}</p>
-                      {e.description && <p className="muted">{e.description}</p>}
-                    </div>
-                  </div>
-                  {asset?.url && (
-                    <a
-                      href={originalUrl || asset.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="View full original image"
-                    >
-                      <img src={asset.url} alt={e.displayName} className="entry-img" style={{ cursor: 'zoom-in' }} />
-                    </a>
-                  )}
-                  {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
-                  <div className="actions">
-                    <button className="ghost" onClick={() => {
-                      setPendingEntryId(e.id);
-                      setPendingAction('delete');
-                      setConfirmConfig({
-                        title: 'Delete your entry?',
-                        body: 'This removes the entry and any uploaded assets.',
-                        confirmLabel: 'Delete',
-                        cancelLabel: 'Cancel',
-                        tone: 'danger'
-                      });
-                    }}>Delete</button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+        <MySubmissionsSection
+          entries={myEntries}
+          assetCache={assetCache}
+          entryAssetId={entryAssetId}
+          onAskDelete={(entryId) => {
+            setPendingEntryId(entryId);
+            setPendingAction('delete');
+            setConfirmConfig({
+              title: 'Delete your entry?',
+              body: 'This removes the entry and any uploaded assets.',
+              confirmLabel: 'Delete',
+              cancelLabel: 'Cancel',
+              tone: 'danger'
+            });
+          }}
+        />
       )}
 
       {showBlurredPreview && (
-        <section className="card">
-          <div className="section-head">
-            <h3>Entries (preview)</h3>
-            <p className="muted">Images stay blurred until voting opens.</p>
-          </div>
-          <ul className="entries entry-grid">
-            {entries.map((e) => {
-              const assetId = entryAssetId(e);
-              const asset = assetCache[assetId];
-              return (
-                <li key={e.id} className="entry-card">
-                  <div className="entry-head">
-                    <div>
-                      <p className="entry-title">{e.displayName}</p>
-                    </div>
-                  </div>
-                  {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
-                  {e.description && <p className="muted">{e.description}</p>}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+        <PreviewSection entries={entries} assetCache={assetCache} entryAssetId={entryAssetId} />
       )}
 
       {poll?.canVote && !isClosed && entries.length > 0 && (
-        <section className="card">
-          <div className="section-head">
-            <h3>{isRankedMethod ? 'Vote — Step 1: select entries' : 'Vote'}</h3>
-            <p className="muted">
-              {isRankedMethod
-                ? `Select up to ${poll.maxSelections} entries you want to see win. You’ll rank them next; unranked entries won’t count.`
-                : `Select up to ${poll.maxSelections} entries.`}
-            </p>
-          </div>
-          <div className="vote-grid">
-            {entries.map((e) => {
-              const current = voteState[e.id] ?? { selected: false, rank: '' };
-		      const assetId = entryAssetId(e);
-		      const asset = assetCache[assetId];
-              const isSelected = current.selected;
-              return (
-                <div
-                  key={e.id}
-                  className={`entry-card vote-card ${isSelected ? 'selected' : ''}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleToggleSelection(e.id, !isSelected)}
-                  onKeyDown={(ev) => {
-                    if (ev.key === ' ' || ev.key === 'Enter') {
-                      ev.preventDefault();
-                      handleToggleSelection(e.id, !isSelected);
-                    }
-                  }}
-                >
-                  <div className="vote-head">
-                    <label className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onClick={(ev) => ev.stopPropagation()}
-                        onChange={(ev) => handleToggleSelection(e.id, ev.target.checked)}
-                      />
-                      <span className="entry-title">{e.displayName}</span>
-                    </label>
-                    {e.submittedByDisplayName && <span className="muted">By {e.submittedByDisplayName}</span>}
-                  </div>
-                  {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
-                  {e.description && <p className="muted">{e.description}</p>}
-                  {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
-                </div>
-              );
-            })}
-          </div>
-          <div className="actions">
-            {isRankedMethod ? (
-              <>
-                <button className="primary" onClick={handleProceedToRanking} disabled={voteSubmitting}>
-                  Continue to ranking
-                </button>
-                <button className="ghost" onClick={handleClearSelection} disabled={voteSubmitting}>Clear selection</button>
-              </>
-            ) : (
-              <button className="primary" onClick={() => onSubmitVote()} disabled={voteSubmitting}>
-                {voteSubmitting ? 'Submitting…' : 'Submit vote'}
-              </button>
-            )}
-          </div>
-          {voteInfo && (
-            <p className="muted">Last submitted: {voteInfo.submittedAt ? new Date(voteInfo.submittedAt).toLocaleString() : 'Pending'}</p>
-          )}
-        </section>
+        <VotingSection
+          poll={poll}
+          entries={entries}
+          voteState={voteState}
+          voteSubmitting={voteSubmitting}
+          voteInfo={voteInfo}
+          assetCache={assetCache}
+          isRankedMethod={isRankedMethod}
+          entryAssetId={entryAssetId}
+          onToggleSelection={handleToggleSelection}
+          onProceedToRanking={handleProceedToRanking}
+          onSubmitVote={() => onSubmitVote()}
+          onClearSelection={handleClearSelection}
+        />
       )}
 
-      {poll?.canVote && !isClosed && poll.requireRanking && irvStage === 'rank' && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && handleBackToSelection()}>
-          <div className="modal-card wide">
-            <p className="eyebrow">Vote — Step 2</p>
-            <h3>Order your selections</h3>
-            <p className="muted">
-              Drag to reorder. Your #1 is your first choice; if it drops out, your vote moves to your next ranked pick.
-            </p>
-            {rankedEntries.length === 0 && <p className="muted">No selections yet.</p>}
-            {rankedEntries.length > 0 && (
-              <ul className="rank-list">
-                {rankedEntries.map((e, idx) => (
-                  <li
-                    key={e.id}
-                    className={`rank-item${draggingId === e.id ? ' dragging' : ''}${dragOverId === e.id ? ' drop-target' : ''}${dragOverId === e.id && dragOverAfter ? ' drop-after' : ''}`}
-                    ref={(node) => { itemRefs.current[e.id] = node; }}
-                    draggable
-                    onDragStart={() => setDraggingId(e.id)}
-                    onDragOver={(ev) => handleDragOverItem(ev, e.id)}
-                    onDrop={() => handleDropOnItem(e.id)}
-                    onDragEnd={() => {
-                      setDraggingId(null);
-                      setDragOverId(null);
-                      setDragOverAfter(false);
-                    }}
-                  >
-                    <div className="rank-controls">
-                      <span className="drag-handle" aria-hidden="true">↕</span>
-                      <div className="rank-actions">
-                        <button
-                          className="ghost"
-                          onClick={() => moveRank(e.id, -1)}
-                          aria-label={`Move ${e.displayName} up`}
-                          disabled={idx === 0}
-                        >
-                          ↑
-                        </button>
-                        <button
-                          className="ghost"
-                          onClick={() => moveRank(e.id, 1)}
-                          aria-label={`Move ${e.displayName} down`}
-                          disabled={idx === rankedEntries.length - 1}
-                        >
-                          ↓
-                        </button>
-                      </div>
-                    </div>
-                    <div className="rank-body">
-                      <div className="rank-title">#{idx + 1} · {e.displayName}</div>
-                      {e.submittedByDisplayName && <p className="muted">By {e.submittedByDisplayName}</p>}
-                    </div>
-                    {(() => {
-                      const assetId = entryAssetId(e);
-                      const asset = assetId ? assetCache[assetId] : undefined;
-                      return asset?.url ? (
-                        <img
-                          src={asset.url}
-                          alt={e.displayName}
-                          className="rank-img"
-                        />
-                      ) : null;
-                    })()}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="modal-actions">
-              <button className="ghost" onClick={handleBackToSelection} disabled={voteSubmitting}>Back to selection</button>
-              <button className="primary" onClick={handleRankSubmit} disabled={voteSubmitting || (poll.requireRanking && !hasRankChanges)}>
-                {voteSubmitting
-                  ? 'Submitting…'
-                  : voteInfo
-                    ? 'Update vote'
-                    : 'Submit vote'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {poll?.canVote && !isClosed && poll.requireRanking && (
+        <RankingModal
+          open={irvStage === 'rank'}
+          poll={poll}
+          rankedEntries={rankedEntries}
+          draggingId={draggingId}
+          dragOverId={dragOverId}
+          dragOverAfter={dragOverAfter}
+          hasRankChanges={hasRankChanges}
+          voteSubmitting={voteSubmitting}
+          hasExistingVote={!!voteInfo}
+          assetCache={assetCache}
+          entryAssetId={entryAssetId}
+          onBackToSelection={handleBackToSelection}
+          onSubmitRanks={handleRankSubmit}
+          onMoveRank={moveRank}
+          onDragStart={(id) => setDraggingId(id)}
+          onDragOverItem={handleDragOverItem}
+          onDropOnItem={handleDropOnItem}
+          onDragEnd={() => {
+            setDraggingId(null);
+            setDragOverId(null);
+            setDragOverAfter(false);
+          }}
+          setItemRef={(id, node) => { itemRefs.current[id] = node; }}
+        />
       )}
 
       {isClosed && pollDetail && (

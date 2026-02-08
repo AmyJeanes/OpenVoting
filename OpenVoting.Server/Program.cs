@@ -62,6 +62,9 @@ builder.Services.AddSingleton<BlobServiceClient>(sp =>
 	return new BlobServiceClient(settings.BlobStorage.ConnectionString);
 });
 builder.Services.AddSingleton<IAssetStorage, BlobAssetStorage>();
+builder.Services.AddScoped<IVoteService, VoteService>();
+builder.Services.AddScoped<IPollEntryService, PollEntryService>();
+builder.Services.AddScoped<IPollService, PollService>();
 
 var app = builder.Build();
 
