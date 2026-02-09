@@ -624,6 +624,27 @@ button.ghost {
     background: var(--surface-inner);
 }
 
+.flash-highlight {
+    animation: flash-pop 1200ms ease-out;
+    box-shadow: 0 0 0 3px var(--selected-border), 0 12px 28px rgba(12, 25, 50, 0.18);
+    transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+@keyframes flash-pop {
+    0% {
+        box-shadow: 0 0 0 0 rgba(45, 147, 169, 0.45), 0 0 0 rgba(12, 25, 50, 0.14);
+        transform: scale(0.99);
+    }
+    45% {
+        box-shadow: 0 0 0 8px var(--selected-bg), 0 16px 32px rgba(12, 25, 50, 0.2);
+        transform: scale(1.01);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(45, 147, 169, 0);
+        transform: scale(1);
+    }
+}
+
 .entry-card.draft {
     background: var(--draft-card-bg);
     border-color: var(--draft-card-border);
@@ -1019,6 +1040,7 @@ textarea {
 .admin-card {
     background: var(--admin-card-bg);
     border-color: var(--admin-card-border);
+    padding: 0;
 }
 
 .admin-card .eyebrow {
@@ -1031,6 +1053,42 @@ textarea {
 
 .admin-card .stack p {
     margin: 4px 0;
+}
+
+.admin-card .section-head.admin-toggle {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 18px 18px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.admin-card .section-head.admin-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+}
+
+.admin-collapse {
+    overflow: hidden;
+    max-height: 9999px;
+    opacity: 1;
+    transform: translateY(0);
+    transition: max-height 220ms ease, opacity 180ms ease, transform 180ms ease;
+    padding: 0 18px 18px;
+}
+
+.admin-card.collapsed .admin-collapse {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    padding: 0 18px 0;
 }
 
 .form-actions {
@@ -1048,6 +1106,20 @@ textarea {
 .admin-actions {
     margin-top: 10px;
     margin-bottom: 16px;
+}
+
+.admin-card .actions button {
+    background: var(--ghost-bg);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-weight: 700;
+}
+
+.admin-card .actions button:hover {
+    background: var(--ghost-bg-hover);
+    border-color: var(--selected-border);
 }
 
 .method-cards {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { ConfirmDialog, type ConfirmDialogConfig } from './ConfirmDialog';
 import { useToast } from './ToastProvider';
@@ -48,7 +48,6 @@ export type CurrentPollProps = {
   assetCache: Record<string, AssetUploadResponse>;
   onRefreshPoll: () => Promise<void> | void;
   onSelectPoll: (id: string) => void;
-  onRefreshEntries: () => Promise<void> | void;
   onToggleSelection: (id: string, selected: boolean) => void;
   onUpdateRank: (id: string, rank: string) => void;
   onSubmitVote: (rankedIds?: string[]) => void;
@@ -63,7 +62,6 @@ export type CurrentPollProps = {
   onUpdateMetadata: (pollId: string, updates: { title?: string; description?: string; titleRequirement?: FieldRequirement; descriptionRequirement?: FieldRequirement; imageRequirement?: FieldRequirement }) => Promise<unknown>;
   onUpdateSubmissionSettings: (pollId: string, updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null }) => Promise<unknown>;
   onUpdateVotingSettings: (pollId: string, updates: { maxSelections?: number; votingClosesAt?: string | null }) => Promise<unknown>;
-  onRefreshBreakdown: () => Promise<void> | void;
   onLogin: () => void;
   loginCta: string;
   loginDisabled: boolean;
@@ -89,7 +87,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
     assetCache,
     onRefreshPoll,
     onSelectPoll,
-    onRefreshEntries,
     onToggleSelection,
     onUpdateRank,
     onSubmitVote,
@@ -104,18 +101,20 @@ export function CurrentPollPage(props: CurrentPollProps) {
     onUpdateMetadata,
     onUpdateSubmissionSettings,
     onUpdateVotingSettings,
-    onRefreshBreakdown,
     onLogin,
     loginCta,
     loginDisabled
   } = props;
 
   const { pollId } = useParams();
+  const location = useLocation();
+  const [highlightEntryId, setHighlightEntryId] = useState<string | null>(null);
+  const [highlightAssetId, setHighlightAssetId] = useState<string | null>(null);
   const isClosed = poll?.status === 3 || poll?.status === 4;
-  const showSubmissionSettings = !!poll && (poll.status === 0 || poll.status === 1);
-  const showVotingSettings = !!poll && poll.status === 2;
-  const showAdminEntries = !!poll && !isClosed && poll.isAdmin;
-  const showBlurredPreview = !!poll && poll.imageRequirement !== 0 && !poll.isAdmin && poll.hideEntriesUntilVoting && (poll.status === 1 || poll.status === 5) && entries.length > 0;
+  const showSubmissionSettings = !!poll && poll.isAdmin && (poll.status === 0 || poll.status === 1);
+  const showVotingSettings = !!poll && poll.isAdmin && poll.status === 2;
+  const showAdminEntries = !!poll && poll.isAdmin && !isClosed;
+  const showBlurredPreview = !!poll && poll.imageRequirement !== 0 && poll.hideEntriesUntilVoting && (poll.status === 1 || poll.status === 5) && entries.length > 0;
   const showEntryTitleField = poll?.titleRequirement !== 0;
   const showEntryDescriptionField = poll?.descriptionRequirement !== 0;
   const myEntries = useMemo(() => entries.filter((e) => e.isOwn), [entries]);
@@ -186,7 +185,29 @@ export function CurrentPollPage(props: CurrentPollProps) {
   }, [rankedIds]);
   const selectedEntries = useMemo(() => entries.filter((e) => voteState[e.id]?.selected), [entries, voteState]);
   const rankedEntries = useMemo(() => rankedIds.map((id) => entries.find((e) => e.id === id)).filter((e): e is PollEntryResponse => !!e), [entries, rankedIds]);
-  const preferTeaserAsset = poll?.hideEntriesUntilVoting && !poll?.isAdmin && (poll.status === 1 || poll.status === 5) && entries.length > 0;
+  const preferTeaserAsset = poll?.hideEntriesUntilVoting && (poll.status === 1 || poll.status === 5) && entries.length > 0;
+  useEffect(() => {
+    if (!highlightEntryId && !highlightAssetId) return;
+
+    const hasTarget = entries.some((e) => {
+      const assetId = poll?.imageRequirement === 0
+        ? ''
+        : (preferTeaserAsset && e.teaserAssetId
+          ? e.teaserAssetId
+          : (e.publicAssetId ?? e.originalAssetId ?? e.teaserAssetId ?? ''));
+
+      return (highlightEntryId && e.id === highlightEntryId) || (highlightAssetId && assetId === highlightAssetId);
+    });
+
+    if (!hasTarget) return;
+
+    const timer = window.setTimeout(() => {
+      setHighlightEntryId(null);
+      setHighlightAssetId(null);
+    }, 1400);
+
+    return () => window.clearTimeout(timer);
+  }, [entries, highlightEntryId, highlightAssetId, preferTeaserAsset, poll?.imageRequirement]);
   const tiedForFirst = !!pollDetail && pollDetail.winners.length > 1 && pollDetail.winners.every((w) => w.votes === pollDetail.winners[0].votes);
   const entryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => {
     if (poll?.imageRequirement === 0) {
@@ -195,6 +216,12 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
     if (preferTeaserAsset && entry.teaserAssetId) {
       return entry.teaserAssetId;
+    }
+    return entry.publicAssetId ?? entry.originalAssetId ?? entry.teaserAssetId ?? '';
+  };
+  const adminEntryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => {
+    if (poll?.imageRequirement === 0) {
+      return '';
     }
     return entry.publicAssetId ?? entry.originalAssetId ?? entry.teaserAssetId ?? '';
   };
@@ -231,6 +258,12 @@ export function CurrentPollPage(props: CurrentPollProps) {
       onSelectPoll(pollId);
     }
   }, [pollId]);
+
+  useEffect(() => {
+    const state = (location.state as { highlightEntryId?: string; highlightAssetId?: string } | null) ?? null;
+    setHighlightEntryId(state?.highlightEntryId ?? null);
+    setHighlightAssetId(state?.highlightAssetId ?? null);
+  }, [pollId, location.state]);
 
   useEffect(() => {
     if (!poll?.requireRanking) {
@@ -482,7 +515,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
   return (
     <div className="stack">
       <PollHeaderSection poll={poll} onRefreshPoll={onRefreshPoll} />
-
       {poll?.isAdmin && (
         <AdminPanel
           poll={poll}
@@ -511,9 +543,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
           votingBreakdownError={votingBreakdownError}
           breakdownByEntryId={breakdownByEntryId}
           assetCache={assetCache}
-          entryAssetId={entryAssetId}
-          onRefreshEntries={onRefreshEntries}
-          onRefreshBreakdown={onRefreshBreakdown}
+          entryAssetId={adminEntryAssetId}
           onAskDisqualify={(entryId) => {
             setPendingEntryId(entryId);
             setPendingReason('');
@@ -541,7 +571,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
         />
       )}
 
-      {poll && !isClosed && (
+      {poll && !isClosed && poll.status !== 2 && (
         <SubmissionSection
           poll={poll}
           entryForm={entryForm}
@@ -648,8 +678,12 @@ export function CurrentPollPage(props: CurrentPollProps) {
                 const titleText = hasTitle
                   ? e.displayName
                   : (e.submittedByDisplayName ? `By ${e.submittedByDisplayName}` : 'Untitled entry');
+                const isHighlighted = (highlightEntryId && highlightEntryId === e.id) || (highlightAssetId && assetId === highlightAssetId);
+                const entryClasses = ['entry-card'];
+                if (e.isWinner) entryClasses.push('winner');
+                if (isHighlighted) entryClasses.push('flash-highlight');
                 return (
-                  <li key={e.id} className={`entry-card ${e.isWinner ? 'winner' : ''}`}>
+                  <li key={e.id} className={entryClasses.join(' ')}>
                     <div className="entry-head">
                       <div>
                         <p className="entry-title">{titleText}</p>
@@ -668,6 +702,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="View full original image"
+                        className={isHighlighted ? 'flash-highlight' : undefined}
                       >
                         <img src={asset.url} alt={e.displayName} className="entry-img" style={{ cursor: 'zoom-in' }} />
                       </a>

@@ -49,7 +49,6 @@ export default function App() {
     entryFiles,
     entrySubmitError,
     entrySubmitting,
-    onRefreshEntries,
     submitEntry,
     handleEntryFilesChange,
     disqualifyEntry,
@@ -66,7 +65,6 @@ export default function App() {
     submitVote,
     votingBreakdown,
     votingBreakdownError,
-    onRefreshBreakdown,
     // creation
     createForm,
     setCreateForm,
@@ -158,7 +156,6 @@ export default function App() {
               assetCache={assetCache}
               onRefreshPoll={refreshActiveAndSelected}
               onSelectPoll={handleSelectPoll}
-              onRefreshEntries={onRefreshEntries}
               onToggleSelection={toggleSelection}
               onUpdateRank={updateRank}
               onSubmitVote={submitVote}
@@ -173,7 +170,6 @@ export default function App() {
               onUpdateMetadata={updatePollMetadata}
               onUpdateSubmissionSettings={updateSubmissionSettings}
               onUpdateVotingSettings={updateVotingSettings}
-              onRefreshBreakdown={onRefreshBreakdown}
             />
           }
         />
@@ -205,7 +201,6 @@ export default function App() {
               assetCache={assetCache}
               onRefreshPoll={refreshActiveAndSelected}
               onSelectPoll={handleSelectPoll}
-              onRefreshEntries={onRefreshEntries}
               onToggleSelection={toggleSelection}
               onUpdateRank={updateRank}
               onSubmitVote={submitVote}
@@ -220,7 +215,6 @@ export default function App() {
               onUpdateMetadata={updatePollMetadata}
               onUpdateSubmissionSettings={updateSubmissionSettings}
               onUpdateVotingSettings={updateVotingSettings}
-              onRefreshBreakdown={onRefreshBreakdown}
             />
           }
         />

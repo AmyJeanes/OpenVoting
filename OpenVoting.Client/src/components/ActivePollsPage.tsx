@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { useToast } from './ToastProvider';
@@ -29,6 +29,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
   }
 
   const { showToast } = useToast();
+  const [adminExpanded, setAdminExpanded] = useState(false);
 
   useEffect(() => {
     if (createError) showToast(createError, { tone: 'error' });
@@ -41,25 +42,36 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
   return (
     <div className="stack">
       {me?.isAdmin && (
-        <section className="card admin-card">
-          <div className="section-head">
+        <section className={`card admin-card${adminExpanded ? '' : ' collapsed'}`}>
+          <button
+            type="button"
+            className="section-head admin-toggle"
+            onClick={() => setAdminExpanded((v) => !v)}
+            aria-expanded={adminExpanded}
+            aria-label="Toggle create poll panel"
+          >
             <div>
               <p className="eyebrow">Admin</p>
               <h2>Create poll</h2>
-              <p className="muted">Admin-only: create a new competition.</p>
             </div>
-            <span className="pill subtle">Admin</span>
-          </div>
-          <div className="form-grid">
-            <label className="full-row">Title
-              <input value={createForm.title} onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })} />
-            </label>
-            <label className="full-row">Description
-              <textarea rows={3} value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
-            </label>
-          </div>
-          <div className="actions form-actions spacious">
-            <button className="primary" onClick={onCreatePoll} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
+            <div className="actions">
+              <span className="pill subtle">Admin</span>
+            </div>
+          </button>
+          <div className="admin-collapse">
+            <div className="admin-collapse-inner">
+              <div className="form-grid">
+                <label className="full-row">Title
+                  <input value={createForm.title} onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })} />
+                </label>
+                <label className="full-row">Description
+                  <textarea rows={3} value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
+                </label>
+              </div>
+              <div className="actions form-actions spacious">
+                <button className="primary" onClick={(e) => { e.stopPropagation(); onCreatePoll(); }} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
+              </div>
+            </div>
           </div>
         </section>
       )}

@@ -21,3 +21,4 @@ OpenVoting.Client:
 - Use `npm run test` to run unit tests
 - Always run build and unit tests after changing frontend code to test
 - TypeScript is used with strict type checking enabled, do not use the `any` type unless absolutely necessary
+- Use shared CSS variables where possible for consistency, e.g. colors, spacing, etc

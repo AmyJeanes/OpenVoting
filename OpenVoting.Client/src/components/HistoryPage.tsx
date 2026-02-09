@@ -60,32 +60,26 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                   const voteLabel = `${winner.votes} vote${winner.votes === 1 ? '' : 's'}`;
                   const labelSource = winnerUser(winner).trim();
                   const fallbackLabel = labelSource.slice(0, 1).toUpperCase() || '?';
+                  const linkState = { highlightEntryId: winner.entryId, highlightAssetId: winner.assetId };
+                  const thumbVisual = asset?.url
+                    ? <img src={asset.url} alt={titleText} />
+                    : <div className="history-thumb-fallback">{fallbackLabel}</div>;
 
-                  return asset?.url ? (
-                    <a
+                  return (
+                    <Link
                       key={winner.entryId}
-                      href={asset.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      to={`/polls/${p.id}`}
+                      state={linkState}
                       title={titleText}
-                      className="history-thumb"
+                      className={`history-thumb ${asset?.url ? '' : 'history-thumb--fallback'}`.trim()}
                     >
-                      <img src={asset.url} alt={titleText} />
+                      {thumbVisual}
                       <div className="history-thumb-label pill winner">
                         <span className="history-thumb-title">{winnerUser(winner)}</span>
                         <span aria-hidden="true">·</span>
                         <span className="history-thumb-count">{voteLabel}</span>
                       </div>
-                    </a>
-                  ) : (
-                    <div key={winner.entryId} className="history-thumb history-thumb--fallback" title={titleText}>
-                      <div className="history-thumb-fallback">{fallbackLabel}</div>
-                      <div className="history-thumb-label pill winner">
-                        <span className="history-thumb-title">{winnerUser(winner)}</span>
-                        <span aria-hidden="true">·</span>
-                        <span className="history-thumb-count">{voteLabel}</span>
-                      </div>
-                    </div>
+                    </Link>
                   );
                 };
 

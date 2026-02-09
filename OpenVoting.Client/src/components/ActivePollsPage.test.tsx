@@ -63,6 +63,7 @@ describe('ActivePollsPage', () => {
     expect(screen.getByText('Spring Contest')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View poll' })).toHaveAttribute('href', '/polls/poll-123');
 
+    await userEvent.click(screen.getByRole('button', { name: /toggle create poll panel/i }));
     await userEvent.click(screen.getByRole('button', { name: 'Create poll' }));
     expect(onCreate).toHaveBeenCalledTimes(1);
   });

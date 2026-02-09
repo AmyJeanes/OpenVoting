@@ -60,7 +60,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
         </p>
       )}
       {!submissionLimitReached && submissionsRemaining !== null && (
-        <p className="muted">Submissions remaining: {submissionsRemaining} of {poll.maxSubmissionsPerMember}.</p>
+        <p className="muted">Submissions remaining: {submissionsRemaining} of {poll.maxSubmissionsPerMember}</p>
       )}
       {!poll.canSubmit && !submissionLimitReached && <p className="muted">Submissions are closed for this poll.</p>}
       <div className="actions form-actions">

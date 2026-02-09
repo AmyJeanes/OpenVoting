@@ -10,11 +10,10 @@ export type PreviewSectionProps = {
 function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
   const hasCustomTitle = (entry.displayName || '').trim().length > 0;
   if (poll.titleRequirement === 0) {
-    if (poll.isAdmin && entry.submittedByDisplayName) return `From ${entry.submittedByDisplayName}`;
     return '';
   }
   if (hasCustomTitle) return entry.displayName;
-  return entry.submittedByDisplayName ? `By ${entry.submittedByDisplayName}` : 'Untitled entry';
+  return 'Untitled entry';
 }
 
 export function PreviewSection({ poll, entries, assetCache, entryAssetId }: PreviewSectionProps) {

@@ -22,7 +22,7 @@ export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, 
     <section className="card">
       <div className="section-head">
         <h3>Your submissions</h3>
-        <p className="muted">Visible to you; others remain hidden until voting if configured.</p>
+        <p className="muted">Only visible to you</p>
       </div>
       <ul className="entries entry-grid">
         {entries.map((e) => {
