@@ -64,6 +64,9 @@ export type CurrentPollProps = {
   onUpdateSubmissionSettings: (pollId: string, updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null }) => Promise<unknown>;
   onUpdateVotingSettings: (pollId: string, updates: { maxSelections?: number; votingClosesAt?: string | null }) => Promise<unknown>;
   onRefreshBreakdown: () => Promise<void> | void;
+  onLogin: () => void;
+  loginCta: string;
+  loginDisabled: boolean;
 };
 
 export function CurrentPollPage(props: CurrentPollProps) {
@@ -101,7 +104,10 @@ export function CurrentPollPage(props: CurrentPollProps) {
     onUpdateMetadata,
     onUpdateSubmissionSettings,
     onUpdateVotingSettings,
-    onRefreshBreakdown
+    onRefreshBreakdown,
+    onLogin,
+    loginCta,
+    loginDisabled
   } = props;
 
   const { pollId } = useParams();
@@ -470,7 +476,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
     : null;
 
   if (sessionState !== 'authenticated') {
-    return <AuthPrompt />;
+    return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
   }
 
   return (

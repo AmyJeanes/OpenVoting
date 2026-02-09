@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -57,7 +58,18 @@ public class AuthController : ControllerBase
 		var authResult = await _discordOAuthService.ExchangeCodeAsync(code, redirectUri ?? _discordSettings.RedirectUri, cancellationToken);
 		if (!authResult.IsGuildMember)
 		{
-			return Forbid();
+			const string reason = "You must be a member of the Discord server to sign in.";
+			if (returnHtml)
+			{
+				return new ContentResult
+				{
+					StatusCode = StatusCodes.Status403Forbidden,
+					ContentType = MediaTypeNames.Text.Html,
+					Content = BuildForbiddenHtml(reason)
+				};
+			}
+
+			return StatusCode(StatusCodes.Status403Forbidden, reason);
 		}
 
 		var community = await GetOrCreateCommunity(cancellationToken);
@@ -185,6 +197,13 @@ public class AuthController : ControllerBase
 		}
 
 		return EligibilityResult.Allowed();
+	}
+
+	private static string BuildForbiddenHtml(string reason)
+	{
+		var reasonEscaped = System.Net.WebUtility.HtmlEncode(reason);
+		var serializedReason = JsonSerializer.Serialize(reason);
+		return $"<html><body><script>try{{{{localStorage.removeItem('ov_token');localStorage.setItem('ov_flash', {serializedReason});}}}}catch(e){{}}window.location='/'</script><p>{reasonEscaped}</p><p><a href='/'>Back to app</a></p></body></html>";
 	}
 }
 

@@ -12,11 +12,14 @@ export type AdminPageProps = {
   creating: boolean;
   createError: string | null;
   onCreatePoll: () => void;
+  onLogin: () => void;
+  loginCta: string;
+  loginDisabled: boolean;
 };
 
-export function AdminPage({ sessionState, me, createForm, setCreateForm, creating, createError, onCreatePoll }: AdminPageProps) {
+export function AdminPage({ sessionState, me, createForm, setCreateForm, creating, createError, onCreatePoll, onLogin, loginCta, loginDisabled }: AdminPageProps) {
   if (sessionState !== 'authenticated') {
-    return <AuthPrompt />;
+    return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
   }
 
   if (!me?.isAdmin) {

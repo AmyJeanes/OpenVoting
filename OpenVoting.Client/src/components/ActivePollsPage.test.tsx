@@ -22,6 +22,9 @@ const renderWithProviders = (props: WrapperProps) => {
           <ActivePollsPage
             sessionState={props.sessionState}
             me={props.me ?? null}
+            onLogin={props.onLogin ?? vi.fn()}
+            loginCta={props.loginCta ?? 'Sign in'}
+            loginDisabled={props.loginDisabled ?? false}
             activePolls={props.activePolls ?? []}
             pollError={props.pollError ?? null}
             loading={props.loading ?? false}

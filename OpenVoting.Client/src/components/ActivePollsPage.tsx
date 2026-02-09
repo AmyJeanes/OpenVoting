@@ -18,11 +18,14 @@ export type ActivePollsPageProps = {
   creating: boolean;
   createError: string | null;
   onCreatePoll: () => void;
+  onLogin: () => void;
+  loginCta: string;
+  loginDisabled: boolean;
 };
 
-export function ActivePollsPage({ sessionState, me, activePolls, pollError, loading, onRefresh, createForm, setCreateForm, creating, createError, onCreatePoll }: ActivePollsPageProps) {
+export function ActivePollsPage({ sessionState, me, activePolls, pollError, loading, onRefresh, createForm, setCreateForm, creating, createError, onCreatePoll, onLogin, loginCta, loginDisabled }: ActivePollsPageProps) {
   if (sessionState !== 'authenticated') {
-    return <AuthPrompt />;
+    return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
   }
 
   const { showToast } = useToast();

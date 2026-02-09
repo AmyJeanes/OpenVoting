@@ -8,9 +8,12 @@ export type PollDetailPageProps = {
   sessionState: SessionState;
   fetchDetail: (id: string) => Promise<PollDetailResponse>;
   assetCache: Record<string, AssetUploadResponse>;
+  onLogin: () => void;
+  loginCta: string;
+  loginDisabled: boolean;
 };
 
-export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDetailPageProps) {
+export function PollDetailPage({ sessionState, fetchDetail, assetCache, onLogin, loginCta, loginDisabled }: PollDetailPageProps) {
   const { pollId } = useParams();
   const [detail, setDetail] = useState<PollDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,7 +41,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
   }, [fetchDetail, pollId]);
 
   if (sessionState !== 'authenticated') {
-    return <AuthPrompt />;
+    return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
   }
 
   if (!pollId) {

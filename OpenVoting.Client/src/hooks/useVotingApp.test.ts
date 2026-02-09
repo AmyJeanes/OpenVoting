@@ -80,6 +80,26 @@ describe('useVotingApp', () => {
     expect(result.current.flash).toBe('Your session expired. Please sign in again.');
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/me', expect.objectContaining({ headers: expect.any(Object) }));
   });
+
+  it('surfaces stored flash message from auth redirect', async () => {
+    localStorage.setItem('ov_flash', 'Join the Discord server to sign in.');
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/api/config')) {
+        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '', redirectUri: '' });
+      }
+      return new Response('', { status: 404 });
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const { result } = renderHook(() => useVotingApp());
+
+    await waitFor(() => {
+      expect(result.current.flash).toBe('Join the Discord server to sign in.');
+    });
+
+    expect(localStorage.getItem('ov_flash')).toBeNull();
+  });
 });
 
 vi.mock('../components', () => ({

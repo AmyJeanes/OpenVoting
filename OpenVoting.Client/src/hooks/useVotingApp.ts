@@ -79,6 +79,12 @@ export function useVotingApp() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const storedFlash = localStorage.getItem('ov_flash');
+    if (storedFlash) {
+      setFlash(storedFlash);
+      localStorage.removeItem('ov_flash');
+    }
+
     fetchConfig();
     const saved = localStorage.getItem(tokenKey);
     if (saved) {

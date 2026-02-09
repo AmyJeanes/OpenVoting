@@ -15,6 +15,7 @@ export function Home({ sessionState, config, onLogin }: HomeProps) {
         <p className="eyebrow">Live voting</p>
         <h2>Run shareable polls without the chaos.</h2>
         <p className="lede">Authenticate with Discord, share direct links for live competitions, and keep admin tools separate from the voting surface.</p>
+        <p className="muted">Access is limited to members of the Discord server. Join the server, then sign in with Discord to participate.</p>
         <div className="actions">
           {loggedOut ? (
             <button className="primary" disabled={!config?.discordAuthorizeUrl} onClick={onLogin}>

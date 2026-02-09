@@ -378,9 +378,9 @@ button.ghost {
 }
 
 .banner.warning {
-    border-color: #fcd34d;
-    background: #fffbeb;
-    color: #92400e;
+    border-color: var(--banner-warning-border);
+    background: var(--banner-warning-bg);
+    color: var(--banner-warning-text);
 }
 
 .muted {

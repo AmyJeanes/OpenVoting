@@ -12,11 +12,14 @@ export type HistoryProps = {
   historyError: string | null;
   assetCache: Record<string, AssetUploadResponse>;
   onRefresh: () => void;
+  onLogin: () => void;
+  loginCta: string;
+  loginDisabled: boolean;
 };
 
-export function HistoryPage({ sessionState, history, historyError, assetCache, onRefresh }: HistoryProps) {
+export function HistoryPage({ sessionState, history, historyError, assetCache, onRefresh, onLogin, loginCta, loginDisabled }: HistoryProps) {
   if (sessionState !== 'authenticated') {
-    return <AuthPrompt />;
+    return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
   }
 
   const { showToast } = useToast();

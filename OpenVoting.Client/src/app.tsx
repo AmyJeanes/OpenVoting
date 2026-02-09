@@ -86,6 +86,8 @@ export default function App() {
     settleConfirm
   } = app;
 
+  const loginDisabled = !config?.discordAuthorizeUrl;
+
   return (
     <PageShell topbar={
       <Topbar
@@ -113,6 +115,9 @@ export default function App() {
             <ActivePollsPage
               sessionState={sessionState}
               me={me}
+              onLogin={handleLogin}
+              loginCta={loginCta}
+              loginDisabled={loginDisabled}
               activePolls={activePolls}
               pollError={pollError}
               loading={activeLoading}
@@ -131,6 +136,9 @@ export default function App() {
             <CurrentPollPage
               sessionState={sessionState}
               me={me}
+              onLogin={handleLogin}
+              loginCta={loginCta}
+              loginDisabled={loginDisabled}
               poll={poll}
               pollError={pollError}
               pollDetail={pollDetail}
@@ -175,6 +183,9 @@ export default function App() {
             <CurrentPollPage
               sessionState={sessionState}
               me={me}
+              onLogin={handleLogin}
+              loginCta={loginCta}
+              loginDisabled={loginDisabled}
               poll={poll}
               pollError={pollError}
               pollDetail={pollDetail}
@@ -218,6 +229,9 @@ export default function App() {
           element={
             <HistoryPage
               sessionState={sessionState}
+              onLogin={handleLogin}
+              loginCta={loginCta}
+              loginDisabled={loginDisabled}
               history={history}
               historyError={historyError}
               assetCache={assetCache}

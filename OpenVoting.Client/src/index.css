@@ -65,6 +65,9 @@
   --toast-error-bg: #fff1f2;
   --toast-error-border: #f87171;
   --toast-error-text: #7f1d1d;
+  --banner-warning-bg: #fffbeb;
+  --banner-warning-border: #fcd34d;
+  --banner-warning-text: #92400e;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -128,6 +131,9 @@
     --toast-error-bg: #2f1317;
     --toast-error-border: #ef4444;
     --toast-error-text: #fecdd3;
+    --banner-warning-bg: #2b1f0c;
+    --banner-warning-border: #f59e0b;
+    --banner-warning-text: #fcd34d;
   }
 }
 
