@@ -302,6 +302,17 @@ button.ghost {
     background: var(--ghost-bg-hover);
 }
 
+.ghost.danger {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border-color: var(--danger-border);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger-border) 60%, transparent);
+}
+
+.ghost.danger:hover {
+    background: color-mix(in srgb, var(--danger-bg) 90%, var(--ghost-bg-hover));
+}
+
 .pill {
     display: inline-flex;
     align-items: center;
@@ -638,6 +649,15 @@ button.ghost {
     color: var(--text-muted);
 }
 
+.pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
 .history-meta-pill {
     margin-top: 2px;
 }
@@ -650,6 +670,16 @@ button.ghost {
     background: var(--surface-inner);
 }
 
+.admin-card .entry-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.admin-card .entry-card .actions {
+    margin-top: auto;
+}
+
 .entry-card.draft {
     background: var(--draft-card-bg);
     border-color: var(--draft-card-border);
@@ -657,8 +687,13 @@ button.ghost {
 
 .entry-head {
     display: flex;
-    justify-content: space-between;
+    align-items: flex-start;
     gap: 8px;
+}
+
+.entry-head-main {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .badges {
@@ -669,6 +704,7 @@ button.ghost {
     justify-content: flex-end;
     gap: 6px;
     align-self: flex-start;
+    margin-left: auto;
 }
 
 .entry-title {
@@ -1038,13 +1074,14 @@ textarea {
 }
 
 .primary.danger {
-    background: linear-gradient(135deg, var(--danger-gradient-from), var(--danger-gradient-to));
-    color: var(--danger-contrast);
-    box-shadow: var(--danger-shadow);
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border-color: var(--danger-border);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger-border) 60%, transparent);
 }
 
 .primary.danger:hover {
-    background: linear-gradient(135deg, var(--danger-gradient-hover-from), var(--danger-gradient-hover-to));
+    background: color-mix(in srgb, var(--danger-bg) 92%, var(--danger-border));
 }
 
 .admin-card {

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using OpenVoting.Data;
 using OpenVoting.Server;
 using OpenVoting.Server.Controllers;
+using OpenVoting.Data.Enums;
 using OpenVoting.Server.Services;
 using OpenVoting.Server.Tests.Helpers;
 using NUnit.Framework;
@@ -68,6 +69,102 @@ public class AssetsControllerTests
 		Assert.That(response, Is.Not.Null);
 		Assert.That(response!.Url, Does.StartWith("https://cdn.example.com/"));
 		Assert.That(await db.Assets.CountAsync(), Is.EqualTo(1));
+	}
+
+	[Test]
+	public async Task Get_OriginalAssetBeforeVoting_ReturnsForbidden()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.Review,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddDays(-2),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(-1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddHours(1),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddHours(2)
+		};
+
+		var original = new Asset { Id = Guid.NewGuid(), StorageKey = "assets/original.png", ContentType = "image/png", Bytes = 10 };
+
+		db.Polls.Add(poll);
+		db.Assets.Add(original);
+		db.PollEntries.Add(new PollEntry
+		{
+			Id = Guid.NewGuid(),
+			PollId = poll.Id,
+			SubmittedByMemberId = memberId,
+			OriginalAssetId = original.Id,
+			CreatedAt = DateTimeOffset.UtcNow
+		});
+		await db.SaveChangesAsync();
+
+		var controller = BuildController(db, new FakeAssetStorage());
+		controller.ControllerContext = new ControllerContext
+		{
+			HttpContext = new DefaultHttpContext
+			{
+				User = TestAuthHelper.CreatePrincipal(memberId, communityId)
+			}
+		};
+
+		var result = await controller.Get(original.Id, CancellationToken.None);
+		var problem = result.Result as ObjectResult;
+		Assert.That(problem, Is.Not.Null);
+		Assert.That(problem!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+	}
+
+	[Test]
+	public async Task Get_TeaserAssetBeforeVoting_AllowsAccess()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.Review,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddDays(-2),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(-1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddHours(1),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddHours(2)
+		};
+
+		var teaser = new Asset { Id = Guid.NewGuid(), StorageKey = "assets/teaser.png", ContentType = "image/png", Bytes = 8 };
+
+		db.Polls.Add(poll);
+		db.Assets.Add(teaser);
+		db.PollEntries.Add(new PollEntry
+		{
+			Id = Guid.NewGuid(),
+			PollId = poll.Id,
+			SubmittedByMemberId = memberId,
+			TeaserAssetId = teaser.Id,
+			CreatedAt = DateTimeOffset.UtcNow
+		});
+		await db.SaveChangesAsync();
+
+		var controller = BuildController(db, new FakeAssetStorage());
+		controller.ControllerContext = new ControllerContext
+		{
+			HttpContext = new DefaultHttpContext
+			{
+				User = TestAuthHelper.CreatePrincipal(memberId, communityId)
+			}
+		};
+
+		var result = await controller.Get(teaser.Id, CancellationToken.None);
+		var ok = result.Result as OkObjectResult;
+		Assert.That(ok, Is.Not.Null);
+		var response = ok!.Value as AssetResponse;
+		Assert.That(response, Is.Not.Null);
+		Assert.That(response!.Id, Is.EqualTo(teaser.Id));
 	}
 
 	private static AssetsController BuildController(ApplicationDbContext db, IAssetStorage storage, string? publicBaseUrl = null)

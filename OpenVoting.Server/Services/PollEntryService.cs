@@ -54,6 +54,7 @@ public sealed class PollEntryService : IPollEntryService
 
 		await PollAutoTransition.ApplyAsync(_db, poll, _logger, cancellationToken);
 
+		var canSeeFullAssets = CanExposeFullAssets(poll, authUser);
 		var entries = await _db.PollEntries
 			.Where(e => e.PollId == pollId)
 			.OrderBy(e => e.CreatedAt)
@@ -62,9 +63,9 @@ public sealed class PollEntryService : IPollEntryService
 				Id = e.Id,
 				DisplayName = e.DisplayName,
 				Description = e.Description,
-				OriginalAssetId = (authUser.IsAdmin || e.SubmittedByMemberId == member.Id || poll.Status != PollStatus.SubmissionOpen) ? e.OriginalAssetId : null,
+				OriginalAssetId = canSeeFullAssets ? e.OriginalAssetId : null,
 				TeaserAssetId = e.TeaserAssetId,
-				PublicAssetId = (authUser.IsAdmin || e.SubmittedByMemberId == member.Id || poll.Status != PollStatus.SubmissionOpen) ? e.PublicAssetId : null,
+				PublicAssetId = canSeeFullAssets ? e.PublicAssetId : null,
 				IsDisqualified = e.IsDisqualified,
 				DisqualificationReason = e.DisqualificationReason,
 				CreatedAt = e.CreatedAt,
@@ -80,7 +81,11 @@ public sealed class PollEntryService : IPollEntryService
 			return PollEntryResult<IReadOnlyList<PollEntryResponse>>.NoContent();
 		}
 
-		return PollEntryResult<IReadOnlyList<PollEntryResponse>>.Ok(entries);
+		var orderedEntries = ShouldShuffleEntries(poll)
+			? ShuffleDeterministic(entries, member.Id, poll.Id)
+			: entries;
+
+		return PollEntryResult<IReadOnlyList<PollEntryResponse>>.Ok(orderedEntries);
 	}
 
 	public async Task<PollEntryResult<object?>> DeleteAsync(ClaimsPrincipal user, Guid pollId, Guid entryId, CancellationToken cancellationToken)
@@ -433,6 +438,33 @@ public sealed class PollEntryService : IPollEntryService
 
 			throw;
 		}
+	}
+
+	private static bool CanExposeFullAssets(Poll poll, AuthenticatedUser authUser)
+	{
+		return authUser.IsAdmin || poll.Status == PollStatus.VotingOpen || poll.Status == PollStatus.Closed;
+	}
+
+	private static bool ShouldShuffleEntries(Poll poll)
+	{
+		var now = DateTimeOffset.UtcNow;
+		var submissionWindowOpen = poll.Status == PollStatus.SubmissionOpen && now >= poll.SubmissionOpensAt && now <= poll.SubmissionClosesAt;
+		var votingWindowOpen = poll.Status == PollStatus.VotingOpen && now >= poll.VotingOpensAt && now <= poll.VotingClosesAt;
+		var reviewWindow = poll.Status == PollStatus.Review;
+		return submissionWindowOpen || votingWindowOpen || reviewWindow;
+	}
+
+	private static List<PollEntryResponse> ShuffleDeterministic(IReadOnlyList<PollEntryResponse> items, Guid memberId, Guid pollId)
+	{
+		var seed = HashCode.Combine(memberId, pollId);
+		var random = new Random(seed);
+		var list = items.ToList();
+		for (var i = list.Count - 1; i > 0; i--)
+		{
+			var j = random.Next(i + 1);
+			(list[i], list[j]) = (list[j], list[i]);
+		}
+		return list;
 	}
 
 	private static EligibilityResult CanSubmit(Poll poll, CommunityMember member)

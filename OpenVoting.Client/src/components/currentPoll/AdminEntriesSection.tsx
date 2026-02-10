@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { AssetUploadResponse, PollEntryResponse, PollResponse, VotingBreakdownEntry } from '../../types';
 
 export type AdminEntriesSectionProps = {
@@ -43,6 +43,21 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const handleToggle = () => setExpanded((v) => !v);
 
+  const leaderboard = useMemo(() => {
+    const withScores = entries.map((entry) => {
+      const breakdown = breakdownByEntryId.get(entry.id);
+      const score = poll.votingMethod === 2
+        ? breakdown?.rankCounts.find((r) => r.rank === 1)?.votes ?? 0
+        : breakdown?.approvals ?? 0;
+      return { entry, breakdown, score };
+    });
+
+    return withScores.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return new Date(a.entry.createdAt).getTime() - new Date(b.entry.createdAt).getTime();
+    });
+  }, [breakdownByEntryId, entries, poll.votingMethod]);
+
   return (
     <section className={`card admin-card${expanded ? '' : ' collapsed'}`}>
       <button
@@ -67,18 +82,29 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
         )}
         {!entriesLoading && entries.length > 0 && (
           <ul className="entries entry-grid">
-            {entries.map((e) => {
-              const breakdown = breakdownByEntryId.get(e.id);
+            {leaderboard.map(({ entry: e, breakdown, score }, idx) => {
               const assetId = entryAssetId(e);
               const asset = assetCache[assetId];
               const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
+              const rankCounts = breakdown?.rankCounts ?? [];
+              const firstChoice = rankCounts.find((r) => r.rank === 1)?.votes ?? 0;
+              const approvals = breakdown?.approvals ?? 0;
+              const createdAtText = new Date(e.createdAt).toLocaleString();
+              const positionLabel = `#${idx + 1}`;
+              const topScore = leaderboard[0]?.score ?? 0;
+              const isProjectedWinner = showAdminBreakdown && topScore > 0 && score === topScore;
               return (
                 <li key={e.id} className="entry-card">
                   <div className="entry-head">
-                    <div>
+                    <div className="entry-head-main">
                       <p className="entry-title">{entryTitle(poll, e)}</p>
                       {e.description && <p className="muted">{e.description}</p>}
                       {e.submittedByDisplayName && poll.titleRequirement !== 0 && <p className="muted">By {e.submittedByDisplayName}</p>}
+                      <p className="muted">Created {createdAtText}</p>
+                    </div>
+                    <div className="badges">
+                      <span className="pill subtle">{positionLabel}</span>
+                      {isProjectedWinner && <span className="pill winner">Projected winner</span>}
                     </div>
                   </div>
                   {asset?.url && (
@@ -93,20 +119,38 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                   )}
                   {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
                   {showAdminBreakdown && !votingBreakdownError && (
-                    <div className="muted">
+                    <div>
                       {breakdown ? (
                         <>
-                          <p>Approvals: {breakdown.approvals}</p>
-                          {breakdown.rankCounts.length > 0 && (
-                            <div className="pill-row">
-                              {breakdown.rankCounts.map((r) => (
-                                <span key={r.rank} className="pill compact subtle">Rank {r.rank}: {r.votes}</span>
-                              ))}
+                          <div className="actions">
+                            {poll.votingMethod === 2 ? (
+                              <span className="pill subtle">{firstChoice} people ranked this #1</span>
+                            ) : (
+                              <span className="pill subtle">{approvals} people approved</span>
+                            )}
+                            <span className="pill compact subtle">Score: {score}</span>
+                          </div>
+                          {poll.votingMethod === 2 && rankCounts.length > 0 && (
+                            <div className="muted" style={{ marginTop: 6, marginBottom: 12 }}>
+                              <span style={{ fontWeight: 600, marginRight: 6 }}>How people ranked this:</span>
+                              <ul style={{ display: 'inline', padding: 0, margin: 0, listStyle: 'none' }}>
+                                {rankCounts.map((r) => (
+                                  <li key={r.rank} style={{ display: 'inline', marginRight: 8 }}>
+                                    <span className="pill subtle">#{r.rank}: {r.votes}</span>
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
+                          )}
+                          {poll.votingMethod === 2 && rankCounts.length === 0 && (
+                            <p className="muted">No ranks submitted yet.</p>
+                          )}
+                          {poll.votingMethod !== 2 && approvals === 0 && (
+                            <p className="muted">No approvals yet.</p>
                           )}
                         </>
                       ) : (
-                        <p>No votes yet.</p>
+                        <p className="muted">No votes yet.</p>
                       )}
                     </div>
                   )}
@@ -114,11 +158,11 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                   {poll.isAdmin && (
                     <div className="actions">
                       {e.isDisqualified ? (
-                        <button className="ghost" onClick={() => onRequalify(e.id)}>Requalify</button>
+                        <button type="button" className="ghost" onClick={() => onRequalify(e.id)}>Requalify</button>
                       ) : (
-                        <button className="ghost" onClick={() => onAskDisqualify(e.id)}>Disqualify</button>
+                        <button type="button" className="ghost danger" onClick={() => onAskDisqualify(e.id)}>Disqualify</button>
                       )}
-                      <button className="ghost" onClick={() => onAskDelete(e.id)}>Delete</button>
+                      <button type="button" className="ghost danger" onClick={() => onAskDelete(e.id)}>Delete</button>
                     </div>
                   )}
                 </li>

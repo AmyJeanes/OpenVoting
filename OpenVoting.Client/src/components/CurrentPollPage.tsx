@@ -112,7 +112,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const showSubmissionSettings = !!poll && (poll.status === 0 || poll.status === 1);
   const showVotingSettings = !!poll && poll.status === 2;
   const showAdminEntries = !!poll && !isClosed && poll.isAdmin;
-  const showBlurredPreview = !!poll && poll.imageRequirement !== 0 && !poll.isAdmin && poll.hideEntriesUntilVoting && (poll.status === 1 || poll.status === 5) && entries.length > 0;
+  const showBlurredPreview = !!poll && poll.imageRequirement !== 0 && poll.hideEntriesUntilVoting && (poll.status === 1 || poll.status === 5) && entries.length > 0;
   const showEntryTitleField = poll?.titleRequirement !== 0;
   const showEntryDescriptionField = poll?.descriptionRequirement !== 0;
   const myEntries = useMemo(() => entries.filter((e) => e.isOwn), [entries]);
@@ -184,18 +184,25 @@ export function CurrentPollPage(props: CurrentPollProps) {
   }, [rankedIds]);
   const selectedEntries = useMemo(() => entries.filter((e) => voteState[e.id]?.selected), [entries, voteState]);
   const rankedEntries = useMemo(() => rankedIds.map((id) => entries.find((e) => e.id === id)).filter((e): e is PollEntryResponse => !!e), [entries, rankedIds]);
-  const preferTeaserAsset = poll?.hideEntriesUntilVoting && !poll?.isAdmin && (poll.status === 1 || poll.status === 5) && entries.length > 0;
+  const preferTeaserAssetForPreview = poll?.hideEntriesUntilVoting && (poll.status === 1 || poll.status === 5) && entries.length > 0;
+  const preferTeaserAssetForParticipants = preferTeaserAssetForPreview && !poll?.isAdmin;
   const tiedForFirst = !!pollDetail && pollDetail.winners.length > 1 && pollDetail.winners.every((w) => w.votes === pollDetail.winners[0].votes);
-  const entryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => {
+  const entriesForAdminSections = useMemo(() => {
+    if (!poll?.isAdmin) return entries;
+    return [...entries].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }, [entries, poll?.isAdmin]);
+  const getEntryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }, preferTeaser: boolean) => {
     if (poll?.imageRequirement === 0) {
       return '';
     }
 
-    if (preferTeaserAsset && entry.teaserAssetId) {
+    if (preferTeaser && entry.teaserAssetId) {
       return entry.teaserAssetId;
     }
     return entry.publicAssetId ?? entry.originalAssetId ?? entry.teaserAssetId ?? '';
   };
+  const entryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => getEntryAssetId(entry, !!preferTeaserAssetForParticipants);
+  const previewEntryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => getEntryAssetId(entry, !!preferTeaserAssetForPreview);
   const requirementOptions: Array<{ value: FieldRequirement; label: string }> = [
     { value: 0, label: 'Off' },
     { value: 1, label: 'Optional' },
@@ -531,7 +538,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
       {showAdminEntries && poll && (
         <AdminEntriesSection
           poll={poll}
-          entries={entries}
+          entries={entriesForAdminSections}
           entriesLoading={entriesLoading}
           votingBreakdown={votingBreakdown}
           votingBreakdownError={votingBreakdownError}
@@ -602,7 +609,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
       )}
 
       {showBlurredPreview && (
-        <PreviewSection poll={poll} entries={entries} assetCache={assetCache} entryAssetId={entryAssetId} />
+        <PreviewSection poll={poll} entries={entries} assetCache={assetCache} entryAssetId={previewEntryAssetId} />
       )}
 
       {poll?.canVote && !isClosed && entries.length > 0 && (

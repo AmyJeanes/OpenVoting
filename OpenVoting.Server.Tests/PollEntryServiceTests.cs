@@ -165,4 +165,275 @@ public class PollEntryServiceTests
 		Assert.That(await db.VoteChoices.CountAsync(), Is.EqualTo(0));
 		Assert.That(storage.DeletedKeys, Is.EquivalentTo(new[] { "assets/original.png", "assets/teaser.png" }));
 	}
+
+	[Test]
+	public async Task Get_WhenVotingOpen_ShufflesEntriesPerMember()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+		var now = DateTimeOffset.UtcNow;
+		var entryIds = new[]
+		{
+			Guid.Parse("00000000-0000-0000-0000-000000000001"),
+			Guid.Parse("00000000-0000-0000-0000-000000000002"),
+			Guid.Parse("00000000-0000-0000-0000-000000000003")
+		};
+
+		var createdOrder = entryIds.ToList();
+		var pollId = Guid.NewGuid();
+		var expectedOrder = ShuffleDeterministic(createdOrder, memberId, pollId);
+		while (expectedOrder.SequenceEqual(createdOrder))
+		{
+			pollId = Guid.NewGuid();
+			expectedOrder = ShuffleDeterministic(createdOrder, memberId, pollId);
+		}
+
+		var member = new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "Member",
+			JoinedAt = now.AddMonths(-1)
+		};
+
+		var poll = new Poll
+		{
+			Id = pollId,
+			CommunityId = communityId,
+			Status = PollStatus.VotingOpen,
+			SubmissionOpensAt = now.AddDays(-1),
+			SubmissionClosesAt = now.AddHours(-1),
+			VotingOpensAt = now.AddMinutes(-5),
+			VotingClosesAt = now.AddHours(1)
+		};
+
+		var entries = new[]
+		{
+			new PollEntry { Id = entryIds[0], PollId = poll.Id, SubmittedByMemberId = memberId, DisplayName = "First", CreatedAt = now.AddMinutes(-3) },
+			new PollEntry { Id = entryIds[1], PollId = poll.Id, SubmittedByMemberId = memberId, DisplayName = "Second", CreatedAt = now.AddMinutes(-2) },
+			new PollEntry { Id = entryIds[2], PollId = poll.Id, SubmittedByMemberId = memberId, DisplayName = "Third", CreatedAt = now.AddMinutes(-1) }
+		};
+
+		db.CommunityMembers.Add(member);
+		db.Polls.Add(poll);
+		db.PollEntries.AddRange(entries);
+		await db.SaveChangesAsync();
+
+		var service = new PollEntryService(db, NullLogger<PollEntryService>.Instance, new FakeAssetStorage());
+		var result = await service.GetAsync(TestAuthHelper.CreatePrincipal(memberId, communityId), poll.Id, CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollEntryOutcome.Ok));
+
+		var orderedIds = result.Response!.Select(e => e.Id).ToList();
+		Assert.That(expectedOrder, Is.Not.EqualTo(createdOrder));
+		Assert.That(orderedIds, Is.EqualTo(expectedOrder));
+	}
+
+	[Test]
+	public async Task Get_WhenReview_HidesOriginalAndPublicForNonAdmins()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+		var now = DateTimeOffset.UtcNow;
+
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "Member",
+			JoinedAt = now.AddMonths(-1)
+		});
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.Review,
+			SubmissionOpensAt = now.AddDays(-2),
+			SubmissionClosesAt = now.AddDays(-1),
+			VotingOpensAt = now.AddHours(1),
+			VotingClosesAt = now.AddHours(2)
+		};
+
+		var originalAssetId = Guid.NewGuid();
+		var publicAssetId = Guid.NewGuid();
+		var teaserAssetId = Guid.NewGuid();
+
+		db.Polls.Add(poll);
+		db.PollEntries.Add(new PollEntry
+		{
+			Id = Guid.NewGuid(),
+			PollId = poll.Id,
+			SubmittedByMemberId = memberId,
+			DisplayName = "Entry",
+			OriginalAssetId = originalAssetId,
+			PublicAssetId = publicAssetId,
+			TeaserAssetId = teaserAssetId,
+			CreatedAt = now.AddMinutes(-5)
+		});
+
+		await db.SaveChangesAsync();
+
+		var service = new PollEntryService(db, NullLogger<PollEntryService>.Instance, new FakeAssetStorage());
+		var result = await service.GetAsync(TestAuthHelper.CreatePrincipal(memberId, communityId), poll.Id, CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollEntryOutcome.Ok));
+		var entry = result.Response!.Single();
+		Assert.Multiple(() =>
+		{
+			Assert.That(entry.OriginalAssetId, Is.Null);
+			Assert.That(entry.PublicAssetId, Is.Null);
+			Assert.That(entry.TeaserAssetId, Is.EqualTo(teaserAssetId));
+		});
+	}
+
+	[Test]
+	public async Task Get_WhenVotingOpen_AdminsSeeShuffledOrder()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var adminId = Guid.NewGuid();
+		var submitterId = Guid.NewGuid();
+		var now = DateTimeOffset.UtcNow;
+		var entryIds = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+
+		var createdOrder = entryIds.ToList();
+		var pollId = Guid.NewGuid();
+		var expectedOrder = ShuffleDeterministic(createdOrder, adminId, pollId);
+		while (expectedOrder.SequenceEqual(createdOrder))
+		{
+			pollId = Guid.NewGuid();
+			expectedOrder = ShuffleDeterministic(createdOrder, adminId, pollId);
+		}
+
+		var admin = new CommunityMember
+		{
+			Id = adminId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "admin",
+			DisplayName = "Admin",
+			JoinedAt = now.AddMonths(-1)
+		};
+
+		var submitter = new CommunityMember
+		{
+			Id = submitterId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "Member",
+			JoinedAt = now.AddMonths(-2)
+		};
+
+		var poll = new Poll
+		{
+			Id = pollId,
+			CommunityId = communityId,
+			Status = PollStatus.VotingOpen,
+			SubmissionOpensAt = now.AddDays(-1),
+			SubmissionClosesAt = now.AddHours(-1),
+			VotingOpensAt = now.AddMinutes(-5),
+			VotingClosesAt = now.AddHours(1)
+		};
+
+		var entries = new[]
+		{
+			new PollEntry { Id = entryIds[0], PollId = poll.Id, SubmittedByMemberId = submitterId, DisplayName = "First", CreatedAt = now.AddMinutes(-3) },
+			new PollEntry { Id = entryIds[1], PollId = poll.Id, SubmittedByMemberId = submitterId, DisplayName = "Second", CreatedAt = now.AddMinutes(-2) },
+			new PollEntry { Id = entryIds[2], PollId = poll.Id, SubmittedByMemberId = submitterId, DisplayName = "Third", CreatedAt = now.AddMinutes(-1) }
+		};
+
+		db.CommunityMembers.AddRange(admin, submitter);
+		db.Polls.Add(poll);
+		db.PollEntries.AddRange(entries);
+		await db.SaveChangesAsync();
+
+		var service = new PollEntryService(db, NullLogger<PollEntryService>.Instance, new FakeAssetStorage());
+		var result = await service.GetAsync(TestAuthHelper.CreatePrincipal(adminId, communityId, isAdmin: true), poll.Id, CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollEntryOutcome.Ok));
+
+		var orderedIds = result.Response!.Select(e => e.Id).ToList();
+		Assert.That(expectedOrder, Is.Not.EqualTo(createdOrder));
+		Assert.That(orderedIds, Is.EqualTo(expectedOrder));
+	}
+
+	[Test]
+	public async Task Get_WhenSubmissionOpen_ShufflesEntriesPerMember()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+		var now = DateTimeOffset.UtcNow;
+		var entryIds = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+
+		var createdOrder = entryIds.ToList();
+		var pollId = Guid.NewGuid();
+		var expectedOrder = ShuffleDeterministic(createdOrder, memberId, pollId);
+		while (expectedOrder.SequenceEqual(createdOrder))
+		{
+			pollId = Guid.NewGuid();
+			expectedOrder = ShuffleDeterministic(createdOrder, memberId, pollId);
+		}
+
+		var member = new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "Member",
+			JoinedAt = now.AddMonths(-1)
+		};
+
+		var poll = new Poll
+		{
+			Id = pollId,
+			CommunityId = communityId,
+			Status = PollStatus.SubmissionOpen,
+			SubmissionOpensAt = now.AddMinutes(-5),
+			SubmissionClosesAt = now.AddMinutes(5),
+			VotingOpensAt = now.AddHours(1),
+			VotingClosesAt = now.AddHours(2)
+		};
+
+		var entries = new[]
+		{
+			new PollEntry { Id = entryIds[0], PollId = poll.Id, SubmittedByMemberId = memberId, DisplayName = "First", CreatedAt = now.AddMinutes(-3) },
+			new PollEntry { Id = entryIds[1], PollId = poll.Id, SubmittedByMemberId = memberId, DisplayName = "Second", CreatedAt = now.AddMinutes(-2) },
+			new PollEntry { Id = entryIds[2], PollId = poll.Id, SubmittedByMemberId = memberId, DisplayName = "Third", CreatedAt = now.AddMinutes(-1) }
+		};
+
+		db.CommunityMembers.Add(member);
+		db.Polls.Add(poll);
+		db.PollEntries.AddRange(entries);
+		await db.SaveChangesAsync();
+
+		var service = new PollEntryService(db, NullLogger<PollEntryService>.Instance, new FakeAssetStorage());
+		var result = await service.GetAsync(TestAuthHelper.CreatePrincipal(memberId, communityId), poll.Id, CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollEntryOutcome.Ok));
+
+		Assert.That(expectedOrder, Is.Not.EqualTo(createdOrder));
+		Assert.That(result.Response!.Select(e => e.Id).ToList(), Is.EqualTo(expectedOrder));
+	}
+	private static List<Guid> ShuffleDeterministic(IReadOnlyList<Guid> items, Guid memberId, Guid pollId)
+	{
+		var seed = HashCode.Combine(memberId, pollId);
+		var random = new Random(seed);
+		var list = items.ToList();
+		for (var i = list.Count - 1; i > 0; i--)
+		{
+			var j = random.Next(i + 1);
+			(list[i], list[j]) = (list[j], list[i]);
+		}
+		return list;
+	}
 }

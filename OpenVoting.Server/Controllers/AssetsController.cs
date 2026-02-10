@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenVoting.Data;
+using OpenVoting.Data.Enums;
 using OpenVoting.Server.Auth;
 using OpenVoting.Server.Services;
 
@@ -85,6 +86,26 @@ public sealed class AssetsController : ControllerBase
 		if (asset is null)
 		{
 			return NotFound();
+		}
+
+		var entry = await _db.PollEntries
+			.Include(e => e.Poll)
+			.FirstOrDefaultAsync(e => e.OriginalAssetId == asset.Id || e.PublicAssetId == asset.Id || e.TeaserAssetId == asset.Id, cancellationToken);
+
+		if (entry is not null)
+		{
+			if (entry.Poll.CommunityId != authUser.CommunityId)
+			{
+				return NotFound();
+			}
+
+			var isOriginalOrPublic = entry.OriginalAssetId == asset.Id || entry.PublicAssetId == asset.Id;
+			var votingOrClosed = entry.Poll.Status == PollStatus.VotingOpen || entry.Poll.Status == PollStatus.Closed;
+
+			if (!authUser.IsAdmin && isOriginalOrPublic && !votingOrClosed)
+			{
+				return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Asset is not available yet");
+			}
 		}
 
 		return Ok(ToResponse(asset));

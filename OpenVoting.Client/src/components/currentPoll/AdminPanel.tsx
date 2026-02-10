@@ -67,11 +67,20 @@ export function AdminPanel(props: AdminPanelProps) {
       <div className="admin-collapse">
         <div className="admin-collapse-inner">
           <div className="actions admin-actions">
-            {poll.status === 0 && <button className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'open-submissions'); }}>Open submissions</button>}
-            {poll.status === 1 && <button className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'start-review'); }}>Start review</button>}
-            {poll.status === 5 && <button className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'open-voting'); }}>Open voting</button>}
-            {poll.status === 2 && <button className="ghost" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'close'); }}>Close poll</button>}
-            <button className="ghost" onClick={(e) => { e.stopPropagation(); onDeletePoll(poll.id); }}>Delete poll</button>
+            {poll.status === 0 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'open-submissions'); }}>Open submissions</button>}
+            {poll.status === 1 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'start-review'); }}>Start review</button>}
+            {poll.status === 5 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'open-voting'); }}>Open voting</button>}
+            {poll.status === 2 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'close'); }}>Close poll</button>}
+            <button
+              type="button"
+              className="ghost danger"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeletePoll(poll.id);
+              }}
+            >
+              Delete poll
+            </button>
           </div>
 
           <div className="stack">

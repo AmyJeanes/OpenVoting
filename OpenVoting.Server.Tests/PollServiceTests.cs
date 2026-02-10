@@ -612,8 +612,8 @@ public class PollServiceTests
 			Assert.That(response.Entries.All(e => string.IsNullOrEmpty(e.SubmittedByDisplayName)));
 			Assert.That(response.Entries.All(e => e.Position is null));
 			var entryAResponse = response.Entries.First(e => e.Id == entryA);
-			Assert.That(entryAResponse.OriginalAssetId, Is.EqualTo(originalAssetA));
-			Assert.That(entryAResponse.PublicAssetId, Is.EqualTo(publicAssetA));
+			Assert.That(entryAResponse.OriginalAssetId, Is.Null);
+			Assert.That(entryAResponse.PublicAssetId, Is.Null);
 			Assert.That(entryAResponse.TeaserAssetId, Is.EqualTo(teaserAssetA));
 		});
 	}

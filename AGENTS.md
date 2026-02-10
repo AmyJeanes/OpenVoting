@@ -1,6 +1,7 @@
 General:
 - Using tools on Windows must use actual Windows file paths i.e. C:\_git\, not /c/_git/ etc
 - Make sure all changes are covered by unit tests where appropriate
+- You are running in a PowerShell terminal, you do not need to run `pwsh -Command` before using PowerShell commands / syntax
 
 OpenVoting.Server:
 - This is a .NET backend server application using EF Core Migrations

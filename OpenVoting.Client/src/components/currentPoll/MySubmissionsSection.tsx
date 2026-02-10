@@ -50,7 +50,7 @@ export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, 
               )}
               {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
               <div className="actions">
-                <button className="ghost" onClick={() => onAskDelete(e.id)}>Delete</button>
+                <button type="button" className="ghost danger" onClick={() => onAskDelete(e.id)}>Delete</button>
               </div>
             </li>
           );

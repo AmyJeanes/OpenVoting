@@ -204,7 +204,7 @@ public sealed class PollService : IPollService
 			.Select(e =>
 			{
 				var entryDisplayName = hideTitles ? string.Empty : e.DisplayName;
-				var canSeeFullAssets = isAdmin || e.SubmittedByMemberId == member!.Id || poll.Status != PollStatus.SubmissionOpen;
+				var canSeeFullAssets = isAdmin || poll.Status == PollStatus.VotingOpen || poll.Status == PollStatus.Closed;
 				var originalAssetId = canSeeFullAssets ? e.OriginalAssetId : null;
 				var publicAssetId = canSeeFullAssets ? e.PublicAssetId : null;
 
