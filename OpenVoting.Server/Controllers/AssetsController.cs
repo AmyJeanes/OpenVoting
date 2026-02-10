@@ -101,8 +101,9 @@ public sealed class AssetsController : ControllerBase
 
 			var isOriginalOrPublic = entry.OriginalAssetId == asset.Id || entry.PublicAssetId == asset.Id;
 			var votingOrClosed = entry.Poll.Status == PollStatus.VotingOpen || entry.Poll.Status == PollStatus.Closed;
+			var isOwner = entry.SubmittedByMemberId == authUser.MemberId;
 
-			if (!authUser.IsAdmin && isOriginalOrPublic && !votingOrClosed)
+			if (!authUser.IsAdmin && !isOwner && isOriginalOrPublic && !votingOrClosed)
 			{
 				return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Asset is not available yet");
 			}

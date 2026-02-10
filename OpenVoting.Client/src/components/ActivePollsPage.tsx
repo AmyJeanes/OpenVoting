@@ -4,7 +4,7 @@ import { AuthPrompt } from './AuthPrompt';
 import { useToast } from './ToastProvider';
 import type { Dispatch, SetStateAction } from 'react';
 import type { CreatePollForm, PollResponse, SessionState } from '../types';
-import { formatWindow, pollStatusLabel, votingMethodLabel } from '../utils/format';
+import { formatWindow, pollStatusLabel } from '../utils/format';
 
 export type ActivePollsPageProps = {
   sessionState: SessionState;
@@ -93,28 +93,27 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
         {!loading && activePolls.length > 0 && (
           <ul className="entries poll-list">
             {activePolls.map((p) => {
-              const statusPillClass = p.status === 0 ? 'pill compact admin' : 'pill compact subtle';
+              const statusPillClass = p.status === 0 ? 'pill status admin' : 'pill status live';
               const entryClass = p.status === 0 ? 'entry-card draft' : 'entry-card';
               return (
                 <li key={p.id} className={entryClass}>
-                <div className="entry-head">
-                  <div>
-                    <p className="entry-title live-title">{p.title}</p>
-                    {p.description && <p className="muted multiline">{p.description}</p>}
-                    <p className="muted">Submissions: {formatWindow(p.submissionOpensAt, p.submissionClosesAt)}</p>
-                    {(p.status === 2 || p.status === 3 || p.status === 4) && (
-                      <p className="muted">Voting: {formatWindow(p.votingOpensAt, p.votingClosesAt)}</p>
-                    )}
+                  <div className="entry-head">
+                    <div className="entry-head-main">
+                      <p className="entry-title live-title">{p.title}</p>
+                      {p.description && <p className="muted multiline">{p.description}</p>}
+                      <p className="muted">Submissions: {formatWindow(p.submissionOpensAt, p.submissionClosesAt)}</p>
+                      {(p.status === 2 || p.status === 3 || p.status === 4) && (
+                        <p className="muted">Voting: {formatWindow(p.votingOpensAt, p.votingClosesAt)}</p>
+                      )}
+                    </div>
+                    <div className="badges entry-badges">
+                      <span className={statusPillClass}>{pollStatusLabel(p.status)}</span>
+                    </div>
                   </div>
                   <div className="actions">
-                      <span className={statusPillClass}>{pollStatusLabel(p.status)}</span>
-                    <span className="pill compact subtle">{votingMethodLabel(p.votingMethod)}</span>
+                    <Link className="primary" to={`/polls/${p.id}`}>View poll</Link>
                   </div>
-                </div>
-                <div className="actions">
-                  <Link className="primary" to={`/polls/${p.id}`}>View poll</Link>
-                </div>
-              </li>
+                </li>
               );
             })}
           </ul>

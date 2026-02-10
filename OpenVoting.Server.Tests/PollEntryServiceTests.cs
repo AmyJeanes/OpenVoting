@@ -238,6 +238,81 @@ public class PollEntryServiceTests
 		await using var db = TestDbContextFactory.CreateContext();
 		var communityId = Guid.NewGuid();
 		var memberId = Guid.NewGuid();
+		var submitterId = Guid.NewGuid();
+		var now = DateTimeOffset.UtcNow;
+
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "Member",
+			JoinedAt = now.AddMonths(-1)
+		});
+
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = submitterId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "submitter",
+			DisplayName = "Submitter",
+			JoinedAt = now.AddMonths(-2)
+		});
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.Review,
+			SubmissionOpensAt = now.AddDays(-2),
+			SubmissionClosesAt = now.AddDays(-1),
+			VotingOpensAt = now.AddHours(1),
+			VotingClosesAt = now.AddHours(2)
+		};
+
+		var originalAssetId = Guid.NewGuid();
+		var publicAssetId = Guid.NewGuid();
+		var teaserAssetId = Guid.NewGuid();
+
+		db.Polls.Add(poll);
+		db.PollEntries.Add(new PollEntry
+		{
+			Id = Guid.NewGuid(),
+			PollId = poll.Id,
+			SubmittedByMemberId = submitterId,
+			DisplayName = "Entry",
+			OriginalAssetId = originalAssetId,
+			PublicAssetId = publicAssetId,
+			TeaserAssetId = teaserAssetId,
+			CreatedAt = now.AddMinutes(-5)
+		});
+
+		await db.SaveChangesAsync();
+		Assert.That(await db.PollEntries.CountAsync(), Is.EqualTo(1));
+
+		var service = new PollEntryService(db, NullLogger<PollEntryService>.Instance, new FakeAssetStorage());
+		var result = await service.GetAsync(TestAuthHelper.CreatePrincipal(memberId, communityId), poll.Id, CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollEntryOutcome.Ok));
+		Assert.That(result.Response, Is.Not.Null);
+		Assert.That(result.Response!.Count, Is.EqualTo(1));
+		var entry = result.Response!.Single();
+		Assert.Multiple(() =>
+		{
+			Assert.That(entry.OriginalAssetId, Is.Null);
+			Assert.That(entry.PublicAssetId, Is.Null);
+			Assert.That(entry.TeaserAssetId, Is.EqualTo(teaserAssetId));
+		});
+	}
+
+	[Test]
+	public async Task Get_WhenReview_ShowsOriginalAndPublicForOwner()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
 		var now = DateTimeOffset.UtcNow;
 
 		db.CommunityMembers.Add(new CommunityMember
@@ -287,8 +362,8 @@ public class PollEntryServiceTests
 		var entry = result.Response!.Single();
 		Assert.Multiple(() =>
 		{
-			Assert.That(entry.OriginalAssetId, Is.Null);
-			Assert.That(entry.PublicAssetId, Is.Null);
+			Assert.That(entry.OriginalAssetId, Is.EqualTo(originalAssetId));
+			Assert.That(entry.PublicAssetId, Is.EqualTo(publicAssetId));
 			Assert.That(entry.TeaserAssetId, Is.EqualTo(teaserAssetId));
 		});
 	}

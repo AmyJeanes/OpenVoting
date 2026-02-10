@@ -76,7 +76,8 @@ public class AssetsControllerTests
 	{
 		await using var db = TestDbContextFactory.CreateContext();
 		var communityId = Guid.NewGuid();
-		var memberId = Guid.NewGuid();
+		var submitterId = Guid.NewGuid();
+		var viewerId = Guid.NewGuid();
 
 		var poll = new Poll
 		{
@@ -97,7 +98,7 @@ public class AssetsControllerTests
 		{
 			Id = Guid.NewGuid(),
 			PollId = poll.Id,
-			SubmittedByMemberId = memberId,
+			SubmittedByMemberId = submitterId,
 			OriginalAssetId = original.Id,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
@@ -108,7 +109,7 @@ public class AssetsControllerTests
 		{
 			HttpContext = new DefaultHttpContext
 			{
-				User = TestAuthHelper.CreatePrincipal(memberId, communityId)
+				User = TestAuthHelper.CreatePrincipal(viewerId, communityId)
 			}
 		};
 
@@ -165,6 +166,52 @@ public class AssetsControllerTests
 		var response = ok!.Value as AssetResponse;
 		Assert.That(response, Is.Not.Null);
 		Assert.That(response!.Id, Is.EqualTo(teaser.Id));
+	}
+
+	[Test]
+	public async Task Get_OriginalAssetBeforeVoting_AllowsOwner()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.Review,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddDays(-2),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(-1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddHours(1),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddHours(2)
+		};
+
+		var original = new Asset { Id = Guid.NewGuid(), StorageKey = "assets/original.png", ContentType = "image/png", Bytes = 10 };
+
+		db.Polls.Add(poll);
+		db.Assets.Add(original);
+		db.PollEntries.Add(new PollEntry
+		{
+			Id = Guid.NewGuid(),
+			PollId = poll.Id,
+			SubmittedByMemberId = memberId,
+			OriginalAssetId = original.Id,
+			CreatedAt = DateTimeOffset.UtcNow
+		});
+		await db.SaveChangesAsync();
+
+		var controller = BuildController(db, new FakeAssetStorage());
+		controller.ControllerContext = new ControllerContext
+		{
+			HttpContext = new DefaultHttpContext
+			{
+				User = TestAuthHelper.CreatePrincipal(memberId, communityId)
+			}
+		};
+
+		var result = await controller.Get(original.Id, CancellationToken.None);
+		var ok = result.Result as OkObjectResult;
+		Assert.That(ok, Is.Not.Null);
 	}
 
 	private static AssetsController BuildController(ApplicationDbContext db, IAssetStorage storage, string? publicBaseUrl = null)

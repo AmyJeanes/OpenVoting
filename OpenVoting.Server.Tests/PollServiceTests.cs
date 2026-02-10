@@ -494,6 +494,61 @@ public class PollServiceTests
 	}
 
 	[Test]
+	public async Task GetPoll_Review_OwnerSeesOriginalAndPublic()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+		var now = DateTimeOffset.UtcNow;
+
+		db.Communities.Add(new Community { Id = communityId, Platform = Platform.Discord, ExternalCommunityId = "guild", Name = "Guild" });
+		db.CommunityMembers.Add(new CommunityMember { Id = memberId, CommunityId = communityId, Platform = Platform.Discord, ExternalUserId = "owner", DisplayName = "Owner", JoinedAt = now.AddMonths(-1) });
+
+		var pollId = Guid.NewGuid();
+		var entryId = Guid.NewGuid();
+		var originalAssetId = Guid.NewGuid();
+		var publicAssetId = Guid.NewGuid();
+		var teaserAssetId = Guid.NewGuid();
+
+		db.Polls.Add(new Poll
+		{
+			Id = pollId,
+			CommunityId = communityId,
+			Status = PollStatus.Review,
+			SubmissionOpensAt = now.AddDays(-2),
+			SubmissionClosesAt = now.AddDays(-1),
+			VotingOpensAt = now.AddHours(1),
+			VotingClosesAt = now.AddDays(1)
+		});
+
+		db.PollEntries.Add(new PollEntry
+		{
+			Id = entryId,
+			PollId = pollId,
+			SubmittedByMemberId = memberId,
+			DisplayName = "Entry",
+			OriginalAssetId = originalAssetId,
+			PublicAssetId = publicAssetId,
+			TeaserAssetId = teaserAssetId,
+			CreatedAt = now.AddMinutes(-5)
+		});
+
+		await db.SaveChangesAsync();
+
+		var service = new PollService(db, NullLogger<PollService>.Instance, new FakeAssetStorage());
+		var result = await service.GetPollAsync(TestAuthHelper.CreatePrincipal(memberId, communityId), pollId, CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollOutcome.Ok));
+		var entry = result.Response!.Entries.Single();
+		Assert.Multiple(() =>
+		{
+			Assert.That(entry.OriginalAssetId, Is.EqualTo(originalAssetId));
+			Assert.That(entry.PublicAssetId, Is.EqualTo(publicAssetId));
+			Assert.That(entry.TeaserAssetId, Is.EqualTo(teaserAssetId));
+		});
+	}
+
+	[Test]
 	public async Task GetPoll_VotingOpen_NonAdminHidesTallies()
 	{
 		await using var db = TestDbContextFactory.CreateContext();

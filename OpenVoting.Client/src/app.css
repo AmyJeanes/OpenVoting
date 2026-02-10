@@ -707,6 +707,33 @@ button.ghost {
     margin-left: auto;
 }
 
+.entry-badges {
+    gap: 10px;
+}
+
+.pill.status {
+    padding: 4px 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 800;
+    border: 1px solid var(--selected-border);
+    background: var(--selected-bg);
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-soft);
+}
+
+.pill.status.live {
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+    color: var(--accent-contrast);
+    box-shadow: var(--shadow-accent);
+}
+
+.pill.status.admin {
+    border-color: var(--admin-card-border);
+    box-shadow: var(--shadow-soft);
+}
+
 .entry-title {
     font-weight: 700;
     margin: 0;

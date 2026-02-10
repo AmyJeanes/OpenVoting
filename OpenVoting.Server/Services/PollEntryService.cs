@@ -54,31 +54,32 @@ public sealed class PollEntryService : IPollEntryService
 
 		await PollAutoTransition.ApplyAsync(_db, poll, _logger, cancellationToken);
 
-		var canSeeFullAssets = CanExposeFullAssets(poll, authUser);
-		var entries = await _db.PollEntries
+		var dbEntries = await _db.PollEntries
 			.Where(e => e.PollId == pollId)
 			.OrderBy(e => e.CreatedAt)
-			.Select(e => new PollEntryResponse
-			{
-				Id = e.Id,
-				DisplayName = e.DisplayName,
-				Description = e.Description,
-				OriginalAssetId = canSeeFullAssets ? e.OriginalAssetId : null,
-				TeaserAssetId = e.TeaserAssetId,
-				PublicAssetId = canSeeFullAssets ? e.PublicAssetId : null,
-				IsDisqualified = e.IsDisqualified,
-				DisqualificationReason = e.DisqualificationReason,
-				CreatedAt = e.CreatedAt,
-				SubmittedByDisplayName = authUser.IsAdmin || poll.Status == PollStatus.Closed || e.SubmittedByMemberId == member.Id
-					? e.SubmittedByMember.DisplayName
-					: string.Empty,
-				IsOwn = e.SubmittedByMemberId == member.Id
-			})
+			.Include(e => e.SubmittedByMember)
 			.ToListAsync(cancellationToken);
+
+		var entries = dbEntries.Select(e => new PollEntryResponse
+		{
+			Id = e.Id,
+			DisplayName = e.DisplayName,
+			Description = e.Description,
+			OriginalAssetId = CanExposeFullAssets(poll, authUser, e.SubmittedByMemberId) ? e.OriginalAssetId : null,
+			TeaserAssetId = e.TeaserAssetId,
+			PublicAssetId = CanExposeFullAssets(poll, authUser, e.SubmittedByMemberId) ? e.PublicAssetId : null,
+			IsDisqualified = e.IsDisqualified,
+			DisqualificationReason = e.DisqualificationReason,
+			CreatedAt = e.CreatedAt,
+			SubmittedByDisplayName = authUser.IsAdmin || poll.Status == PollStatus.Closed || e.SubmittedByMemberId == member.Id
+				? e.SubmittedByMember?.DisplayName ?? string.Empty
+				: string.Empty,
+			IsOwn = e.SubmittedByMemberId == member.Id
+		}).ToList();
 
 		if (entries.Count == 0)
 		{
-			return PollEntryResult<IReadOnlyList<PollEntryResponse>>.NoContent();
+			return PollEntryResult<IReadOnlyList<PollEntryResponse>>.Ok(Array.Empty<PollEntryResponse>());
 		}
 
 		var orderedEntries = ShouldShuffleEntries(poll)
@@ -440,9 +441,9 @@ public sealed class PollEntryService : IPollEntryService
 		}
 	}
 
-	private static bool CanExposeFullAssets(Poll poll, AuthenticatedUser authUser)
+	private static bool CanExposeFullAssets(Poll poll, AuthenticatedUser authUser, Guid submittedByMemberId)
 	{
-		return authUser.IsAdmin || poll.Status == PollStatus.VotingOpen || poll.Status == PollStatus.Closed;
+		return authUser.IsAdmin || submittedByMemberId == authUser.MemberId || poll.Status == PollStatus.VotingOpen || poll.Status == PollStatus.Closed;
 	}
 
 	private static bool ShouldShuffleEntries(Poll poll)
