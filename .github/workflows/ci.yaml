@@ -50,7 +50,7 @@ jobs:
         working-directory: OpenVoting.Client
 
       - name: Test frontend
-        run: npm run test -- --runInBand
+        run: npm run test
         working-directory: OpenVoting.Client
 
       - name: Build Docker images
