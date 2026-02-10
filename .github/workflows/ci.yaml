@@ -25,11 +25,6 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Restore & test server
-        run: |
-          dotnet restore OpenVoting.slnx
-          dotnet test OpenVoting.slnx --configuration Release --no-build --nologo
-
       - name: Setup Node
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v4
         with:
@@ -37,11 +32,23 @@ jobs:
           cache: 'npm'
           cache-dependency-path: OpenVoting.Client/package-lock.json
 
-      - name: Install client deps
+      - name: Restore backend dependencies
+        run: dotnet restore OpenVoting.slnx
+
+      - name: Build backend
+        run: dotnet build OpenVoting.slnx --configuration Release --no-restore
+
+      - name: Test backend
+        run: dotnet test OpenVoting.slnx --configuration Release --no-build
+
+      - name: Restore frontend dependencies
         run: npm ci
         working-directory: OpenVoting.Client
 
-      - name: Test client
+      - name: Build frontend
+        run: npm run build
+
+      - name: Test frontend
         run: npm run test -- --runInBand
         working-directory: OpenVoting.Client
 
