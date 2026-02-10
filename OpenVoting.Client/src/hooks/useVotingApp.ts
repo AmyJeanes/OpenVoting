@@ -43,6 +43,7 @@ export function useVotingApp() {
 
   const [poll, setPoll] = useState<PollResponse | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
+  const [pollLoading, setPollLoading] = useState(false);
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
   const [activePolls, setActivePolls] = useState<PollResponse[]>([]);
   const [activeLoading, setActiveLoading] = useState(false);
@@ -197,6 +198,7 @@ export function useVotingApp() {
   const resetPollState = () => {
     setPoll(null);
     setPollError(null);
+    setPollLoading(false);
     setSelectedPollId(null);
     setActivePolls([]);
     clearSelectedPollData();
@@ -1019,13 +1021,17 @@ export function useVotingApp() {
   const handleSelectPoll = async (pollId: string) => {
     setSelectedPollId(pollId);
     setPollError(null);
+    setPollLoading(true);
+    clearSelectedPollData();
     try {
-      await refreshPoll(true, pollId);
-      if (poll?.isAdmin && (poll.status === 2 || poll.status === 5)) {
+      const refreshed = await refreshPoll(true, pollId);
+      if (refreshed?.isAdmin && (refreshed.status === 2 || refreshed.status === 5)) {
         await fetchVotingBreakdown(pollId);
       }
     } catch (err) {
       setPollError(err instanceof Error ? err.message : 'Failed to load poll');
+    } finally {
+      setPollLoading(false);
     }
   };
 
@@ -1078,6 +1084,7 @@ export function useVotingApp() {
     poll,
     pollError,
     pollDetail,
+    pollLoading,
     selectedPollId,
     activePolls,
     activeLoading,

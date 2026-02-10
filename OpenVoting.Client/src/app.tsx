@@ -31,6 +31,7 @@ export default function App() {
     poll,
     pollError,
     pollDetail,
+    pollLoading,
     activePolls,
     activeLoading,
     refreshActiveAndSelected,
@@ -139,6 +140,7 @@ export default function App() {
               poll={poll}
               pollError={pollError}
               pollDetail={pollDetail}
+              pollLoading={pollLoading}
               entries={entries}
               entriesError={entriesError}
               entriesLoading={entriesLoading}
@@ -184,6 +186,7 @@ export default function App() {
               poll={poll}
               pollError={pollError}
               pollDetail={pollDetail}
+              pollLoading={pollLoading}
               entries={entries}
               entriesError={entriesError}
               entriesLoading={entriesLoading}

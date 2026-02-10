@@ -839,7 +839,7 @@ textarea {
     flex-direction: column;
     gap: 8px;
     justify-content: center;
-    min-height: 220px;
+    padding: 16px;
 }
 
 .winners {

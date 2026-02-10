@@ -28,6 +28,7 @@ export type CurrentPollProps = {
   me: { isAdmin: boolean } | null;
   poll: PollResponse | null;
   pollDetail: PollDetailResponse | null;
+  pollLoading: boolean;
   pollError: string | null;
   entries: PollEntryResponse[];
   entriesError: string | null;
@@ -72,6 +73,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
     sessionState,
     poll,
     pollDetail,
+    pollLoading,
     pollError,
     entries,
     entriesError,
@@ -108,6 +110,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
   const location = useLocation();
   const { pollId } = useParams();
+  const isNavigatingToDifferentPoll = !!pollId && poll?.id !== pollId;
+  const shouldShowLoading = pollLoading || (isNavigatingToDifferentPoll && !pollError);
   const isClosed = poll?.status === 3 || poll?.status === 4;
   const showSubmissionSettings = !!poll && (poll.status === 0 || poll.status === 1);
   const showVotingSettings = !!poll && poll.status === 2;
@@ -510,6 +514,15 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
   if (sessionState !== 'authenticated') {
     return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
+  }
+
+  if (shouldShowLoading) {
+    return (
+      <section className="card splash">
+        <p className="eyebrow">Loading</p>
+        <h2>Please wait…</h2>
+      </section>
+    );
   }
 
   return (
