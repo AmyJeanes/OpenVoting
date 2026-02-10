@@ -11,7 +11,7 @@ export type TopbarProps = {
   onLogout: (message?: string) => void;
 };
 
-export function Topbar({ sessionState, me, config, loginCta, hasLivePolls, onLogin, onLogout }: TopbarProps) {
+export function Topbar({ sessionState, me, config, hasLivePolls, onLogout }: TopbarProps) {
   const serverName = config?.serverName?.trim() || 'Voting';
   const serverIconUrl = config?.serverIconUrl?.trim() || '';
   const serverInitials = (serverName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'VT').slice(0, 3);
@@ -47,7 +47,7 @@ export function Topbar({ sessionState, me, config, loginCta, hasLivePolls, onLog
           <div className="user-block">
             <div className="user-meta">
               <span className="user-name">{me.displayName}</span>
-              {me.isAdmin && <span className="pill">Admin</span>}
+              {me.isAdmin && <span className="pill admin">Admin</span>}
             </div>
             <button className="ghost" onClick={() => onLogout('Signed out.')}>Logout</button>
           </div>
@@ -55,15 +55,7 @@ export function Topbar({ sessionState, me, config, loginCta, hasLivePolls, onLog
           <div className="user-block">
             <span className="pill subtle">Loading session…</span>
           </div>
-        ) : (
-          <button
-            className="primary"
-            disabled={!config?.discordAuthorizeUrl}
-            onClick={onLogin}
-          >
-            {loginCta}
-          </button>
-        )}
+        ) : null}
       </div>
     </header>
   );

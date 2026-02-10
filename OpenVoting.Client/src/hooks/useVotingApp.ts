@@ -1019,7 +1019,6 @@ export function useVotingApp() {
   const handleSelectPoll = async (pollId: string) => {
     setSelectedPollId(pollId);
     setPollError(null);
-    clearSelectedPollData();
     try {
       await refreshPoll(true, pollId);
       if (poll?.isAdmin && (poll.status === 2 || poll.status === 5)) {

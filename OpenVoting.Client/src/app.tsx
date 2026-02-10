@@ -101,8 +101,7 @@ export default function App() {
       {isBootstrapping ? (
         <section className="card splash">
           <p className="eyebrow">Loading</p>
-          <h2>Preparing your session…</h2>
-          <p className="muted">Checking server config and your sign-in status.</p>
+          <h2>Please wait…</h2>
         </section>
       ) : (
       <Routes>

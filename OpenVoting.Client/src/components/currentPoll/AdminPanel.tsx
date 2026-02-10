@@ -61,7 +61,7 @@ export function AdminPanel(props: AdminPanelProps) {
           <h3>Poll controls</h3>
         </div>
         <div className="actions">
-          <span className="pill">Admin</span>
+          <span className="pill admin">Admin</span>
         </div>
       </button>
       <div className="admin-collapse">

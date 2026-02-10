@@ -55,21 +55,23 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
               <h2>Create poll</h2>
             </div>
             <div className="actions">
-              <span className="pill subtle">Admin</span>
+              <span className="pill admin">Admin</span>
             </div>
           </button>
           <div className="admin-collapse">
             <div className="admin-collapse-inner">
-              <div className="form-grid">
-                <label className="full-row">Title
-                  <input value={createForm.title} onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })} />
-                </label>
-                <label className="full-row">Description
-                  <textarea rows={3} value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
-                </label>
-              </div>
-              <div className="actions form-actions spacious">
-                <button className="primary" onClick={(e) => { e.stopPropagation(); onCreatePoll(); }} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
+              <div className="stack">
+                <div className="form-grid">
+                  <label className="full-row">Title
+                    <input value={createForm.title} onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })} />
+                  </label>
+                  <label className="full-row">Description
+                    <textarea rows={3} value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
+                  </label>
+                </div>
+                <div className="actions form-actions spacious">
+                  <button className="primary" onClick={(e) => { e.stopPropagation(); onCreatePoll(); }} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
+                </div>
               </div>
             </div>
           </div>

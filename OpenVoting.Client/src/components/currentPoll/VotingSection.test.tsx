@@ -58,4 +58,39 @@ describe('VotingSection', () => {
     await userEvent.click(button);
     expect(onProceedToRanking).toHaveBeenCalledTimes(1);
   });
+
+  it('renders entries in the order provided without resorting', () => {
+    const poll = createPollResponse({ maxSelections: 3, requireRanking: false, titleRequirement: 1 });
+    const entries = [
+      createEntryResponse({ id: 'entry-1', displayName: 'First', teaserAssetId: 'asset-1' }),
+      createEntryResponse({ id: 'entry-2', displayName: 'Second', teaserAssetId: 'asset-2' }),
+      createEntryResponse({ id: 'entry-3', displayName: 'Third', teaserAssetId: 'asset-3' })
+    ];
+
+    const assetCache = {
+      'asset-1': createAsset({ id: 'asset-1', url: 'https://cdn.example.com/asset-1.png' }),
+      'asset-2': createAsset({ id: 'asset-2', url: 'https://cdn.example.com/asset-2.png' }),
+      'asset-3': createAsset({ id: 'asset-3', url: 'https://cdn.example.com/asset-3.png' })
+    } as const;
+
+    const { container } = render(
+      <VotingSection
+        poll={poll}
+        entries={entries}
+        voteState={{}}
+        voteSubmitting={false}
+        voteInfo={null}
+        assetCache={assetCache}
+        isRankedMethod={false}
+        entryAssetId={(e) => e.teaserAssetId ?? ''}
+        onToggleSelection={vi.fn()}
+        onProceedToRanking={vi.fn()}
+        onSubmitVote={vi.fn()}
+        onClearSelection={vi.fn()}
+      />
+    );
+
+    const titles = Array.from(container.querySelectorAll('.entry-title')).map((el) => el.textContent?.trim());
+    expect(titles).toEqual(['First', 'Second', 'Third']);
+  });
 });

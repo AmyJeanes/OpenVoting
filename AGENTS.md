@@ -1,6 +1,4 @@
 General:
-- You can only delete files by running shell commands, the patch tool does not work for this
-  - TODO: Remove when fixed: https://github.com/microsoft/vscode/issues/275705
 - Using tools on Windows must use actual Windows file paths i.e. C:\_git\, not /c/_git/ etc
 - Make sure all changes are covered by unit tests where appropriate
 

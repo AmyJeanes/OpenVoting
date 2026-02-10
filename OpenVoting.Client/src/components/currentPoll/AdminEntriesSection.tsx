@@ -56,7 +56,7 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
           <h3>Admin view</h3>
         </div>
         <div className="actions">
-          <span className="pill">Admin</span>
+          <span className="pill admin">Admin</span>
         </div>
       </button>
       <div className="admin-collapse">

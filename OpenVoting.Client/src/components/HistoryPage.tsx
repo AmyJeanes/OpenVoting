@@ -60,20 +60,25 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                   const voteLabel = `${winner.votes} vote${winner.votes === 1 ? '' : 's'}`;
                   const labelSource = winnerUser(winner).trim();
                   const fallbackLabel = labelSource.slice(0, 1).toUpperCase() || '?';
-                  const linkState = { highlightEntryId: winner.entryId, highlightAssetId: winner.assetId };
-                  const thumbVisual = asset?.url
-                    ? <img src={asset.url} alt={titleText} />
-                    : <div className="history-thumb-fallback">{fallbackLabel}</div>;
+                  const entryLink = `/polls/${p.id}#entry-${winner.entryId}`;
 
-                  return (
+                  return asset?.url ? (
                     <Link
                       key={winner.entryId}
-                      to={`/polls/${p.id}`}
-                      state={linkState}
+                      to={entryLink}
                       title={titleText}
-                      className={`history-thumb ${asset?.url ? '' : 'history-thumb--fallback'}`.trim()}
+                      className="history-thumb"
                     >
-                      {thumbVisual}
+                      <img src={asset.url} alt={titleText} />
+                      <div className="history-thumb-label pill winner">
+                        <span className="history-thumb-title">{winnerUser(winner)}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="history-thumb-count">{voteLabel}</span>
+                      </div>
+                    </Link>
+                  ) : (
+                    <Link key={winner.entryId} to={entryLink} className="history-thumb history-thumb--fallback" title={titleText}>
+                      <div className="history-thumb-fallback">{fallbackLabel}</div>
                       <div className="history-thumb-label pill winner">
                         <span className="history-thumb-title">{winnerUser(winner)}</span>
                         <span aria-hidden="true">·</span>
@@ -124,12 +129,12 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                             </div>
                           </div>
                         </div>
-
-                        <div className="history-actions">
-                          <Link className="primary" to={`/polls/${p.id}`}>View poll details</Link>
-                        </div>
                       </>
                     )}
+
+                    <div className="history-actions">
+                      <Link className="primary" to={`/polls/${p.id}`}>View poll details</Link>
+                    </div>
                   </>
                 );
               })()}

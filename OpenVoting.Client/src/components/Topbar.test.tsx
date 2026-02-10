@@ -30,27 +30,8 @@ describe('Topbar', () => {
     expect(onLogout).toHaveBeenCalledWith('Signed out.');
   });
 
-  it('disables login when auth URL is missing and enables when provided', async () => {
-    const onLogin = vi.fn();
-
-    const { rerender } = render(
-      <MemoryRouter>
-        <Topbar
-          sessionState="anonymous"
-          me={null}
-          config={createConfigResponse({ discordAuthorizeUrl: '' })}
-          loginCta="Sign in"
-          hasLivePolls={false}
-          onLogin={onLogin}
-          onLogout={vi.fn()}
-        />
-      </MemoryRouter>
-    );
-
-    const disabledButton = screen.getByRole('button', { name: 'Sign in' });
-    expect(disabledButton).toBeDisabled();
-
-    rerender(
+  it('does not render login CTA when anonymous to avoid double sign-in', () => {
+    render(
       <MemoryRouter>
         <Topbar
           sessionState="anonymous"
@@ -58,16 +39,12 @@ describe('Topbar', () => {
           config={createConfigResponse()}
           loginCta="Sign in"
           hasLivePolls={false}
-          onLogin={onLogin}
+          onLogin={vi.fn()}
           onLogout={vi.fn()}
         />
       </MemoryRouter>
     );
 
-    const enabledButton = screen.getByRole('button', { name: 'Sign in' });
-    expect(enabledButton).toBeEnabled();
-
-    await userEvent.click(enabledButton);
-    expect(onLogin).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
   });
 });

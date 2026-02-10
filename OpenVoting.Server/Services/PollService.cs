@@ -204,6 +204,9 @@ public sealed class PollService : IPollService
 			.Select(e =>
 			{
 				var entryDisplayName = hideTitles ? string.Empty : e.DisplayName;
+				var canSeeFullAssets = isAdmin || e.SubmittedByMemberId == member!.Id || poll.Status != PollStatus.SubmissionOpen;
+				var originalAssetId = canSeeFullAssets ? e.OriginalAssetId : null;
+				var publicAssetId = canSeeFullAssets ? e.PublicAssetId : null;
 
 				var approvals = entryVotes.Count(c => c.EntryId == e.Id);
 				var rankGroups = entryVotes
@@ -219,9 +222,9 @@ public sealed class PollService : IPollService
 					e.Id,
 					entryDisplayName,
 					e.Description,
-					e.OriginalAssetId,
+					originalAssetId,
 					e.TeaserAssetId,
-					e.PublicAssetId,
+					publicAssetId,
 					e.IsDisqualified,
 					e.DisqualificationReason,
 					e.CreatedAt,
