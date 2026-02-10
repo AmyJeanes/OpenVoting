@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { ImageLightbox, type ImageLightboxData } from '../ImageLightbox';
 import type { AssetUploadResponse, PollEntryResponse, PollResponse, VotingBreakdownEntry } from '../../types';
 
 export type AdminEntriesSectionProps = {
@@ -41,6 +42,7 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
 
   const showAdminBreakdown = poll.isAdmin && poll.status === 2;
   const [expanded, setExpanded] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<ImageLightboxData | null>(null);
   const handleToggle = () => setExpanded((v) => !v);
 
   const leaderboard = useMemo(() => {
@@ -86,6 +88,8 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
               const assetId = entryAssetId(e);
               const asset = assetCache[assetId];
               const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
+              const previewUrl = asset?.url;
+              const fullImageUrl = previewUrl ? (originalUrl ?? previewUrl) : null;
               const rankCounts = breakdown?.rankCounts ?? [];
               const firstChoice = rankCounts.find((r) => r.rank === 1)?.votes ?? 0;
               const approvals = breakdown?.approvals ?? 0;
@@ -107,15 +111,15 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                       {isProjectedWinner && <span className="pill winner">Projected winner</span>}
                     </div>
                   </div>
-                  {asset?.url && (
-                    <a
-                      href={originalUrl || asset.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="View full original image"
+                  {previewUrl && (
+                    <button
+                      type="button"
+                      className="entry-img-button"
+                      title="View full image"
+                      onClick={() => setLightboxImage({ imageUrl: fullImageUrl ?? previewUrl, originalUrl, alt: e.displayName })}
                     >
-                      <img src={asset.url} alt={e.displayName} className="entry-img" style={{ cursor: 'zoom-in' }} />
-                    </a>
+                      <img src={previewUrl} alt={e.displayName || 'Entry image'} className="entry-img" />
+                    </button>
                   )}
                   {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
                   {showAdminBreakdown && !votingBreakdownError && (
@@ -171,6 +175,14 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
           </ul>
         )}
       </div>
+      {lightboxImage && (
+        <ImageLightbox
+          imageUrl={lightboxImage.imageUrl}
+          originalUrl={lightboxImage.originalUrl}
+          alt={lightboxImage.alt}
+          onClose={() => setLightboxImage(null)}
+        />
+      )}
     </section>
   );
 }

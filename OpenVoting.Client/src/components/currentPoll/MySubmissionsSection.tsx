@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { ImageLightbox, type ImageLightboxData } from '../ImageLightbox';
 import type { AssetUploadResponse, PollEntryResponse, PollResponse } from '../../types';
 
 export type MySubmissionsSectionProps = {
@@ -18,6 +20,7 @@ function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
 }
 
 export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, onAskDelete }: MySubmissionsSectionProps) {
+  const [lightboxImage, setLightboxImage] = useState<ImageLightboxData | null>(null);
   return (
     <section className="card">
       <div className="section-head">
@@ -29,6 +32,8 @@ export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, 
           const assetId = e.originalAssetId || entryAssetId(e);
           const asset = assetCache[assetId];
           const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
+          const previewUrl = asset?.url;
+          const fullImageUrl = previewUrl ? (originalUrl ?? previewUrl) : null;
           const titleText = entryTitle(poll, e);
           return (
             <li key={e.id} className="entry-card">
@@ -38,15 +43,15 @@ export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, 
                   {e.description && <p className="muted">{e.description}</p>}
                 </div>
               </div>
-              {asset?.url && (
-                <a
-                  href={originalUrl || asset.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="View full original image"
+              {previewUrl && (
+                <button
+                  type="button"
+                  className="entry-img-button"
+                  title="View full image"
+                  onClick={() => setLightboxImage({ imageUrl: fullImageUrl ?? previewUrl, originalUrl, alt: e.displayName })}
                 >
-                  <img src={asset.url} alt={e.displayName} className="entry-img" style={{ cursor: 'zoom-in' }} />
-                </a>
+                  <img src={previewUrl} alt={e.displayName || 'Entry image'} className="entry-img" />
+                </button>
               )}
               {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
               <div className="actions">
@@ -56,6 +61,14 @@ export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, 
           );
         })}
       </ul>
+      {lightboxImage && (
+        <ImageLightbox
+          imageUrl={lightboxImage.imageUrl}
+          originalUrl={lightboxImage.originalUrl}
+          alt={lightboxImage.alt}
+          onClose={() => setLightboxImage(null)}
+        />
+      )}
     </section>
   );
 }

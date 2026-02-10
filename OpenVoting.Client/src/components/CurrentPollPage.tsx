@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { ConfirmDialog, type ConfirmDialogConfig } from './ConfirmDialog';
+import { ImageLightbox, type ImageLightboxData } from './ImageLightbox';
 import { useToast } from './ToastProvider';
 import { PollHeaderSection } from './currentPoll/PollHeaderSection';
 import { AdminPanel } from './currentPoll/AdminPanel';
@@ -129,6 +130,10 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const [pendingEntryId, setPendingEntryId] = useState<string | null>(null);
   const [pendingReason, setPendingReason] = useState('');
   const [pendingAction, setPendingAction] = useState<'disqualify' | 'delete' | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<ImageLightboxData | null>(null);
+  const openLightbox = (imageUrl: string, originalUrl?: string, alt?: string) => {
+    setLightboxImage({ imageUrl, originalUrl, alt });
+  };
   const isRankedMethod = !!poll?.requireRanking;
   const breakdownByEntryId = useMemo(() => {
     const map = new Map<string, VotingBreakdownEntry>();
@@ -685,6 +690,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
                 const assetId = entryAssetId(e);
                 const asset = assetCache[assetId];
                 const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
+                const previewUrl = asset?.url;
+                const fullImageUrl = previewUrl ? (originalUrl ?? previewUrl) : null;
                 const firstChoice = pollDetail.votingMethod === 2 ? e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0 : undefined;
                 const isTieWinner = tiedForFirst && e.isWinner;
                 const positionLabel = isTieWinner ? '#1' : (typeof e.position === 'number' ? `#${e.position}` : null);
@@ -707,15 +714,15 @@ export function CurrentPollPage(props: CurrentPollProps) {
                         {isTieWinner && <span className="pill tie">Tie</span>}
                       </div>
                     </div>
-                    {asset?.url && (
-                      <a
-                        href={originalUrl || asset.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="View full original image"
+                    {previewUrl && (
+                      <button
+                        type="button"
+                        className="entry-img-button"
+                        title="View full image"
+                        onClick={() => openLightbox(fullImageUrl ?? previewUrl, originalUrl, e.displayName)}
                       >
-                        <img src={asset.url} alt={e.displayName} className="entry-img" style={{ cursor: 'zoom-in' }} />
-                      </a>
+                        <img src={previewUrl} alt={e.displayName || 'Entry image'} className="entry-img" />
+                      </button>
                     )}
                     {e.description && <p className="muted">{e.description}</p>}
                     <div className="actions">
@@ -743,6 +750,14 @@ export function CurrentPollPage(props: CurrentPollProps) {
             </ul>
           )}
         </section>
+      )}
+      {lightboxImage && (
+        <ImageLightbox
+          imageUrl={lightboxImage.imageUrl}
+          originalUrl={lightboxImage.originalUrl}
+          alt={lightboxImage.alt}
+          onClose={() => setLightboxImage(null)}
+        />
       )}
       <ConfirmDialog config={dialogConfig} onConfirm={handleConfirm} onCancel={handleCancelConfirm} />
     </div>
