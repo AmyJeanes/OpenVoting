@@ -78,7 +78,7 @@
     width: 42px;
     height: 42px;
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--accent), #22c1b0);
+    background: linear-gradient(135deg, var(--accent), var(--accent-boost));
     color: var(--accent-contrast);
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -138,8 +138,8 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #10b981;
-    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.16);
+    background: var(--success);
+    box-shadow: 0 0 0 8px var(--success-soft);
     animation: livepulse 1.6s ease-in-out infinite;
 }
 
@@ -214,11 +214,11 @@
 }
 
 .hero-card {
-    background: linear-gradient(135deg, var(--accent), #22c1b0);
+    background: linear-gradient(135deg, var(--accent), var(--accent-boost));
     color: var(--accent-contrast);
     border-radius: 16px;
     padding: 16px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    box-shadow: inset 0 1px 0 var(--surface-highlight);
 }
 
 .stack {
@@ -281,7 +281,7 @@ button.ghost {
 }
 
 .primary {
-    background: linear-gradient(135deg, var(--accent), #22c1b0);
+    background: linear-gradient(135deg, var(--accent), var(--accent-boost));
     color: var(--accent-contrast);
     box-shadow: var(--shadow-accent);
 }
@@ -357,7 +357,7 @@ button.ghost {
     position: relative;
     outline: 2px solid var(--accent);
     outline-offset: 4px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18), 0 0 0 8px color-mix(in srgb, var(--accent-soft) 70%, transparent);
+    box-shadow: var(--shadow-entry), 0 0 0 8px color-mix(in srgb, var(--accent-soft) 70%, transparent);
     animation: entryflash 1.05s ease-out;
     background: linear-gradient(135deg, color-mix(in srgb, var(--accent-soft) 55%, transparent), transparent), var(--surface);
 }
@@ -369,15 +369,15 @@ button.ghost {
 @keyframes entryflash {
     0% {
         transform: scale(0.98);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 0 0 4px color-mix(in srgb, var(--accent-soft) 65%, transparent);
+        box-shadow: var(--shadow-entry-soft), 0 0 0 4px color-mix(in srgb, var(--accent-soft) 65%, transparent);
     }
     50% {
         transform: scale(1.01);
-        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22), 0 0 0 10px color-mix(in srgb, var(--accent-soft) 78%, transparent);
+        box-shadow: var(--shadow-entry-strong), 0 0 0 10px color-mix(in srgb, var(--accent-soft) 78%, transparent);
     }
     100% {
         transform: scale(1);
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.15), 0 0 0 6px color-mix(in srgb, var(--accent-soft) 50%, transparent);
+        box-shadow: var(--shadow-entry-rest), 0 0 0 6px color-mix(in srgb, var(--accent-soft) 50%, transparent);
     }
 }
 
@@ -398,9 +398,9 @@ button.ghost {
 }
 
 .banner.error {
-    border-color: #fca5a5;
-    background: #fef2f2;
-    color: #991b1b;
+    border-color: var(--danger-border);
+    background: var(--danger-bg);
+    color: var(--danger-text);
 }
 
 .banner.warning {
@@ -760,7 +760,7 @@ textarea {
 
 .vote-card.selected {
     border-color: var(--selected-border);
-    box-shadow: 0 8px 24px rgba(27, 156, 240, 0.18);
+    box-shadow: var(--selection-shadow);
     background: var(--selected-bg);
 }
 
@@ -819,7 +819,7 @@ textarea {
 }
 
 .error {
-    color: #b91c1c;
+    color: var(--danger-text);
     margin: 6px 0;
 }
 
@@ -855,7 +855,7 @@ textarea {
     background: var(--surface);
     border: 1px solid var(--selected-border);
     border-radius: 12px;
-    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--shadow-toast);
     padding: 12px 14px;
     display: inline-flex;
     align-items: center;
@@ -1038,13 +1038,13 @@ textarea {
 }
 
 .primary.danger {
-    background: linear-gradient(135deg, #f43f5e, #f59e0b);
-    color: #fff7ed;
-    box-shadow: 0 10px 30px rgba(244, 63, 94, 0.25);
+    background: linear-gradient(135deg, var(--danger-gradient-from), var(--danger-gradient-to));
+    color: var(--danger-contrast);
+    box-shadow: var(--danger-shadow);
 }
 
 .primary.danger:hover {
-    background: linear-gradient(135deg, #e11d48, #d97706);
+    background: linear-gradient(135deg, var(--danger-gradient-hover-from), var(--danger-gradient-hover-to));
 }
 
 .admin-card {
@@ -1152,7 +1152,7 @@ textarea {
 
 .radio-card.selected {
     border-color: var(--selected-border);
-    box-shadow: 0 8px 24px rgba(27, 156, 240, 0.18);
+    box-shadow: var(--selection-shadow);
     background: var(--selected-bg);
 }
 

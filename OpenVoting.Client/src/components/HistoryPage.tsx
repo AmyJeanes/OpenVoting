@@ -133,7 +133,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                     )}
 
                     <div className="history-actions">
-                      <Link className="primary" to={`/polls/${p.id}`}>View poll details</Link>
+                      <Link className="primary" to={`/polls/${p.id}`}>View poll</Link>
                     </div>
                   </>
                 );
