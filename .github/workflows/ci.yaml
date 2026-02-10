@@ -47,6 +47,7 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+        working-directory: OpenVoting.Client
 
       - name: Test frontend
         run: npm run test -- --runInBand
