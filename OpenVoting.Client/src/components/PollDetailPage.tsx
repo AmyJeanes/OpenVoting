@@ -44,7 +44,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
   if (!pollId) {
     return (
       <section className="card">
-        <p className="error">No poll id provided.</p>
+        <p className="error">No poll id provided</p>
           <Link className="ghost" to="/polls/history">Back to history</Link>
       </section>
     );
@@ -70,7 +70,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
   if (!detail) {
     return (
       <section className="card">
-        <p className="muted">No poll found.</p>
+        <p className="muted">No poll found</p>
           <Link className="ghost" to="/polls/history">Back to history</Link>
       </section>
     );
@@ -80,22 +80,18 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
 
   const winnerTitle = (winner: PollWinnerResponse) => {
     const hasCustomTitle = (winner.displayName || '').trim().length > 0;
-    const titlesAllowed = detail.titleRequirement !== 0;
-    if (!titlesAllowed) {
-      return winner.submittedByDisplayName ? `By ${winner.submittedByDisplayName}` : 'Untitled entry';
-    }
     if (hasCustomTitle) return winner.displayName;
-    return winner.submittedByDisplayName ? `By ${winner.submittedByDisplayName}` : 'Untitled entry';
+    return detail.titleRequirement === 0 ? 'Entry' : 'Untitled entry';
   };
 
   const entryTitle = (entry: PollDetailResponse['entries'][number]) => {
     const hasCustomTitle = (entry.displayName || '').trim().length > 0;
     if (detail.titleRequirement === 0) {
-      if (entry.submittedByDisplayName) return `From ${entry.submittedByDisplayName}`;
+      if (entry.submittedByDisplayName) return 'Entry';
       return '';
     }
     if (hasCustomTitle) return entry.displayName;
-    return entry.submittedByDisplayName ? `By ${entry.submittedByDisplayName}` : 'Untitled entry';
+    return 'Untitled entry';
   };
 
   return (
@@ -135,13 +131,12 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
             {isTie && (
               <div className="muted" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span className="pill subtle">Tie</span>
-                <span>{detail.winners.length} winners tied for first place.</span>
+                <span>{detail.winners.length} winners tied for first place</span>
               </div>
             )}
             {detail.winners.map((w) => {
               const titleText = winnerTitle(w);
-              const hasCustomTitle = (w.displayName || '').trim().length > 0;
-              const subtitle = detail.titleRequirement !== 0 && hasCustomTitle && w.submittedByDisplayName ? `By ${w.submittedByDisplayName}` : '';
+              const subtitleName = w.submittedByDisplayName;
               return (
                 <div key={w.entryId} className="winner-chip">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -150,7 +145,12 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
                     <strong>{titleText}</strong>
                     <span className="muted"> · {w.votes} vote{w.votes === 1 ? '' : 's'}</span>
                   </div>
-                  {subtitle && <div className="muted">{subtitle}</div>}
+                  {subtitleName && (
+                    <div className="byline">
+                      <span className="byline-label">By:</span>
+                      <span className="byline-name">{subtitleName}</span>
+                    </div>
+                  )}
                   {w.assetId && assetCache[w.assetId]?.url && (
                     <img src={assetCache[w.assetId]!.url} alt={titleText} className="winner-img" />
                   )}
@@ -169,22 +169,39 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
           </div>
             <Link className="ghost" to="/polls/history">Back to history</Link>
         </div>
-        {detail.entries.length === 0 && <p className="muted">No entries recorded.</p>}
+        {detail.entries.length === 0 && <p className="muted">No entries recorded</p>}
         {detail.entries.length > 0 && (
           <ul className="entries entry-grid">
             {detail.entries.map((e) => {
               const assetId = e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? '';
               const asset = assetCache[assetId];
               const positionLabel = isTie && e.isWinner ? '#1' : (typeof e.position === 'number' ? `#${e.position}` : null);
-              const hasTitle = (e.displayName || '').trim().length > 0;
               const titleText = entryTitle(e);
               return (
                 <li key={e.id} className="entry-card">
                   <div className="entry-head">
                     <div>
                       <p className="entry-title">{titleText}</p>
-                      {e.submittedByDisplayName && hasTitle && detail.titleRequirement !== 0 && <p className="muted">By {e.submittedByDisplayName}</p>}
-                      {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
+                      {e.submittedByDisplayName && (
+                        <p className="byline">
+                          <span className="byline-label">By:</span>
+                          <span className="byline-name">{e.submittedByDisplayName}</span>
+                        </p>
+                      )}
+                      {e.isDisqualified && (
+                        <div className="disqualification-details">
+                          <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>
+                          {(e.disqualifiedByDisplayName || e.disqualifiedAt) && (
+                            <p className="muted">
+                              <span className="byline">
+                                <span className="byline-label">By:</span>
+                                <span className="byline-name">{e.disqualifiedByDisplayName ?? 'unknown admin'}</span>
+                              </span>
+                              {e.disqualifiedAt ? ` on ${new Date(e.disqualifiedAt).toLocaleString()}` : ''}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="badges">
                       {positionLabel && <span className="pill subtle">{positionLabel}</span>}

@@ -45,7 +45,10 @@ export type CurrentPollProps = {
     description: string;
   };
   entryFiles: { original?: File };
+  entryFileValidationPending: boolean;
+  entryFileInvalid: boolean;
   entrySubmitError: string | null;
+  entrySubmitSuccessCount: number;
   entrySubmitting: boolean;
   assetCache: Record<string, AssetUploadResponse>;
   onRefreshPoll: () => Promise<void> | void;
@@ -86,6 +89,10 @@ export function CurrentPollPage(props: CurrentPollProps) {
     votingBreakdownError,
     entryForm,
     entryFiles,
+    entryFileValidationPending,
+    entryFileInvalid,
+    entrySubmitError,
+    entrySubmitSuccessCount,
     entrySubmitting,
     assetCache,
     onRefreshPoll,
@@ -227,6 +234,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const [submissionForm, setSubmissionForm] = useState({ maxSubmissionsPerMember: 1, submissionClosesAt: '' });
   const [votingForm, setVotingForm] = useState({ maxSelections: 1, votingClosesAt: '' });
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsSaveSuccessCount, setSettingsSaveSuccessCount] = useState(0);
 
   useEffect(() => {
     if (pollError) showToast(pollError, { tone: 'error' });
@@ -339,7 +347,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
     if (!poll) return;
 
     if (metaForm.titleRequirement === 0 && metaForm.descriptionRequirement === 0 && metaForm.imageRequirement === 0) {
-      showToast('Enable at least one submission field.', { tone: 'error' });
+      showToast('Enable at least one submission field', { tone: 'error' });
       return;
     }
 
@@ -357,6 +365,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
       if (metaUpdates) await onUpdateMetadata(poll.id, metaUpdates);
       if (submissionUpdates) await onUpdateSubmissionSettings(poll.id, submissionUpdates);
       if (votingUpdates) await onUpdateVotingSettings(poll.id, votingUpdates);
+      setSettingsSaveSuccessCount((prev) => prev + 1);
       showToast('Poll settings updated', { tone: 'success' });
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to update poll settings', { tone: 'error' });
@@ -372,6 +381,9 @@ export function CurrentPollPage(props: CurrentPollProps) {
     }
 
     if (pendingAction === 'disqualify') {
+      if (!pendingReason.trim()) {
+        return;
+      }
       onDisqualify(pendingEntryId, pendingReason);
     }
 
@@ -410,12 +422,12 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const handleProceedToRanking = () => {
     if (!poll || !poll.requireRanking) return;
     if (selectedEntries.length === 0) {
-      const message = 'Select at least one entry to rank.';
+      const message = 'Select at least one entry to rank';
       showToast(message, { tone: 'error' });
       return;
     }
     if (selectedEntries.length > poll.maxSelections) {
-      const message = `Select at most ${poll.maxSelections} entries.`;
+      const message = `Select at most ${poll.maxSelections} entries`;
       showToast(message, { tone: 'error' });
       return;
     }
@@ -444,7 +456,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
       const toIdx = prev.indexOf(targetId);
       if (fromIdx === -1 || toIdx === -1) return prev;
       const next = [...prev];
-      [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
+      const [item] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, item);
       return next;
     });
     setDraggingId(null);
@@ -467,7 +480,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
   const handleRankSubmit = () => {
     if (rankedIds.length === 0) {
-      const message = 'Select entries to rank.';
+      const message = 'Select entries to rank';
       showToast(message, { tone: 'error' });
       return;
     }
@@ -498,19 +511,23 @@ export function CurrentPollPage(props: CurrentPollProps) {
     });
   }, [poll?.id]);
 
+  const disqualifyReasonRequired = pendingAction === 'disqualify' && pendingReason.trim().length === 0;
+
   const dialogConfig = confirmConfig
     ? {
         ...confirmConfig,
+        confirmDisabled: disqualifyReasonRequired,
         content:
           pendingAction === 'disqualify'
             ? (
               <label className="stack">
-                Reason (optional)
+                Reason
                 <textarea
                   value={pendingReason}
                   onChange={(e) => setPendingReason(e.target.value)}
                   rows={3}
                 />
+                {disqualifyReasonRequired && <span className="field-error">Reason is required</span>}
               </label>
             )
             : confirmConfig.content
@@ -544,6 +561,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
           votingForm={votingForm}
           requirementOptions={requirementOptions}
           settingsSaving={settingsSaving}
+          saveSuccessCount={settingsSaveSuccessCount}
           onMetaChange={setMetaForm}
           onSubmissionChange={setSubmissionForm}
           onVotingChange={setVotingForm}
@@ -569,7 +587,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
             setPendingAction('disqualify');
             setConfirmConfig({
               title: 'Disqualify entry?',
-              body: 'Provide a reason. This hides the entry from voting tallies.',
+              body: 'Provide a reason. This hides the entry from winning while keeping it visible',
               confirmLabel: 'Disqualify',
               cancelLabel: 'Cancel',
               tone: 'danger'
@@ -581,7 +599,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
             setPendingAction('delete');
             setConfirmConfig({
               title: 'Delete entry?',
-              body: 'This removes the entry and any uploaded assets.',
+              body: 'This removes the entry and any uploaded assets',
               confirmLabel: 'Delete',
               cancelLabel: 'Cancel',
               tone: 'danger'
@@ -590,12 +608,16 @@ export function CurrentPollPage(props: CurrentPollProps) {
         />
       )}
 
-      {poll && !isClosed && (
+      {poll && !isClosed && poll.canSubmit && (
         <SubmissionSection
           poll={poll}
           entryForm={entryForm}
           entrySubmitting={entrySubmitting}
           entryFiles={entryFiles}
+          entryFileValidationPending={entryFileValidationPending}
+          entryFileInvalid={entryFileInvalid}
+          entrySubmitError={entrySubmitError}
+          entrySubmitSuccessCount={entrySubmitSuccessCount}
           submissionLimitReached={submissionLimitReached}
           submissionsRemaining={submissionsRemaining}
           showEntryTitleField={showEntryTitleField}
@@ -617,7 +639,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
             setPendingAction('delete');
             setConfirmConfig({
               title: 'Delete your entry?',
-              body: 'This removes the entry and any uploaded assets.',
+              body: 'This removes the entry and any uploaded assets',
               confirmLabel: 'Delete',
               cancelLabel: 'Cancel',
               tone: 'danger'
@@ -641,6 +663,9 @@ export function CurrentPollPage(props: CurrentPollProps) {
           isRankedMethod={isRankedMethod}
           entryAssetId={entryAssetId}
           onToggleSelection={handleToggleSelection}
+          onDisqualifiedSelectAttempt={() => {
+            showToast('This entry is disqualified and cannot be selected', { tone: 'info' });
+          }}
           onProceedToRanking={handleProceedToRanking}
           onSubmitVote={() => onSubmitVote()}
           onClearSelection={handleClearSelection}
@@ -683,7 +708,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
               <h3>Full breakdown</h3>
             </div>
           </div>
-          {pollDetail.entries.length === 0 && <p className="muted">No entries recorded.</p>}
+          {pollDetail.entries.length === 0 && <p className="muted">No entries recorded</p>}
           {pollDetail.entries.length > 0 && (
             <ul className="entries entry-grid">
               {pollDetail.entries.map((e) => {
@@ -698,15 +723,33 @@ export function CurrentPollPage(props: CurrentPollProps) {
                 const hasTitle = (e.displayName || '').trim().length > 0;
                 const titleText = hasTitle
                   ? e.displayName
-                  : (e.submittedByDisplayName ? `By ${e.submittedByDisplayName}` : 'Untitled entry');
+                  : (pollDetail.titleRequirement === 0 ? 'Entry' : 'Untitled entry');
                 const highlightClass = highlightedEntryId === e.id ? 'entry-highlight' : '';
                 return (
                   <li key={e.id} id={`entry-${e.id}`} className={`entry-card ${e.isWinner ? 'winner' : ''} ${highlightClass}`}>
                     <div className="entry-head">
                       <div>
                         <p className="entry-title">{titleText}</p>
-                        {e.submittedByDisplayName && hasTitle && <p className="muted">By {e.submittedByDisplayName}</p>}
-                        {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
+                        {e.submittedByDisplayName && (
+                          <p className="byline">
+                            <span className="byline-label">By:</span>
+                            <span className="byline-name">{e.submittedByDisplayName}</span>
+                          </p>
+                        )}
+                        {e.isDisqualified && (
+                          <div className="disqualification-details">
+                            <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>
+                            {poll.isAdmin && (e.disqualifiedByDisplayName || e.disqualifiedAt) && (
+                              <p className="muted">
+                                <span className="byline">
+                                  <span className="byline-label">By:</span>
+                                  <span className="byline-name">{e.disqualifiedByDisplayName ?? 'unknown admin'}</span>
+                                </span>
+                                {e.disqualifiedAt ? ` on ${new Date(e.disqualifiedAt).toLocaleString()}` : ''}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="badges">
                         {positionLabel && <span className="pill subtle">{positionLabel}</span>}

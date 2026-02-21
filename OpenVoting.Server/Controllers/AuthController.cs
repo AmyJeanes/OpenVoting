@@ -58,7 +58,7 @@ public class AuthController : ControllerBase
 		var authResult = await _discordOAuthService.ExchangeCodeAsync(code, redirectUri ?? _discordSettings.RedirectUri, cancellationToken);
 		if (!authResult.IsGuildMember)
 		{
-			const string reason = "You must be a member of the Discord server to sign in.";
+			const string reason = "You must be a member of the Discord server to sign in";
 			if (returnHtml)
 			{
 				return new ContentResult

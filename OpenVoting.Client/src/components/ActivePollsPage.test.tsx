@@ -63,11 +63,14 @@ describe('ActivePollsPage', () => {
     expect(screen.getByText('Spring Contest')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View poll' })).toHaveAttribute('href', '/polls/poll-123');
 
+    await userEvent.click(screen.getByRole('button', { name: 'Toggle create poll panel' }));
+    const [titleInput] = screen.getAllByRole('textbox');
+    await userEvent.type(titleInput, 'My Poll');
     await userEvent.click(screen.getByRole('button', { name: 'Create poll' }));
     expect(onCreate).toHaveBeenCalledTimes(1);
   });
 
-  it('surfaces creation errors via toast', async () => {
+  it('surfaces creation errors inline', async () => {
     renderWithProviders({
       sessionState: 'authenticated',
       me: { isAdmin: true },
@@ -75,5 +78,19 @@ describe('ActivePollsPage', () => {
     });
 
     expect(await screen.findByText('Failed to create')).toBeInTheDocument();
+  });
+
+  it('shows validation banner and blocks create when title is blank', async () => {
+    const onCreate = vi.fn();
+    renderWithProviders({
+      sessionState: 'authenticated',
+      me: { isAdmin: true },
+      onCreatePoll: onCreate
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create poll' }));
+
+    expect(onCreate).not.toHaveBeenCalled();
+    expect(screen.getByText('Please correct the validation errors')).toBeInTheDocument();
   });
 });

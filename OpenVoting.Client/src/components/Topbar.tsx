@@ -30,7 +30,6 @@ export function Topbar({ sessionState, me, config, hasLivePolls, onLogout }: Top
               </div>
             )}
             <h1 className="brand-title">{serverName} Voting</h1>
-            <p className="brand-sub">Voting system for communities.</p>
           </div>
         </Link>
       </div>
@@ -49,7 +48,7 @@ export function Topbar({ sessionState, me, config, hasLivePolls, onLogout }: Top
               <span className="user-name">{me.displayName}</span>
               {me.isAdmin && <span className="pill admin">Admin</span>}
             </div>
-            <button className="ghost" onClick={() => onLogout('Signed out.')}>Logout</button>
+            <button className="ghost" onClick={() => onLogout('Signed out')}>Logout</button>
           </div>
         ) : sessionState === 'loading' || sessionState === 'idle' ? (
           <div className="user-block">

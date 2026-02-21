@@ -48,7 +48,10 @@ export default function App() {
     entryForm,
     setEntryForm,
     entryFiles,
+    entryFileValidationPending,
+    entryFileInvalid,
     entrySubmitError,
+    entrySubmitSuccessCount,
     entrySubmitting,
     submitEntry,
     handleEntryFilesChange,
@@ -71,6 +74,7 @@ export default function App() {
     setCreateForm,
     creating,
     createError,
+    createSuccessCount,
     createPoll,
     // history
     history,
@@ -124,6 +128,7 @@ export default function App() {
               setCreateForm={setCreateForm}
               creating={creating}
               createError={createError}
+              createSuccessCount={createSuccessCount}
               onCreatePoll={createPoll}
             />
           }
@@ -152,7 +157,10 @@ export default function App() {
               votingBreakdownError={votingBreakdownError}
               entryForm={entryForm}
               entryFiles={entryFiles}
+              entryFileValidationPending={entryFileValidationPending}
+              entryFileInvalid={entryFileInvalid}
               entrySubmitError={entrySubmitError}
+              entrySubmitSuccessCount={entrySubmitSuccessCount}
               entrySubmitting={entrySubmitting}
               assetCache={assetCache}
               onRefreshPoll={refreshActiveAndSelected}
@@ -198,7 +206,10 @@ export default function App() {
               votingBreakdownError={votingBreakdownError}
               entryForm={entryForm}
               entryFiles={entryFiles}
+              entryFileValidationPending={entryFileValidationPending}
+              entryFileInvalid={entryFileInvalid}
               entrySubmitError={entrySubmitError}
+              entrySubmitSuccessCount={entrySubmitSuccessCount}
               entrySubmitting={entrySubmitting}
               assetCache={assetCache}
               onRefreshPoll={refreshActiveAndSelected}
@@ -243,7 +254,7 @@ export default function App() {
           <div className="modal-card">
             <p className="eyebrow">Voting</p>
             <h3>Open voting</h3>
-            <p className="muted">Choose the voting method to use. This cannot be changed after voting starts.</p>
+            <p className="muted">Choose the voting method to use. This cannot be changed after voting starts</p>
             <div className="method-cards">
               {votingMethodOptions.map((opt) => (
                 <label key={opt.id} className={`radio-card ${openVotingModal.selectedMethod === opt.id ? 'selected' : ''}`}>
@@ -274,7 +285,7 @@ export default function App() {
                 {openVotingModal.submitting ? 'Opening…' : 'Open voting'}
               </button>
             </div>
-            <p className="muted">Voting method cannot be modified after the vote has started.</p>
+            <p className="muted">Voting method cannot be modified after the vote has started</p>
           </div>
         </div>
       )}

@@ -4,7 +4,6 @@ An open-source fair voting system built for communities
 This app is heavily work-in-progress. Please check back later!
 
 TODO:
-- General UX tidy up and consistency
 - Mobile support / responsive design
 - Show if you've voted yet clearly incl on list page
 - Show voting instructions more clearly (select up to X entries etc)
@@ -14,5 +13,4 @@ TODO:
 - Blur the images much more during submission stage
 - Add Discord bot for a command to easy one-time login link without having to sign in via browser Discord (where people are often not logged in)
 - Fill out README with overview, setup instructions, etc.
-- Test the review phase properly with the disqualify/delete functions
 - Add proper logo to Discord bot and site favicon

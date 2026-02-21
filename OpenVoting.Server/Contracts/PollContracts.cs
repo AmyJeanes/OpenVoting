@@ -109,6 +109,8 @@ public sealed class PollDetailEntryResponse
 	public Guid? PublicAssetId { get; init; }
 	public bool IsDisqualified { get; init; }
 	public string? DisqualificationReason { get; init; }
+	public string? DisqualifiedByDisplayName { get; init; }
+	public DateTimeOffset? DisqualifiedAt { get; init; }
 	public DateTimeOffset CreatedAt { get; init; }
 	public int ApprovalVotes { get; init; }
 	public IReadOnlyList<PollDetailRankCountResponse> RankCounts { get; init; } = Array.Empty<PollDetailRankCountResponse>();

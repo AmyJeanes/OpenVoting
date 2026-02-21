@@ -21,7 +21,7 @@ export function PreviewSection({ poll, entries, assetCache, entryAssetId }: Prev
     <section className="card">
       <div className="section-head">
         <h3>Entries (preview)</h3>
-        <p className="muted">Images stay blurred until voting opens.</p>
+        <p className="muted">Images stay blurred until voting opens</p>
       </div>
       <ul className="entries entry-grid">
         {entries.map((e) => {

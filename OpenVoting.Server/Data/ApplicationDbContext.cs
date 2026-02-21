@@ -38,6 +38,12 @@ public sealed class ApplicationDbContext : DbContext
     modelBuilder.Entity<VoteChoice>()
         .HasIndex(c => new { c.VoteId, c.Rank });
 
+    modelBuilder.Entity<PollEntry>()
+        .HasOne(e => e.DisqualifiedByMember)
+        .WithMany()
+        .HasForeignKey(e => e.DisqualifiedByMemberId)
+        .OnDelete(DeleteBehavior.SetNull);
+
     base.OnModelCreating(modelBuilder);
   }
 }

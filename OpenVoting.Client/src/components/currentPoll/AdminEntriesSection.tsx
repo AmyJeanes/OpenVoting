@@ -18,11 +18,9 @@ export type AdminEntriesSectionProps = {
 
 function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
   const hasCustomTitle = (entry.displayName || '').trim().length > 0;
-  if (poll.titleRequirement === 0) {
-    return entry.submittedByDisplayName ? `From ${entry.submittedByDisplayName}` : 'From participant';
-  }
+  if (poll.titleRequirement === 0) return 'Entry';
   if (hasCustomTitle) return entry.displayName;
-  return entry.submittedByDisplayName ? `By ${entry.submittedByDisplayName}` : 'Untitled entry';
+  return 'Untitled entry';
 }
 
 export function AdminEntriesSection(props: AdminEntriesSectionProps) {
@@ -78,13 +76,14 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
       </button>
       <div className="admin-collapse">
         {entriesLoading && <p className="muted">Loading entries…</p>}
-        {!entriesLoading && entries.length === 0 && <p className="muted">No entries are visible yet.</p>}
+        {!entriesLoading && entries.length === 0 && <p className="muted">No entries are visible yet</p>}
         {showAdminBreakdown && !entriesLoading && entries.length > 0 && votingBreakdown.length === 0 && !votingBreakdownError && (
-          <p className="muted">No votes recorded yet.</p>
+          <p className="muted">No votes recorded yet</p>
         )}
         {!entriesLoading && entries.length > 0 && (
           <ul className="entries entry-grid">
             {leaderboard.map(({ entry: e, breakdown, score }, idx) => {
+              const showByline = !!e.submittedByDisplayName;
               const assetId = entryAssetId(e);
               const asset = assetCache[assetId];
               const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
@@ -103,7 +102,12 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                     <div className="entry-head-main">
                       <p className="entry-title">{entryTitle(poll, e)}</p>
                       {e.description && <p className="muted">{e.description}</p>}
-                      {e.submittedByDisplayName && poll.titleRequirement !== 0 && <p className="muted">By {e.submittedByDisplayName}</p>}
+                      {showByline && (
+                        <p className="byline">
+                          <span className="byline-label">By:</span>
+                          <span className="byline-name">{e.submittedByDisplayName}</span>
+                        </p>
+                      )}
                       <p className="muted">Created {createdAtText}</p>
                     </div>
                     <div className="badges">
@@ -121,7 +125,20 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                       <img src={previewUrl} alt={e.displayName || 'Entry image'} className="entry-img" />
                     </button>
                   )}
-                  {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
+                  {e.isDisqualified && (
+                    <div className="disqualification-details">
+                      <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>
+                      {(e.disqualifiedByDisplayName || e.disqualifiedAt) && (
+                        <p className="muted">
+                          <span className="byline">
+                            <span className="byline-label">By:</span>
+                            <span className="byline-name">{e.disqualifiedByDisplayName ?? 'unknown admin'}</span>
+                          </span>
+                          {e.disqualifiedAt ? ` on ${new Date(e.disqualifiedAt).toLocaleString()}` : ''}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   {showAdminBreakdown && !votingBreakdownError && (
                     <div>
                       {breakdown ? (
@@ -147,14 +164,14 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                             </div>
                           )}
                           {poll.votingMethod === 2 && rankCounts.length === 0 && (
-                            <p className="muted">No ranks submitted yet.</p>
+                            <p className="muted">No ranks submitted yet</p>
                           )}
                           {poll.votingMethod !== 2 && approvals === 0 && (
-                            <p className="muted">No approvals yet.</p>
+                            <p className="muted">No approvals yet</p>
                           )}
                         </>
                       ) : (
-                        <p className="muted">No votes yet.</p>
+                        <p className="muted">No votes yet</p>
                       )}
                     </div>
                   )}

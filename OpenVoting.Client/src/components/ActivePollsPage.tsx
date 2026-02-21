@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { useToast } from './ToastProvider';
@@ -17,23 +18,43 @@ export type ActivePollsPageProps = {
   setCreateForm: Dispatch<SetStateAction<CreatePollForm>>;
   creating: boolean;
   createError: string | null;
+  createSuccessCount?: number;
   onCreatePoll: () => void;
   onLogin: () => void;
   loginCta: string;
   loginDisabled: boolean;
 };
 
-export function ActivePollsPage({ sessionState, me, activePolls, pollError, loading, onRefresh, createForm, setCreateForm, creating, createError, onCreatePoll, onLogin, loginCta, loginDisabled }: ActivePollsPageProps) {
+export function ActivePollsPage({ sessionState, me, activePolls, pollError, loading, onRefresh, createForm, setCreateForm, creating, createError, createSuccessCount = 0, onCreatePoll, onLogin, loginCta, loginDisabled }: ActivePollsPageProps) {
   if (sessionState !== 'authenticated') {
     return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
   }
 
   const { showToast } = useToast();
   const [adminExpanded, setAdminExpanded] = useState(false);
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [descriptionTouched, setDescriptionTouched] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  const titleMissing = createForm.title.trim().length === 0;
+  const showTitleInvalid = titleMissing && (titleTouched || submitAttempted);
+  const showDescriptionInvalid = false && descriptionTouched;
+  const hasValidationErrors = showTitleInvalid;
+
+  const handleCreate = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setSubmitAttempted(true);
+    if (titleMissing) {
+      return;
+    }
+    onCreatePoll();
+  };
 
   useEffect(() => {
-    if (createError) showToast(createError, { tone: 'error' });
-  }, [createError, showToast]);
+    setTitleTouched(false);
+    setDescriptionTouched(false);
+    setSubmitAttempted(false);
+  }, [createSuccessCount]);
 
   useEffect(() => {
     if (pollError) showToast(pollError, { tone: 'error' });
@@ -63,14 +84,33 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
               <div className="stack">
                 <div className="form-grid">
                   <label className="full-row">Title
-                    <input value={createForm.title} onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })} />
+                    <input
+                      value={createForm.title}
+                      className={showTitleInvalid ? 'input-invalid' : undefined}
+                      aria-invalid={showTitleInvalid}
+                      onBlur={() => setTitleTouched(true)}
+                      onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
+                    />
+                    <span className={showTitleInvalid ? 'field-error' : 'field-hint'}>Required</span>
                   </label>
                   <label className="full-row">Description
-                    <textarea rows={3} value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
+                    <textarea
+                      rows={3}
+                      value={createForm.description}
+                      className={showDescriptionInvalid ? 'input-invalid' : undefined}
+                      aria-invalid={showDescriptionInvalid}
+                      onBlur={() => setDescriptionTouched(true)}
+                      onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                    />
+                    <span className="field-hint">Optional</span>
                   </label>
                 </div>
+                {submitAttempted && hasValidationErrors && (
+                  <div className="banner error form-validation-banner">Please correct the validation errors</div>
+                )}
+                {createError && <div className="banner error form-validation-banner">{createError}</div>}
                 <div className="actions form-actions spacious">
-                  <button className="primary" onClick={(e) => { e.stopPropagation(); onCreatePoll(); }} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
+                  <button className="primary" onClick={handleCreate} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
                 </div>
               </div>
             </div>
@@ -89,7 +129,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
           </button>
         </div>
         {loading && <p className="muted">Loading live polls…</p>}
-        {!loading && activePolls.length === 0 && !pollError && <p className="muted">No active polls right now.</p>}
+        {!loading && activePolls.length === 0 && !pollError && <p className="muted">No active polls right now</p>}
         {!loading && activePolls.length > 0 && (
           <ul className="entries poll-list">
             {activePolls.map((p) => {

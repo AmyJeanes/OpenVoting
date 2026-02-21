@@ -24,6 +24,8 @@ public sealed class PollEntryResponse
 	public Guid? PublicAssetId { get; init; }
 	public bool IsDisqualified { get; init; }
 	public string? DisqualificationReason { get; init; }
+	public string? DisqualifiedByDisplayName { get; init; }
+	public DateTimeOffset? DisqualifiedAt { get; init; }
 	public DateTimeOffset CreatedAt { get; init; }
 	public string SubmittedByDisplayName { get; init; } = string.Empty;
 	public bool IsOwn { get; init; }

@@ -183,6 +183,7 @@ public sealed class PollService : IPollService
 		var poll = await _db.Polls
 			.Where(p => p.Id == id && p.CommunityId == member!.CommunityId)
 			.Include(p => p.Entries).ThenInclude(e => e.SubmittedByMember)
+			.Include(p => p.Entries).ThenInclude(e => e.DisqualifiedByMember)
 			.Include(p => p.Votes).ThenInclude(v => v.Choices)
 			.FirstOrDefaultAsync(cancellationToken);
 
@@ -227,6 +228,8 @@ public sealed class PollService : IPollService
 					publicAssetId,
 					e.IsDisqualified,
 					e.DisqualificationReason,
+					isAdmin ? e.DisqualifiedByMember?.DisplayName : null,
+					isAdmin ? e.DisqualifiedAt : null,
 					e.CreatedAt,
 					shouldExposeTallies ? approvals : 0,
 					shouldExposeTallies ? rankGroups : new List<PollDetailRankCountResponse>(),
@@ -996,6 +999,8 @@ public sealed class PollService : IPollService
 			PublicAssetId = data.PublicAssetId,
 			IsDisqualified = data.IsDisqualified,
 			DisqualificationReason = data.DisqualificationReason,
+			DisqualifiedByDisplayName = data.DisqualifiedByDisplayName,
+			DisqualifiedAt = data.DisqualifiedAt,
 			CreatedAt = data.CreatedAt,
 			ApprovalVotes = data.ApprovalVotes,
 			RankCounts = data.RankCounts,
@@ -1014,6 +1019,8 @@ public sealed class PollService : IPollService
 		Guid? PublicAssetId,
 		bool IsDisqualified,
 		string? DisqualificationReason,
+		string? DisqualifiedByDisplayName,
+		DateTimeOffset? DisqualifiedAt,
 		DateTimeOffset CreatedAt,
 		int ApprovalVotes,
 		List<PollDetailRankCountResponse> RankCounts,

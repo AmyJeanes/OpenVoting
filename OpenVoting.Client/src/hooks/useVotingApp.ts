@@ -55,8 +55,12 @@ export function useVotingApp() {
 
   const [entryForm, setEntryForm] = useState(defaultEntryForm);
   const [entryFiles, setEntryFiles] = useState<{ original?: File }>({});
+  const entryFileValidationRequestRef = useRef(0);
+  const [entryFileValidationPending, setEntryFileValidationPending] = useState(false);
+  const [entryFileInvalid, setEntryFileInvalid] = useState(false);
   const [entrySubmitting, setEntrySubmitting] = useState(false);
   const [entrySubmitError, setEntrySubmitError] = useState<string | null>(null);
+  const [entrySubmitSuccessCount, setEntrySubmitSuccessCount] = useState(0);
 
   const [voteState, setVoteState] = useState<Record<string, { selected: boolean; rank: string }>>({});
   const [voteSubmitting, setVoteSubmitting] = useState(false);
@@ -66,6 +70,7 @@ export function useVotingApp() {
   const [createForm, setCreateForm] = useState(defaultCreateForm);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccessCount, setCreateSuccessCount] = useState(0);
 
   const [confirmConfig, setConfirmConfig] = useState<import('../components').ConfirmDialogConfig | null>(null);
   const confirmResolver = useRef<ConfirmResolver | null>(null);
@@ -165,7 +170,7 @@ export function useVotingApp() {
     });
 
     if (res.status === 401) {
-      logout('Your session expired. Please sign in again.');
+      logout('Your session expired, please sign in again');
       throw new Error('Unauthorized');
     }
 
@@ -181,7 +186,7 @@ export function useVotingApp() {
     setVotingBreakdown([]);
     setVotingBreakdownError(null);
     setSessionState('anonymous');
-    setFlash(message && message.trim().length > 0 ? message : 'Signed out.');
+    setFlash(message && message.trim().length > 0 ? message : 'Signed out');
   };
 
   const clearSelectedPollData = () => {
@@ -265,6 +270,7 @@ export function useVotingApp() {
       }
       const created: PollResponse = await res.json();
       showToast('Poll created', { tone: 'success' });
+      setCreateSuccessCount((prev) => prev + 1);
       setSelectedPollId(created.id);
       await fetchActivePolls();
       await refreshPoll(true, created.id);
@@ -459,27 +465,27 @@ export function useVotingApp() {
     };
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error('Unable to read the selected image.'));
+      reject(new Error('Unable to read the selected image'));
     };
     image.src = objectUrl;
   });
 
   const validateImageFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      throw new Error('Please upload an image file.');
+      throw new Error('Please upload an image file');
     }
 
     if (file.size > maxUploadBytes) {
-      throw new Error('Images must be 5MB or smaller.');
+      throw new Error('Images must be 5MB or smaller');
     }
 
     const { width, height } = await readImageDimensions(file);
     if (width !== height) {
-      throw new Error('Images must be square (1:1 aspect ratio).');
+      throw new Error('Images must be square (1:1 aspect ratio)');
     }
 
     if (width < 512 || height < 512) {
-      throw new Error('Images must be at least 512×512.');
+      throw new Error('Images must be at least 512×512');
     }
   };
 
@@ -525,18 +531,16 @@ export function useVotingApp() {
     setEntrySubmitting(true);
     try {
       if (!poll.canSubmit) {
-        const message = 'Submissions are closed for this poll.';
+        const message = 'Submissions are closed for this poll';
         setEntrySubmitError(message);
-        showToast(message, { tone: 'error' });
         setEntrySubmitting(false);
         return;
       }
 
       const ownEntryCount = entries.filter((e) => e.isOwn).length;
       if (poll.maxSubmissionsPerMember > 0 && ownEntryCount >= poll.maxSubmissionsPerMember) {
-        const message = 'You have reached the submission limit for this poll.';
+        const message = 'You have reached the submission limit for this poll';
         setEntrySubmitError(message);
-        showToast(message, { tone: 'error' });
         setEntrySubmitting(false);
         return;
       }
@@ -548,27 +552,25 @@ export function useVotingApp() {
       const descriptionInput = entryForm.description.trim();
 
       if (titleRequirement === 2 && !displayNameInput) {
-        const message = 'Display name is required.';
+        const message = 'Title is required';
         setEntrySubmitError(message);
-        showToast(message, { tone: 'error' });
         setEntrySubmitting(false);
         return;
       }
 
       if (descriptionRequirement === 2 && !descriptionInput) {
-        const message = 'Description is required.';
+        const message = 'Description is required';
         setEntrySubmitError(message);
-        showToast(message, { tone: 'error' });
         setEntrySubmitting(false);
         return;
       }
 
-      const hasFile = !!entryFiles.original;
+      const selectedFile = entryFiles.original;
+      const hasFile = !!selectedFile;
 
       if (imageRequirement === 2 && !hasFile) {
-        const message = 'Upload an image to submit.';
+        const message = 'Upload an image to submit';
         setEntrySubmitError(message);
-        showToast(message, { tone: 'error' });
         setEntrySubmitting(false);
         return;
       }
@@ -576,8 +578,8 @@ export function useVotingApp() {
       let originalId: string | undefined;
 
       if (hasFile) {
-        await validateImageFile(entryFiles.original!);
-        const upload = await uploadAsset(entryFiles.original!);
+        await validateImageFile(selectedFile!);
+        const upload = await uploadAsset(selectedFile!);
         originalId = upload.id;
       }
 
@@ -604,11 +606,23 @@ export function useVotingApp() {
       await fetchEntries(poll.id);
       setEntryForm(defaultEntryForm);
       setEntryFiles({});
+      setEntryFileValidationPending(false);
+      setEntryFileInvalid(false);
+      entryFileValidationRequestRef.current += 1;
+      setEntrySubmitSuccessCount((prev) => prev + 1);
       showToast('Entry submitted', { tone: 'success' });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to submit entry';
       setEntrySubmitError(message);
-      showToast(message, { tone: 'error' });
+      if (
+        message === 'Please upload an image file'
+        || message === 'Images must be 5MB or smaller'
+        || message === 'Images must be square (1:1 aspect ratio)'
+        || message === 'Images must be at least 512×512'
+        || message === 'Unable to read the selected image'
+      ) {
+        setEntryFileInvalid(true);
+      }
     } finally {
       setEntrySubmitting(false);
     }
@@ -616,6 +630,9 @@ export function useVotingApp() {
 
   const handleEntryFilesChange = (files: { original?: File }) => {
     if (poll?.imageRequirement === 0) {
+      entryFileValidationRequestRef.current += 1;
+      setEntryFileValidationPending(false);
+      setEntryFileInvalid(false);
       setEntryFiles({});
       return;
     }
@@ -624,15 +641,36 @@ export function useVotingApp() {
 
     const file = files.original;
     if (!file) {
+      entryFileValidationRequestRef.current += 1;
+      setEntryFileValidationPending(false);
+      setEntryFileInvalid(false);
       setEntryFiles({});
       return;
     }
 
+    const requestId = entryFileValidationRequestRef.current + 1;
+    entryFileValidationRequestRef.current = requestId;
+    setEntryFileValidationPending(true);
+    setEntryFileInvalid(false);
+    setEntryFiles(files);
+
     validateImageFile(file)
-      .then(() => setEntryFiles(files))
+      .then(() => {
+        if (entryFileValidationRequestRef.current !== requestId) {
+          return;
+        }
+        setEntryFileValidationPending(false);
+        setEntryFileInvalid(false);
+        setEntrySubmitError(null);
+      })
       .catch((err) => {
-        setEntryFiles({});
-        setEntrySubmitError(err instanceof Error ? err.message : 'Please choose a square image under 5MB and at least 512×512.');
+        if (entryFileValidationRequestRef.current !== requestId) {
+          return;
+        }
+        setEntryFileValidationPending(false);
+        setEntryFileInvalid(true);
+        const message = err instanceof Error ? err.message : 'Please choose a square image under 5MB and at least 512×512';
+        setEntrySubmitError(message);
       });
   };
 
@@ -817,7 +855,7 @@ export function useVotingApp() {
         case 'open-submissions':
           return {
             title: 'Open submissions?',
-            body: 'Submissions will open immediately and members can start sending entries.',
+            body: 'Submissions will open immediately and members can start sending entries',
             confirmLabel: 'Open submissions'
           };
         case 'start-review':
@@ -905,7 +943,7 @@ export function useVotingApp() {
     const wasClosed = poll?.id === pollId && (poll.status === 3 || poll.status === 4);
     const confirmed = await requestConfirm({
       title: 'Delete poll?',
-      body: 'Delete this poll and its assets? This cannot be undone.',
+      body: 'Delete this poll and its assets? This cannot be undone',
       confirmLabel: 'Delete poll',
       tone: 'danger'
     });
@@ -1105,6 +1143,7 @@ export function useVotingApp() {
     setCreateForm,
     creating,
     createError,
+    createSuccessCount,
     createPoll,
     // entries
     entries,
@@ -1114,6 +1153,9 @@ export function useVotingApp() {
     setEntryForm,
     entryFiles,
     setEntryFiles,
+    entryFileValidationPending,
+    entryFileInvalid,
+    entrySubmitSuccessCount,
     entrySubmitError,
     entrySubmitting,
     submitEntry,

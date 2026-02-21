@@ -26,6 +26,9 @@ public sealed class PollEntry
 
   public bool IsDisqualified { get; set; }
   public string? DisqualificationReason { get; set; }
+  public Guid? DisqualifiedByMemberId { get; set; }
+  public CommunityMember? DisqualifiedByMember { get; set; }
+  public DateTimeOffset? DisqualifiedAt { get; set; }
 
   public ICollection<VoteChoice> VoteChoices { get; set; } = [];
 }

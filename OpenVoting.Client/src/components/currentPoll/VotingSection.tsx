@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { ImageLightbox, type ImageLightboxData } from '../ImageLightbox';
 import type { AssetUploadResponse, PollEntryResponse, PollResponse, VoteResponse } from '../../types';
 
 export type VotingSectionProps = {
@@ -10,6 +12,7 @@ export type VotingSectionProps = {
   isRankedMethod: boolean;
   entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => string;
   onToggleSelection: (entryId: string, selected: boolean) => void;
+  onDisqualifiedSelectAttempt: (entry: PollEntryResponse) => void;
   onProceedToRanking: () => void;
   onSubmitVote: () => void;
   onClearSelection: () => void;
@@ -18,11 +21,11 @@ export type VotingSectionProps = {
 function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
   const hasCustomTitle = (entry.displayName || '').trim().length > 0;
   if (poll.titleRequirement === 0) {
-    if (poll.isAdmin && entry.submittedByDisplayName) return `From ${entry.submittedByDisplayName}`;
+    if (poll.isAdmin && entry.submittedByDisplayName) return 'Entry';
     return '';
   }
   if (hasCustomTitle) return entry.displayName;
-  return entry.submittedByDisplayName ? `By ${entry.submittedByDisplayName}` : 'Untitled entry';
+  return 'Untitled entry';
 }
 
 export function VotingSection(props: VotingSectionProps) {
@@ -36,54 +39,92 @@ export function VotingSection(props: VotingSectionProps) {
     isRankedMethod,
     entryAssetId,
     onToggleSelection,
+    onDisqualifiedSelectAttempt,
     onProceedToRanking,
     onSubmitVote,
     onClearSelection
   } = props;
+  const [lightboxImage, setLightboxImage] = useState<ImageLightboxData | null>(null);
 
   return (
     <section className="card">
       <div className="section-head">
-        <h3>{isRankedMethod ? 'Vote — Step 1: select entries' : 'Vote'}</h3>
+        <h3>{isRankedMethod ? 'Vote: Step 1' : 'Vote'}</h3>
         <p className="muted">
           {isRankedMethod
-            ? `Select up to ${poll.maxSelections} entries you want to see win. You’ll rank them next; unranked entries won’t count.`
-            : `Select up to ${poll.maxSelections} entries.`}
+            ? `Select up to ${poll.maxSelections} entries you want to see win. You’ll rank them next; unranked entries won’t count`
+            : `Select up to ${poll.maxSelections} entries`}
         </p>
       </div>
       <div className="vote-grid">
         {entries.map((e) => {
+          const showByline = !!e.submittedByDisplayName && (poll.titleRequirement !== 0 || poll.isAdmin);
           const current = voteState[e.id] ?? { selected: false, rank: '' };
           const assetId = entryAssetId(e);
           const asset = assetCache[assetId];
+          const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
+          const previewUrl = asset?.url;
+          const fullImageUrl = previewUrl ? (originalUrl ?? previewUrl) : null;
           const isSelected = current.selected;
+          const isUnavailable = e.isDisqualified;
+          const tryToggle = (selected: boolean) => {
+            if (!isSelected && selected && isUnavailable) {
+              onDisqualifiedSelectAttempt(e);
+              return;
+            }
+            onToggleSelection(e.id, selected);
+          };
           return (
             <div
               key={e.id}
-              className={`entry-card vote-card ${isSelected ? 'selected' : ''}`}
+              className={`entry-card vote-card ${isSelected ? 'selected' : ''} ${isUnavailable ? 'unavailable' : ''}`}
               role="button"
               tabIndex={0}
-              onClick={() => onToggleSelection(e.id, !isSelected)}
+              onClick={() => tryToggle(!isSelected)}
               onKeyDown={(ev) => {
                 if (ev.key === ' ' || ev.key === 'Enter') {
                   ev.preventDefault();
-                  onToggleSelection(e.id, !isSelected);
+                  tryToggle(!isSelected);
                 }
               }}
             >
               <div className="vote-head">
-                <label className="check-row">
+                <label className="check-row" onClick={(ev) => {
+                  if (!isUnavailable) {
+                    ev.stopPropagation();
+                  }
+                }}>
                   <input
                     type="checkbox"
                     checked={isSelected}
+                    disabled={isUnavailable}
+                    aria-disabled={isUnavailable}
+                    title={isUnavailable ? 'Unavailable' : undefined}
                     onClick={(ev) => ev.stopPropagation()}
-                    onChange={(ev) => onToggleSelection(e.id, ev.target.checked)}
+                    onChange={(ev) => tryToggle(ev.target.checked)}
                   />
                   <span className="entry-title">{entryTitle(poll, e)}</span>
                 </label>
-                {e.submittedByDisplayName && poll.titleRequirement !== 0 && <span className="muted">By {e.submittedByDisplayName}</span>}
+                {showByline && (
+                  <span className="byline">
+                    <span className="byline-label">By:</span>
+                    <span className="byline-name">{e.submittedByDisplayName}</span>
+                  </span>
+                )}
               </div>
-              {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
+              {previewUrl && (
+                <button
+                  type="button"
+                  className="entry-img-button"
+                  title="View full image"
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    setLightboxImage({ imageUrl: fullImageUrl ?? previewUrl, originalUrl, alt: e.displayName });
+                  }}
+                >
+                  <img src={previewUrl} alt={e.displayName} className="entry-img" />
+                </button>
+              )}
               {e.description && <p className="muted">{e.description}</p>}
               {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
             </div>
@@ -106,6 +147,14 @@ export function VotingSection(props: VotingSectionProps) {
       </div>
       {voteInfo && (
         <p className="muted">Last submitted: {voteInfo.submittedAt ? new Date(voteInfo.submittedAt).toLocaleString() : 'Pending'}</p>
+      )}
+      {lightboxImage && (
+        <ImageLightbox
+          imageUrl={lightboxImage.imageUrl}
+          originalUrl={lightboxImage.originalUrl}
+          alt={lightboxImage.alt}
+          onClose={() => setLightboxImage(null)}
+        />
       )}
     </section>
   );

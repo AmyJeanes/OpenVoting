@@ -12,6 +12,161 @@ namespace OpenVoting.Server.Tests;
 public class PollEntryServiceTests
 {
 	[Test]
+	public async Task Disqualify_WhenReasonMissing_ReturnsBadRequest()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var adminId = Guid.NewGuid();
+		var submitterId = Guid.NewGuid();
+		var pollId = Guid.NewGuid();
+		var entryId = Guid.NewGuid();
+
+		db.CommunityMembers.AddRange(
+			new CommunityMember
+			{
+				Id = adminId,
+				CommunityId = communityId,
+				Platform = Platform.Discord,
+				ExternalUserId = "admin",
+				DisplayName = "Admin",
+				JoinedAt = DateTimeOffset.UtcNow.AddMonths(-2)
+			},
+			new CommunityMember
+			{
+				Id = submitterId,
+				CommunityId = communityId,
+				Platform = Platform.Discord,
+				ExternalUserId = "user",
+				DisplayName = "Submitter",
+				JoinedAt = DateTimeOffset.UtcNow.AddMonths(-2)
+			});
+
+		db.Polls.Add(new Poll
+		{
+			Id = pollId,
+			CommunityId = communityId,
+			Status = PollStatus.Review,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddDays(-2),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(-1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddHours(1),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddHours(2)
+		});
+
+		db.PollEntries.Add(new PollEntry
+		{
+			Id = entryId,
+			PollId = pollId,
+			SubmittedByMemberId = submitterId,
+			DisplayName = "Entry",
+			CreatedAt = DateTimeOffset.UtcNow
+		});
+
+		await db.SaveChangesAsync();
+
+		var service = new PollEntryService(db, NullLogger<PollEntryService>.Instance, new FakeAssetStorage());
+		var result = await service.DisqualifyAsync(
+			TestAuthHelper.CreatePrincipal(adminId, communityId, isAdmin: true),
+			pollId,
+			entryId,
+			new DisqualifyEntryRequest { Reason = "   " },
+			CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollEntryOutcome.BadRequest));
+		Assert.That(result.Message, Is.EqualTo("Disqualification reason is required"));
+	}
+
+	[Test]
+	public async Task Disqualify_WithReason_SetsMetadata_AndRequalify_ClearsIt()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var communityId = Guid.NewGuid();
+		var adminId = Guid.NewGuid();
+		var submitterId = Guid.NewGuid();
+		var pollId = Guid.NewGuid();
+		var entryId = Guid.NewGuid();
+
+		db.CommunityMembers.AddRange(
+			new CommunityMember
+			{
+				Id = adminId,
+				CommunityId = communityId,
+				Platform = Platform.Discord,
+				ExternalUserId = "admin",
+				DisplayName = "Admin",
+				JoinedAt = DateTimeOffset.UtcNow.AddMonths(-2)
+			},
+			new CommunityMember
+			{
+				Id = submitterId,
+				CommunityId = communityId,
+				Platform = Platform.Discord,
+				ExternalUserId = "user",
+				DisplayName = "Submitter",
+				JoinedAt = DateTimeOffset.UtcNow.AddMonths(-2)
+			});
+
+		db.Polls.Add(new Poll
+		{
+			Id = pollId,
+			CommunityId = communityId,
+			Status = PollStatus.Review,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddDays(-2),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(-1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddHours(1),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddHours(2)
+		});
+
+		db.PollEntries.Add(new PollEntry
+		{
+			Id = entryId,
+			PollId = pollId,
+			SubmittedByMemberId = submitterId,
+			DisplayName = "Entry",
+			CreatedAt = DateTimeOffset.UtcNow
+		});
+
+		await db.SaveChangesAsync();
+
+		var service = new PollEntryService(db, NullLogger<PollEntryService>.Instance, new FakeAssetStorage());
+		var disqualifyResult = await service.DisqualifyAsync(
+			TestAuthHelper.CreatePrincipal(adminId, communityId, isAdmin: true),
+			pollId,
+			entryId,
+			new DisqualifyEntryRequest { Reason = "Duplicate submission" },
+			CancellationToken.None);
+
+		Assert.That(disqualifyResult.Outcome, Is.EqualTo(PollEntryOutcome.Ok));
+		Assert.That(disqualifyResult.Response, Is.Not.Null);
+		Assert.That(disqualifyResult.Response!.DisqualificationReason, Is.EqualTo("Duplicate submission"));
+		Assert.That(disqualifyResult.Response!.DisqualifiedAt, Is.Not.Null);
+
+		var entry = await db.PollEntries.FirstAsync(e => e.Id == entryId);
+		Assert.Multiple(() =>
+		{
+			Assert.That(entry.IsDisqualified, Is.True);
+			Assert.That(entry.DisqualificationReason, Is.EqualTo("Duplicate submission"));
+			Assert.That(entry.DisqualifiedByMemberId, Is.EqualTo(adminId));
+			Assert.That(entry.DisqualifiedAt, Is.Not.Null);
+		});
+
+		var requalifyResult = await service.RequalifyAsync(
+			TestAuthHelper.CreatePrincipal(adminId, communityId, isAdmin: true),
+			pollId,
+			entryId,
+			CancellationToken.None);
+
+		Assert.That(requalifyResult.Outcome, Is.EqualTo(PollEntryOutcome.Ok));
+		entry = await db.PollEntries.FirstAsync(e => e.Id == entryId);
+		Assert.Multiple(() =>
+		{
+			Assert.That(entry.IsDisqualified, Is.False);
+			Assert.That(entry.DisqualificationReason, Is.Null);
+			Assert.That(entry.DisqualifiedByMemberId, Is.Null);
+			Assert.That(entry.DisqualifiedAt, Is.Null);
+		});
+	}
+
+	[Test]
 	public async Task Submit_WhenImageRequiredAndMissing_ReturnsBadRequest()
 	{
 		await using var db = TestDbContextFactory.CreateContext();

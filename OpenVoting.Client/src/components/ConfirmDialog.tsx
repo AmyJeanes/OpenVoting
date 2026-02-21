@@ -7,6 +7,7 @@ export type ConfirmDialogConfig = {
   note?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmDisabled?: boolean;
   tone?: 'default' | 'danger';
 };
 
@@ -40,7 +41,7 @@ export function ConfirmDialog({ config, onConfirm, onCancel }: ConfirmDialogProp
         {config.note && <p className="muted">{config.note}</p>}
         <div className="modal-actions">
           <button className="ghost" onClick={onCancel}>{config.cancelLabel ?? 'Cancel'}</button>
-          <button className={config.tone === 'danger' ? 'primary danger' : 'primary'} onClick={onConfirm}>
+          <button className={config.tone === 'danger' ? 'primary danger' : 'primary'} onClick={onConfirm} disabled={config.confirmDisabled}>
             {config.confirmLabel ?? 'Continue'}
           </button>
         </div>

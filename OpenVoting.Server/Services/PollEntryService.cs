@@ -58,6 +58,7 @@ public sealed class PollEntryService : IPollEntryService
 			.Where(e => e.PollId == pollId)
 			.OrderBy(e => e.CreatedAt)
 			.Include(e => e.SubmittedByMember)
+			.Include(e => e.DisqualifiedByMember)
 			.ToListAsync(cancellationToken);
 
 		var entries = dbEntries.Select(e => new PollEntryResponse
@@ -70,6 +71,8 @@ public sealed class PollEntryService : IPollEntryService
 			PublicAssetId = CanExposeFullAssets(poll, authUser, e.SubmittedByMemberId) ? e.PublicAssetId : null,
 			IsDisqualified = e.IsDisqualified,
 			DisqualificationReason = e.DisqualificationReason,
+			DisqualifiedByDisplayName = authUser.IsAdmin ? e.DisqualifiedByMember?.DisplayName : null,
+			DisqualifiedAt = authUser.IsAdmin ? e.DisqualifiedAt : null,
 			CreatedAt = e.CreatedAt,
 			SubmittedByDisplayName = authUser.IsAdmin || poll.Status == PollStatus.Closed || e.SubmittedByMemberId == member.Id
 				? e.SubmittedByMember?.DisplayName ?? string.Empty
@@ -184,6 +187,12 @@ public sealed class PollEntryService : IPollEntryService
 			return PollEntryResult<PollEntryResponse>.Forbidden("Admin only");
 		}
 
+		var trimmedReason = request.Reason?.Trim();
+		if (string.IsNullOrWhiteSpace(trimmedReason))
+		{
+			return PollEntryResult<PollEntryResponse>.BadRequest("Disqualification reason is required");
+		}
+
 		var member = await _db.CommunityMembers.FirstOrDefaultAsync(m => m.Id == authUser.MemberId, cancellationToken);
 		if (member is null)
 		{
@@ -202,7 +211,10 @@ public sealed class PollEntryService : IPollEntryService
 		await PollAutoTransition.ApplyAsync(_db, entry.Poll, _logger, cancellationToken);
 
 		entry.IsDisqualified = true;
-		entry.DisqualificationReason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
+		entry.DisqualificationReason = trimmedReason;
+		entry.DisqualifiedByMemberId = member.Id;
+		entry.DisqualifiedAt = DateTimeOffset.UtcNow;
+		entry.DisqualifiedByMember = member;
 		await _db.SaveChangesAsync(cancellationToken);
 
 		return PollEntryResult<PollEntryResponse>.Ok(ToResponse(entry));
@@ -240,6 +252,9 @@ public sealed class PollEntryService : IPollEntryService
 
 		entry.IsDisqualified = false;
 		entry.DisqualificationReason = null;
+		entry.DisqualifiedByMemberId = null;
+		entry.DisqualifiedByMember = null;
+		entry.DisqualifiedAt = null;
 		await _db.SaveChangesAsync(cancellationToken);
 
 		return PollEntryResult<PollEntryResponse>.Ok(ToResponse(entry));
@@ -339,7 +354,7 @@ public sealed class PollEntryService : IPollEntryService
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Failed to create derived assets for entry in poll {PollId}", poll.Id);
-				return PollEntryResult<PollEntryResponse>.BadRequest("Unable to process image. Please try again.");
+				return PollEntryResult<PollEntryResponse>.BadRequest("Unable to process image. Please try again");
 			}
 
 			ArgumentNullException.ThrowIfNull(publicAsset);
@@ -369,7 +384,9 @@ public sealed class PollEntryService : IPollEntryService
 			TeaserAssetId = teaserAsset?.Id,
 			PublicAssetId = publicAsset?.Id,
 			CreatedAt = now,
-			IsDisqualified = false
+			IsDisqualified = false,
+			DisqualifiedByMemberId = null,
+			DisqualifiedAt = null
 		};
 
 		if (hasImage)
@@ -522,6 +539,8 @@ public sealed class PollEntryService : IPollEntryService
 			PublicAssetId = entry.PublicAssetId,
 			IsDisqualified = entry.IsDisqualified,
 			DisqualificationReason = entry.DisqualificationReason,
+			DisqualifiedByDisplayName = entry.DisqualifiedByMember?.DisplayName,
+			DisqualifiedAt = entry.DisqualifiedAt,
 			CreatedAt = entry.CreatedAt,
 			SubmittedByDisplayName = entry.SubmittedByMember?.DisplayName ?? string.Empty,
 			IsOwn = false

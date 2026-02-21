@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { MouseEvent } from 'react';
 import type { FieldRequirement, PollResponse } from '../../types';
 import { votingMethodLabel } from '../../utils/format';
 import { VotingMethodInfo } from '../VotingMethodInfo';
@@ -18,6 +19,7 @@ export type AdminPanelProps = {
   votingForm: { maxSelections: number; votingClosesAt: string };
   requirementOptions: Array<{ value: FieldRequirement; label: string }>;
   settingsSaving: boolean;
+  saveSuccessCount?: number;
   onMetaChange: (form: AdminPanelProps['metaForm']) => void;
   onSubmissionChange: (form: AdminPanelProps['submissionForm']) => void;
   onVotingChange: (form: AdminPanelProps['votingForm']) => void;
@@ -36,6 +38,7 @@ export function AdminPanel(props: AdminPanelProps) {
     votingForm,
     requirementOptions,
     settingsSaving,
+    saveSuccessCount = 0,
     onMetaChange,
     onSubmissionChange,
     onVotingChange,
@@ -45,8 +48,30 @@ export function AdminPanel(props: AdminPanelProps) {
   } = props;
 
   const [expanded, setExpanded] = useState(false);
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  useEffect(() => {
+    setTitleTouched(false);
+    setSubmitAttempted(false);
+  }, [saveSuccessCount]);
+
+  const titleMissing = metaForm.title.trim().length === 0;
+  const showTitleInvalid = titleMissing && (titleTouched || submitAttempted);
+  const noSubmissionFieldsEnabled = metaForm.titleRequirement === 0 && metaForm.descriptionRequirement === 0 && metaForm.imageRequirement === 0;
+  const showSubmissionFieldsInvalid = noSubmissionFieldsEnabled && submitAttempted;
+  const hasValidationErrors = showTitleInvalid || showSubmissionFieldsInvalid;
 
   const handleToggle = () => setExpanded((v) => !v);
+
+  const handleSave = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setSubmitAttempted(true);
+    if (titleMissing || noSubmissionFieldsEnabled) {
+      return;
+    }
+    onSave();
+  };
 
   return (
     <section className={`card admin-card${expanded ? '' : ' collapsed'}`}>
@@ -88,7 +113,14 @@ export function AdminPanel(props: AdminPanelProps) {
               <p className="eyebrow">Basics</p>
               <div className="form-grid">
                 <label>Title
-                  <input value={metaForm.title} onChange={(e) => onMetaChange({ ...metaForm, title: e.target.value })} />
+                  <input
+                    value={metaForm.title}
+                    className={showTitleInvalid ? 'input-invalid' : undefined}
+                    aria-invalid={showTitleInvalid}
+                    onBlur={() => setTitleTouched(true)}
+                    onChange={(e) => onMetaChange({ ...metaForm, title: e.target.value })}
+                  />
+                  <span className={showTitleInvalid ? 'field-error' : 'field-hint'}>Required</span>
                 </label>
                 <label>Title field
                   <select value={metaForm.titleRequirement} onChange={(e) => onMetaChange({ ...metaForm, titleRequirement: Number(e.target.value) as FieldRequirement })}>
@@ -98,14 +130,24 @@ export function AdminPanel(props: AdminPanelProps) {
                   </select>
                 </label>
                 <label>Description field
-                  <select value={metaForm.descriptionRequirement} onChange={(e) => onMetaChange({ ...metaForm, descriptionRequirement: Number(e.target.value) as FieldRequirement })}>
+                  <select
+                    className={showSubmissionFieldsInvalid ? 'input-invalid' : undefined}
+                    aria-invalid={showSubmissionFieldsInvalid}
+                    value={metaForm.descriptionRequirement}
+                    onChange={(e) => onMetaChange({ ...metaForm, descriptionRequirement: Number(e.target.value) as FieldRequirement })}
+                  >
                     {requirementOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
                 </label>
                 <label>Image field
-                  <select value={metaForm.imageRequirement} onChange={(e) => onMetaChange({ ...metaForm, imageRequirement: Number(e.target.value) as FieldRequirement })}>
+                  <select
+                    className={showSubmissionFieldsInvalid ? 'input-invalid' : undefined}
+                    aria-invalid={showSubmissionFieldsInvalid}
+                    value={metaForm.imageRequirement}
+                    onChange={(e) => onMetaChange({ ...metaForm, imageRequirement: Number(e.target.value) as FieldRequirement })}
+                  >
                     {requirementOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
@@ -113,7 +155,11 @@ export function AdminPanel(props: AdminPanelProps) {
                 </label>
                 <label className="full-row">Description
                   <textarea rows={3} value={metaForm.description} onChange={(e) => onMetaChange({ ...metaForm, description: e.target.value })} />
+                  <span className="field-hint">Optional</span>
                 </label>
+                <div className="full-row">
+                  <span className={showSubmissionFieldsInvalid ? 'field-error' : 'field-hint'}>At least one submission field (title, description, or image) must be enabled</span>
+                </div>
               </div>
             </div>
 
@@ -137,7 +183,7 @@ export function AdminPanel(props: AdminPanelProps) {
                     />
                   </label>
                 </div>
-                <p className="muted">Leave blank to close manually.</p>
+                <p className="muted">Leave blank to close manually</p>
               </div>
             )}
 
@@ -165,12 +211,16 @@ export function AdminPanel(props: AdminPanelProps) {
                     />
                   </label>
                 </div>
-                <p className="muted">Leave blank to close manually.</p>
+                <p className="muted">Leave blank to close manually</p>
               </div>
             )}
 
+            {submitAttempted && hasValidationErrors && (
+              <div className="banner error form-validation-banner">Please correct the validation errors</div>
+            )}
+
             <div className="actions form-actions spacious">
-              <button className="ghost" onClick={(e) => { e.stopPropagation(); onSave(); }} disabled={settingsSaving}>
+              <button className="ghost" onClick={handleSave} disabled={settingsSaving}>
                 {settingsSaving ? 'Saving…' : 'Save poll settings'}
               </button>
             </div>

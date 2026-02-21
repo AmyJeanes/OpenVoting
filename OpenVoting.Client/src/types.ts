@@ -62,6 +62,8 @@ export type PollDetailEntryResponse = {
   publicAssetId?: string;
   isDisqualified: boolean;
   disqualificationReason?: string;
+  disqualifiedByDisplayName?: string;
+  disqualifiedAt?: string;
   createdAt: string;
   approvalVotes: number;
   rankCounts: PollDetailRankCount[];
@@ -115,6 +117,8 @@ export type PollEntryResponse = {
   publicAssetId?: string;
   isDisqualified: boolean;
   disqualificationReason?: string;
+  disqualifiedByDisplayName?: string;
+  disqualifiedAt?: string;
   createdAt: string;
   submittedByDisplayName: string;
   isOwn: boolean;

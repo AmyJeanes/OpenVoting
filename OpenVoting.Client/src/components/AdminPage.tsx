@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthPrompt } from './AuthPrompt';
-import { useToast } from './ToastProvider';
 import type { Dispatch, SetStateAction } from 'react';
 import type { CreatePollForm, SessionState } from '../types';
 
@@ -11,26 +10,44 @@ export type AdminPageProps = {
   setCreateForm: Dispatch<SetStateAction<CreatePollForm>>;
   creating: boolean;
   createError: string | null;
+  createSuccessCount?: number;
   onCreatePoll: () => void;
   onLogin: () => void;
   loginCta: string;
   loginDisabled: boolean;
 };
 
-export function AdminPage({ sessionState, me, createForm, setCreateForm, creating, createError, onCreatePoll, onLogin, loginCta, loginDisabled }: AdminPageProps) {
+export function AdminPage({ sessionState, me, createForm, setCreateForm, creating, createError, createSuccessCount = 0, onCreatePoll, onLogin, loginCta, loginDisabled }: AdminPageProps) {
   if (sessionState !== 'authenticated') {
     return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
   }
 
   if (!me?.isAdmin) {
-    return <section className="card"><p>You need admin access to manage polls.</p></section>;
+    return <section className="card"><p>You need admin access to manage polls</p></section>;
   }
 
-  const { showToast } = useToast();
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [descriptionTouched, setDescriptionTouched] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  const titleMissing = createForm.title.trim().length === 0;
+  const showTitleInvalid = titleMissing && (titleTouched || submitAttempted);
+  const showDescriptionInvalid = false && descriptionTouched;
+  const hasValidationErrors = showTitleInvalid;
+
+  const handleCreate = () => {
+    setSubmitAttempted(true);
+    if (titleMissing) {
+      return;
+    }
+    onCreatePoll();
+  };
 
   useEffect(() => {
-    if (createError) showToast(createError, { tone: 'error' });
-  }, [createError, showToast]);
+    setTitleTouched(false);
+    setDescriptionTouched(false);
+    setSubmitAttempted(false);
+  }, [createSuccessCount]);
 
   return (
     <div className="stack">
@@ -43,14 +60,33 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
         </div>
         <div className="form-grid">
           <label>Title
-            <input value={createForm.title} onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })} />
+            <input
+              value={createForm.title}
+              className={showTitleInvalid ? 'input-invalid' : undefined}
+              aria-invalid={showTitleInvalid}
+              onBlur={() => setTitleTouched(true)}
+              onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
+            />
+            <span className={showTitleInvalid ? 'field-error' : 'field-hint'}>Required</span>
           </label>
           <label className="full-row">Description
-            <textarea rows={3} value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} />
+            <textarea
+              rows={3}
+              value={createForm.description}
+              className={showDescriptionInvalid ? 'input-invalid' : undefined}
+              aria-invalid={showDescriptionInvalid}
+              onBlur={() => setDescriptionTouched(true)}
+              onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+            />
+            <span className="field-hint">Optional</span>
           </label>
         </div>
+        {submitAttempted && hasValidationErrors && (
+          <div className="banner error form-validation-banner">Please correct the validation errors</div>
+        )}
+        {createError && <div className="banner error form-validation-banner">{createError}</div>}
         <div className="actions form-actions spacious">
-          <button className="primary" onClick={onCreatePoll} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
+          <button className="primary" onClick={handleCreate} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
         </div>
       </section>
     </div>

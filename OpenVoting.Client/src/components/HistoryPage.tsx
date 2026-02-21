@@ -45,7 +45,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
         </div>
         <button className="ghost" onClick={onRefresh}>Refresh</button>
       </div>
-      {history.length === 0 && !historyError && <p className="muted">No closed polls yet.</p>}
+      {history.length === 0 && !historyError && <p className="muted">No closed polls yet</p>}
       {history.length > 0 && (
         <ul className="entries poll-list">
           {history.map((p) => (
@@ -97,7 +97,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                       </div>
                     </div>
 
-                    {p.winners.length === 0 && <p className="muted">No votes recorded.</p>}
+                    {p.winners.length === 0 && <p className="muted">No votes recorded</p>}
 
                     {p.winners.length > 0 && (
                       <>

@@ -12,11 +12,9 @@ export type MySubmissionsSectionProps = {
 
 function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
   const hasCustomTitle = (entry.displayName || '').trim().length > 0;
-  if (poll.titleRequirement === 0) {
-    return entry.submittedByDisplayName ? `From ${entry.submittedByDisplayName}` : 'From participant';
-  }
+  if (poll.titleRequirement === 0) return 'Entry';
   if (hasCustomTitle) return entry.displayName;
-  return entry.submittedByDisplayName ? `By ${entry.submittedByDisplayName}` : 'Untitled entry';
+  return 'Untitled entry';
 }
 
 export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, onAskDelete }: MySubmissionsSectionProps) {
@@ -40,6 +38,12 @@ export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, 
               <div className="entry-head">
                 <div>
                   <p className="entry-title">{titleText}</p>
+                  {e.submittedByDisplayName && (
+                    <p className="byline">
+                      <span className="byline-label">By:</span>
+                      <span className="byline-name">{e.submittedByDisplayName}</span>
+                    </p>
+                  )}
                   {e.description && <p className="muted">{e.description}</p>}
                 </div>
               </div>

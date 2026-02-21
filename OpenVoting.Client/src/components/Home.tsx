@@ -13,9 +13,9 @@ export function Home({ sessionState, config, onLogin }: HomeProps) {
     <section className="card hero">
       <div>
         <p className="eyebrow">Live voting</p>
-        <h2>Run shareable polls without the chaos.</h2>
-        <p className="lede">Authenticate with Discord, share direct links for live competitions, and keep admin tools separate from the voting surface.</p>
-        <p className="muted">Access is limited to members of the Discord server. Join the server, then sign in with Discord to participate.</p>
+        <h2>Run shareable polls without the chaos</h2>
+        <p className="lede">Authenticate with Discord, share direct links for live competitions, and keep admin tools separate from the voting surface</p>
+        <p className="muted">Access is limited to members of the Discord server. Join the server, then sign in with Discord to participate</p>
         <div className="actions">
           {loggedOut ? (
             <button className="primary" disabled={!config?.discordAuthorizeUrl} onClick={onLogin}>
@@ -29,8 +29,8 @@ export function Home({ sessionState, config, onLogin }: HomeProps) {
       </div>
       <div className="hero-card">
         <p className="pill">Secure by default</p>
-        <p>Accounts are checked automatically on load. Invalid sessions are logged out to keep results clean.</p>
-        <p className="muted">Bring your community, we handle the flows.</p>
+        <p>Accounts are checked automatically on load. Invalid sessions are logged out to keep results clean</p>
+        <p className="muted">Bring your community, we handle the flows</p>
       </div>
     </section>
   );

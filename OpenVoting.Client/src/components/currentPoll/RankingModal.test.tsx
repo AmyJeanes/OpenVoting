@@ -95,4 +95,40 @@ describe('RankingModal', () => {
     await userEvent.click(enabledButton);
     expect(onSubmitRanks).toHaveBeenCalledTimes(1);
   });
+
+  it('shows fallback title text when entry display name is empty', () => {
+    const noTitleEntry = createEntryResponse({
+      id: 'entry-blank',
+      displayName: '',
+      submittedByDisplayName: 'Alice'
+    });
+
+    render(
+      <RankingModal
+        open
+        poll={createPollResponse({ requireRanking: true, titleRequirement: 0 })}
+        rankedEntries={[noTitleEntry]}
+        draggingId={null}
+        dragOverId={null}
+        dragOverAfter={false}
+        hasRankChanges
+        voteSubmitting={false}
+        hasExistingVote={false}
+        assetCache={{}}
+        entryAssetId={() => ''}
+        onBackToSelection={vi.fn()}
+        onSubmitRanks={vi.fn()}
+        onMoveRank={vi.fn()}
+        onDragStart={vi.fn()}
+        onDragOverItem={vi.fn()}
+        onDropOnItem={vi.fn()}
+        onDragEnd={vi.fn()}
+        setItemRef={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('#1')).toBeInTheDocument();
+    expect(screen.getByText('By:')).toBeInTheDocument();
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+  });
 });

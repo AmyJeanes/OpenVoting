@@ -1,5 +1,13 @@
+import { useState } from 'react';
 import type React from 'react';
+import { ImageLightbox, type ImageLightboxData } from '../ImageLightbox';
 import type { AssetUploadResponse, PollEntryResponse, PollResponse } from '../../types';
+
+function rankingEntryTitle(poll: PollResponse, entry: PollEntryResponse) {
+  const hasCustomTitle = (entry.displayName || '').trim().length > 0;
+  if (hasCustomTitle) return entry.displayName;
+  return poll.titleRequirement === 0 ? 'Entry' : 'Untitled entry';
+}
 
 export type RankingModalProps = {
   open: boolean;
@@ -45,69 +53,97 @@ export function RankingModal(props: RankingModalProps) {
     onDragEnd,
     setItemRef
   } = props;
+  const [lightboxImage, setLightboxImage] = useState<ImageLightboxData | null>(null);
 
   if (!open) return null;
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && onBackToSelection()}>
       <div className="modal-card wide">
-        <p className="eyebrow">Vote — Step 2</p>
-        <h3>Order your selections</h3>
-        <p className="muted">
-          Drag to reorder. Your #1 is your first choice; if it drops out, your vote moves to your next ranked pick.
-        </p>
-        {rankedEntries.length === 0 && <p className="muted">No selections yet.</p>}
+        <div className="ranking-modal-head">
+          <p className="eyebrow">Vote: Step 2</p>
+          <h3>Order your selections</h3>
+          <p className="muted">
+            Drag to reorder. Your #1 is your first choice; if it drops out, your vote moves to your next ranked pick
+          </p>
+        </div>
+        {rankedEntries.length === 0 && <p className="muted">No selections yet</p>}
         {rankedEntries.length > 0 && (
           <ul className="rank-list">
-            {rankedEntries.map((e, idx) => (
-              <li
-                key={e.id}
-                className={`rank-item${draggingId === e.id ? ' dragging' : ''}${dragOverId === e.id ? ' drop-target' : ''}${dragOverId === e.id && dragOverAfter ? ' drop-after' : ''}`}
-                ref={(node) => setItemRef(e.id, node)}
-                draggable
-                onDragStart={() => onDragStart(e.id)}
-                onDragOver={(ev) => onDragOverItem(ev, e.id)}
-                onDrop={() => onDropOnItem(e.id)}
-                onDragEnd={onDragEnd}
-              >
-                <div className="rank-controls">
-                  <span className="drag-handle" aria-hidden="true">↕</span>
-                  <div className="rank-actions">
-                    <button
-                      className="ghost"
-                      onClick={() => onMoveRank(e.id, -1)}
-                      aria-label={`Move ${e.displayName} up`}
-                      disabled={idx === 0}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      className="ghost"
-                      onClick={() => onMoveRank(e.id, 1)}
-                      aria-label={`Move ${e.displayName} down`}
-                      disabled={idx === rankedEntries.length - 1}
-                    >
-                      ↓
-                    </button>
+            {rankedEntries.map((e, idx) => {
+              const showByline = !!e.submittedByDisplayName;
+              const titleText = rankingEntryTitle(poll, e);
+              const assetId = entryAssetId(e);
+              const asset = assetId ? assetCache[assetId] : undefined;
+              const originalUrl = e.originalAssetId ? assetCache[e.originalAssetId]?.url : undefined;
+              const previewUrl = asset?.url;
+              const fullImageUrl = previewUrl ? (originalUrl ?? previewUrl) : null;
+
+              return (
+                <li
+                  key={e.id}
+                  className={`rank-item${draggingId === e.id ? ' dragging' : ''}${dragOverId === e.id ? ' drop-target' : ''}${dragOverId === e.id && dragOverAfter ? ' drop-after' : ''}`}
+                  ref={(node) => setItemRef(e.id, node)}
+                  draggable
+                  onDragStart={() => onDragStart(e.id)}
+                  onDragOver={(ev) => onDragOverItem(ev, e.id)}
+                  onDrop={() => onDropOnItem(e.id)}
+                  onDragEnd={onDragEnd}
+                >
+                  <div className="rank-controls">
+                    <span className="rank-number">#{idx + 1}</span>
+                    <div className="rank-actions">
+                      <button
+                        className="ghost"
+                        onClick={() => onMoveRank(e.id, -1)}
+                        aria-label={`Move ${titleText} up`}
+                        disabled={idx === 0}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        className="ghost"
+                        onClick={() => onMoveRank(e.id, 1)}
+                        aria-label={`Move ${titleText} down`}
+                        disabled={idx === rankedEntries.length - 1}
+                      >
+                        ↓
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="rank-body">
-                  <div className="rank-title">#{idx + 1} · {e.displayName}</div>
-                  {e.submittedByDisplayName && <p className="muted">By {e.submittedByDisplayName}</p>}
-                </div>
-                {(() => {
-                  const assetId = entryAssetId(e);
-                  const asset = assetId ? assetCache[assetId] : undefined;
-                  return asset?.url ? (
-                    <img
-                      src={asset.url}
-                      alt={e.displayName}
-                      className="rank-img"
-                    />
-                  ) : null;
-                })()}
-              </li>
-            ))}
+                  <div className="rank-body">
+                    <div className="rank-title">{titleText}</div>
+                    {e.description && <p className="muted rank-description">{e.description}</p>}
+                    {showByline && (
+                      <p className="rank-subtitle byline">
+                        <span className="byline-label">By:</span>
+                        <span className="byline-name">{e.submittedByDisplayName}</span>
+                      </p>
+                    )}
+                  </div>
+                  {previewUrl && (
+                    <button
+                      type="button"
+                      className="rank-img-button"
+                      title="View full image"
+                      onMouseDown={(ev) => ev.stopPropagation()}
+                      onDragStart={(ev) => ev.preventDefault()}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        setLightboxImage({ imageUrl: fullImageUrl ?? previewUrl, originalUrl, alt: titleText });
+                      }}
+                    >
+                      <img
+                        src={previewUrl}
+                        alt={titleText}
+                        className="rank-img"
+                        draggable={false}
+                      />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
         <div className="modal-actions">
@@ -116,6 +152,14 @@ export function RankingModal(props: RankingModalProps) {
             {voteSubmitting ? 'Submitting…' : hasExistingVote ? 'Update vote' : 'Submit vote'}
           </button>
         </div>
+        {lightboxImage && (
+          <ImageLightbox
+            imageUrl={lightboxImage.imageUrl}
+            originalUrl={lightboxImage.originalUrl}
+            alt={lightboxImage.alt}
+            onClose={() => setLightboxImage(null)}
+          />
+        )}
       </div>
     </div>
   );

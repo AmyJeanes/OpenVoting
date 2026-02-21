@@ -27,7 +27,7 @@ describe('Topbar', () => {
     expect(screen.getAllByText('Admin').length).toBeGreaterThan(0);
 
     await userEvent.click(screen.getByText('Logout'));
-    expect(onLogout).toHaveBeenCalledWith('Signed out.');
+    expect(onLogout).toHaveBeenCalledWith('Signed out');
   });
 
   it('does not render login CTA when anonymous to avoid double sign-in', () => {

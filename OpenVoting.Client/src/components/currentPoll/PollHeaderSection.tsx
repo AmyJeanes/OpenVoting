@@ -25,7 +25,7 @@ export function PollHeaderSection({ poll, onRefreshPoll }: PollHeaderSectionProp
           <button className="ghost" onClick={onRefreshPoll}>Refresh</button>
         </div>
       </div>
-      {!poll && <p className="muted">No data for this poll. It may have closed or been removed.</p>}
+      {!poll && <p className="muted">No data for this poll. It may have closed or been removed</p>}
       {poll && (
         <div className="details-grid">
           <div>
