@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from 'node:url';
-import { defineConfig, type UserConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
@@ -7,7 +7,7 @@ import child_process from 'child_process';
 import { env } from 'process';
 import type { ServerOptions as HttpsServerOptions } from 'node:https';
 
-export default defineConfig(({ command }): UserConfig => {
+export default defineConfig(({ command }) => {
   const isServe = command === 'serve';
   const inContainer = env.DOTNET_RUNNING_IN_CONTAINER === 'true';
 
@@ -76,6 +76,11 @@ export default defineConfig(({ command }): UserConfig => {
       },
       port: parseInt(env.DEV_SERVER_PORT || '54196', 10),
       https,
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: './src/test/setup.ts',
     },
   };
 });
