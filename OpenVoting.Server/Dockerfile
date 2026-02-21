@@ -17,6 +17,8 @@ RUN apt-get -y install nodejs
 
 FROM with-deps AS build
 ARG BUILD_CONFIGURATION=Release
+ENV DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
+    DOTNET_GENERATE_ASPNET_CERTIFICATE=false
 WORKDIR /src
 COPY ["OpenVoting.Server/OpenVoting.Server.csproj", "OpenVoting.Server/"]
 COPY ["OpenVoting.Client/OpenVoting.Client.esproj", "OpenVoting.Client/"]
