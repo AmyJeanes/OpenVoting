@@ -21,8 +21,7 @@ export type VotingSectionProps = {
 function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
   const hasCustomTitle = (entry.displayName || '').trim().length > 0;
   if (poll.titleRequirement === 0) {
-    if (poll.isAdmin && entry.submittedByDisplayName) return 'Entry';
-    return '';
+    return 'Entry';
   }
   if (hasCustomTitle) return entry.displayName;
   return 'Untitled entry';
@@ -58,7 +57,6 @@ export function VotingSection(props: VotingSectionProps) {
       </div>
       <div className="vote-grid">
         {entries.map((e) => {
-          const showByline = !!e.submittedByDisplayName && (poll.titleRequirement !== 0 || poll.isAdmin);
           const current = voteState[e.id] ?? { selected: false, rank: '' };
           const assetId = entryAssetId(e);
           const asset = assetCache[assetId];
@@ -105,12 +103,6 @@ export function VotingSection(props: VotingSectionProps) {
                   />
                   <span className="entry-title">{entryTitle(poll, e)}</span>
                 </label>
-                {showByline && (
-                  <span className="byline">
-                    <span className="byline-label">By:</span>
-                    <span className="byline-name">{e.submittedByDisplayName}</span>
-                  </span>
-                )}
               </div>
               {previewUrl && (
                 <button

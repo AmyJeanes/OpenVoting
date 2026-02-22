@@ -1510,15 +1510,92 @@ textarea {
 
 @media (max-width: 860px) {
     .topbar {
-        grid-template-columns: 1fr;
-        justify-items: flex-start;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "brand user"
+            "nav nav";
+        align-items: center;
+        column-gap: 12px;
+        row-gap: 10px;
+        padding: 12px 14px;
+    }
+
+    .brand {
+        grid-area: brand;
+        min-width: 0;
+    }
+
+    .brand-link,
+    .brand-copy {
+        min-width: 0;
+    }
+
+    .brand-title {
+        font-size: 1.1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-shell {
+        grid-area: user;
+        justify-self: end;
+    }
+
+    .user-block {
+        gap: 8px;
+    }
+
+    .user-meta {
+        min-width: 0;
+    }
+
+    .user-name {
+        max-width: 150px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .nav {
-        justify-content: flex-start;
+        grid-area: nav;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .nav-link {
+        flex: 1;
+        text-align: center;
+        padding: 9px 10px;
     }
 
     .hero {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .topbar {
+        padding: 10px 12px;
+        border-radius: 14px;
+    }
+
+    .brand-link {
+        gap: 10px;
+    }
+
+    .brand-mark {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+    }
+
+    .brand-title {
+        font-size: 1rem;
+    }
+
+    .ghost,
+    button.ghost {
+        padding: 8px 10px;
     }
 }

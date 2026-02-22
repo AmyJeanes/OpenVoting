@@ -128,4 +128,56 @@ describe('VotingSection', () => {
     expect(onToggleSelection).not.toHaveBeenCalled();
     expect(onDisqualifiedSelectAttempt).toHaveBeenCalledWith(expect.objectContaining({ id: 'entry-1' }));
   });
+
+  it('shows a neutral Entry title when poll title field is off', () => {
+    const poll = createPollResponse({ titleRequirement: 0, isAdmin: false });
+    const entry = createEntryResponse({ id: 'entry-1', displayName: 'Hidden Title' });
+
+    render(
+      <VotingSection
+        poll={poll}
+        entries={[entry]}
+        voteState={{}}
+        voteSubmitting={false}
+        voteInfo={null}
+        assetCache={{}}
+        isRankedMethod={false}
+        entryAssetId={() => ''}
+        onToggleSelection={vi.fn()}
+        onDisqualifiedSelectAttempt={vi.fn()}
+        onProceedToRanking={vi.fn()}
+        onSubmitVote={vi.fn()}
+        onClearSelection={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Entry')).toBeInTheDocument();
+    expect(screen.queryByText('Hidden Title')).not.toBeInTheDocument();
+  });
+
+  it('does not show submitter byline in voting view, even for admins', () => {
+    const poll = createPollResponse({ isAdmin: true, titleRequirement: 1 });
+    const entry = createEntryResponse({ id: 'entry-1', displayName: 'Choice A', submittedByDisplayName: 'Alice' });
+
+    render(
+      <VotingSection
+        poll={poll}
+        entries={[entry]}
+        voteState={{}}
+        voteSubmitting={false}
+        voteInfo={null}
+        assetCache={{}}
+        isRankedMethod={false}
+        entryAssetId={() => ''}
+        onToggleSelection={vi.fn()}
+        onDisqualifiedSelectAttempt={vi.fn()}
+        onProceedToRanking={vi.fn()}
+        onSubmitVote={vi.fn()}
+        onClearSelection={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText('By:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Alice')).not.toBeInTheDocument();
+  });
 });
