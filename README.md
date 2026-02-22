@@ -11,4 +11,3 @@ TODO:
 - Show total number of votes cast so far in the poll (but not specifics)
 - Add Discord bot for a command to easy one-time login link without having to sign in via browser Discord (where people are often not logged in)
 - Fill out README with overview, setup instructions, etc.
-- Add proper logo to Discord bot and site favicon
