@@ -42,7 +42,7 @@ describe('useVotingApp', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.endsWith('/api/config')) {
-        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '', redirectUri: '' });
+        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
       return new Response('', { status: 404 });
     });
@@ -62,7 +62,7 @@ describe('useVotingApp', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.endsWith('/api/config')) {
-        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test', redirectUri: 'https://app.test' });
+        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test' });
       }
       if (url.endsWith('/api/auth/me')) {
         return new Response('unauthorized', { status: 401 });
@@ -87,7 +87,7 @@ describe('useVotingApp', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.endsWith('/api/config')) {
-        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '', redirectUri: '' });
+        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
       return new Response('', { status: 404 });
     });
@@ -106,7 +106,7 @@ describe('useVotingApp', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.endsWith('/api/config')) {
-        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '', redirectUri: '' });
+        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
       return new Response('', { status: 404 });
     });
@@ -149,7 +149,7 @@ describe('useVotingApp', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.endsWith('/api/config')) {
-        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '', redirectUri: '' });
+        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
       return new Response('', { status: 404 });
     });

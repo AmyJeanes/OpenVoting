@@ -149,7 +149,6 @@ export type AssetUploadResponse = {
 
 export type ConfigResponse = {
   discordAuthorizeUrl: string;
-  redirectUri: string;
   serverName: string;
   serverIconUrl?: string;
 };

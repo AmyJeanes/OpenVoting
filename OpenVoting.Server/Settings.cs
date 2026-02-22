@@ -11,7 +11,6 @@ public sealed class DiscordSettings
 {
 	public string ClientId { get; init; } = string.Empty;
 	public string ClientSecret { get; init; } = string.Empty;
-	public string RedirectUri { get; init; } = string.Empty;
 	public string GuildId { get; init; } = string.Empty;
 	public string? BotToken { get; init; }
 	public string[] AdminRoleIds { get; init; } = Array.Empty<string>();

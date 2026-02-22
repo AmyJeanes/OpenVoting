@@ -72,7 +72,7 @@ export default defineConfig(({ command }) => {
     },
     server: {
       proxy: {
-        '^/api/': { target, secure: false },
+        '^/api/': { target, secure: false, xfwd: true },
       },
       port: parseInt(env.DEV_SERVER_PORT || '54196', 10),
       https,

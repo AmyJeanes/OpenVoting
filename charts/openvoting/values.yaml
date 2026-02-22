@@ -19,7 +19,6 @@ env:
     clientId: ""
     clientSecret: ""
     botToken: ""
-    redirectUri: ""
     guildId: ""
     adminRoleIds: ""
   jwt:

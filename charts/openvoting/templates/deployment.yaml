@@ -43,8 +43,6 @@ spec:
                 secretKeyRef:
                   name: openvoting-secrets
                   key: "discord-client-secret"
-            - name: Settings__Discord__RedirectUri
-              value: {{ $env.discord.redirectUri | quote }}
             - name: Settings__Discord__GuildId
               value: {{ $env.discord.guildId | quote }}
             - name: Settings__Discord__BotToken

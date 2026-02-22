@@ -7,7 +7,6 @@ env:
     clientId: test-client-id
     clientSecret: test-client-secret
     botToken: test-bot-token
-    redirectUri: "https://example.com/api/auth/discord"
     guildId: test-guild-id
     adminRoleIds: "role1,role2,role3"
   jwt:

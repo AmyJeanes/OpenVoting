@@ -80,7 +80,6 @@ export function createVoteResponse(overrides: Partial<VoteResponse> = {}): VoteR
 export function createConfigResponse(overrides: Partial<ConfigResponse> = {}): ConfigResponse {
   return {
     discordAuthorizeUrl: 'https://discord.example.com/auth',
-    redirectUri: 'https://app.example.com/callback',
     serverName: 'Test Server',
     serverIconUrl: undefined,
     ...overrides

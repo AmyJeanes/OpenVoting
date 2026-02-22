@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OpenVoting.Data;
@@ -66,7 +67,16 @@ builder.Services.AddScoped<IVoteService, VoteService>();
 builder.Services.AddScoped<IPollEntryService, PollEntryService>();
 builder.Services.AddScoped<IPollService, PollService>();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+	options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+	options.KnownIPNetworks.Clear();
+	options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 app.UseDefaultFiles();
 app.MapStaticAssets();

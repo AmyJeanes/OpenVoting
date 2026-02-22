@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -55,7 +56,11 @@ public class AuthController : ControllerBase
 			return BadRequest("Missing authorization code");
 		}
 
-		var authResult = await _discordOAuthService.ExchangeCodeAsync(code, redirectUri ?? _discordSettings.RedirectUri, cancellationToken);
+		var resolvedRedirectUri = string.IsNullOrWhiteSpace(redirectUri)
+			? BuildDiscordRedirectUri()
+			: redirectUri;
+
+		var authResult = await _discordOAuthService.ExchangeCodeAsync(code, resolvedRedirectUri, cancellationToken);
 		if (!authResult.IsGuildMember)
 		{
 			const string reason = "You must be a member of the Discord server to sign in";
@@ -204,6 +209,16 @@ public class AuthController : ControllerBase
 		var reasonEscaped = System.Net.WebUtility.HtmlEncode(reason);
 		var serializedReason = JsonSerializer.Serialize(reason);
 		return $"<html><body><script>try{{{{localStorage.removeItem('ov_token');localStorage.setItem('ov_flash', {serializedReason});}}}}catch(e){{}}window.location='/'</script><p>{reasonEscaped}</p><p><a href='/'>Back to app</a></p></body></html>";
+	}
+
+	private string BuildDiscordRedirectUri()
+	{
+		if (Request.Host == default)
+		{
+			return string.Empty;
+		}
+
+		return UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/api/auth/discord");
 	}
 }
 

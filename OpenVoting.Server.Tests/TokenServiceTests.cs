@@ -32,7 +32,6 @@ public class TokenServiceTests
 			{
 				ClientId = "client",
 				ClientSecret = "secret",
-				RedirectUri = "https://localhost",
 				GuildId = "guild"
 			},
 			Jwt = _jwtSettings

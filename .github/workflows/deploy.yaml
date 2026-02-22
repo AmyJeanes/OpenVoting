@@ -42,7 +42,6 @@ jobs:
             --set env.discord.clientId="${{ vars.DISCORD_CLIENT_ID }}" \
             --set env.discord.clientSecret="${{ secrets.DISCORD_CLIENT_SECRET }}" \
             --set env.discord.botToken="${{ secrets.DISCORD_BOT_TOKEN }}" \
-            --set env.discord.redirectUri="https://${{ vars.HOST }}/api/auth/discord" \
             --set env.discord.guildId="${{ vars.DISCORD_GUILD_ID }}" \
             --set-string env.discord.adminRoleIds="${{ vars.DISCORD_ADMIN_ROLE_IDS }}" \
             --set env.jwt.signingKey="${{ secrets.JWT_SIGNING_KEY }}" \
