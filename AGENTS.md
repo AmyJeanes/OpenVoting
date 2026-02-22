@@ -15,11 +15,13 @@ OpenVoting.Server:
 - Do not manually edit the database model snapshot, you may edit migrations if absolutely necessary after generating them
 - Use `dotnet ef database update` to apply migrations to the database after adding new migration files
 - Do not directly add packages to the project file, use `dotnet add package <PackageName>` instead
+- When trying to build the server, it may already be running in debug mode in the IDE, stop the server if it is running first
 
 OpenVoting.Client:
 - This is a React frontend application
 - Use `npm run build` to compile
 - Use `npm run test` to run unit tests
+- Use `npm run lint` to run the linter and discover issues
 - Always run build and unit tests after changing frontend code to test
 - TypeScript is used with strict type checking enabled, do not use the `any` type unless absolutely necessary
 - Use shared CSS variables where possible for consistency, e.g. colors, spacing, etc

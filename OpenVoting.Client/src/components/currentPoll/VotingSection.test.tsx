@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { VotingSection } from './VotingSection';
-import { createPollResponse, createEntryResponse, createAsset } from '../../test/factories';
+import { createPollResponse, createEntryResponse, createAsset, createVoteResponse } from '../../test/factories';
 
 describe('VotingSection', () => {
   it('toggles selection when an entry is clicked', async () => {
@@ -179,5 +179,34 @@ describe('VotingSection', () => {
 
     expect(screen.queryByText('By:')).not.toBeInTheDocument();
     expect(screen.queryByText('Alice')).not.toBeInTheDocument();
+  });
+
+  it('shows a clear existing-vote status banner when a vote exists', () => {
+    const poll = createPollResponse({ maxSelections: 2 });
+    const entry = createEntryResponse({ id: 'entry-1', displayName: 'Choice A' });
+    const voteInfo = createVoteResponse({ submittedAt: '2026-02-22T12:34:56.000Z' });
+
+    render(
+      <VotingSection
+        poll={poll}
+        entries={[entry]}
+        voteState={{}}
+        voteSubmitting={false}
+        voteInfo={voteInfo}
+        assetCache={{}}
+        isRankedMethod={false}
+        entryAssetId={() => ''}
+        onToggleSelection={vi.fn()}
+        onDisqualifiedSelectAttempt={vi.fn()}
+        onProceedToRanking={vi.fn()}
+        onSubmitVote={vi.fn()}
+        onClearSelection={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("You've already voted")).toBeInTheDocument();
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    expect(screen.getByText(/Last submitted:/)).toBeInTheDocument();
+    expect(screen.getByText('You can still change your selection and submit again before voting closes')).toBeInTheDocument();
   });
 });

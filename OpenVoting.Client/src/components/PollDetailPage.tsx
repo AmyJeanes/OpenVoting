@@ -122,6 +122,10 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
             <p className="metric">Up to {detail.maxSelections}</p>
           </div>
           <div>
+            <p className="muted">Total votes</p>
+            <p className="metric">{detail.totalVotes}</p>
+          </div>
+          <div>
             <p className="muted">Visibility</p>
             <p className="metric">{detail.hideEntriesUntilVoting ? 'Hidden until voting' : 'Entries visible'}</p>
           </div>

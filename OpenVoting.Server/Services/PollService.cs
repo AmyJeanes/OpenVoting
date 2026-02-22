@@ -76,7 +76,8 @@ public sealed class PollService : IPollService
 			return PollResult<PollResponse>.NoContent();
 		}
 
-		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin));
+		var totalVotes = await CountSubmittedVotesAsync(poll.Id, cancellationToken);
+		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin, totalVotes));
 	}
 
 	public async Task<PollResult<IReadOnlyList<PollResponse>>> GetActiveAsync(ClaimsPrincipal user, CancellationToken cancellationToken)
@@ -115,7 +116,10 @@ public sealed class PollService : IPollService
 			return PollResult<IReadOnlyList<PollResponse>>.NoContent();
 		}
 
-		var responses = polls.Select(p => BuildPollResponse(p, member, authUser.IsAdmin)).ToList();
+		var voteCountsByPollId = await CountSubmittedVotesByPollIdAsync(polls.Select(p => p.Id).ToList(), cancellationToken);
+		var responses = polls
+			.Select(p => BuildPollResponse(p, member, authUser.IsAdmin, voteCountsByPollId.GetValueOrDefault(p.Id)))
+			.ToList();
 		return PollResult<IReadOnlyList<PollResponse>>.Ok(responses);
 	}
 
@@ -139,7 +143,8 @@ public sealed class PollService : IPollService
 		}
 
 		await PollAutoTransition.ApplyAsync(_db, poll, _logger, cancellationToken);
-		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin));
+		var totalVotes = await CountSubmittedVotesAsync(poll.Id, cancellationToken);
+		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin, totalVotes));
 	}
 
 	public async Task<PollResult<IReadOnlyList<PollHistoryResponse>>> GetHistoryAsync(ClaimsPrincipal user, CancellationToken cancellationToken)
@@ -269,6 +274,7 @@ public sealed class PollService : IPollService
 			HideEntriesUntilVoting = poll.HideEntriesUntilVoting,
 			MaxSelections = poll.MaxSelections,
 			RequireRanking = poll.RequireRanking,
+			TotalVotes = poll.Votes.Count(v => v.SubmittedAt.HasValue),
 			TitleRequirement = poll.TitleRequirement,
 			DescriptionRequirement = poll.DescriptionRequirement,
 			ImageRequirement = poll.ImageRequirement,
@@ -383,7 +389,8 @@ public sealed class PollService : IPollService
 		_db.Polls.Add(poll);
 		await _db.SaveChangesAsync(cancellationToken);
 
-		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin));
+		var totalVotes = await CountSubmittedVotesAsync(poll.Id, cancellationToken);
+		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin, totalVotes));
 	}
 
 	public async Task<PollResult<PollResponse>> UpdateMetadataAsync(ClaimsPrincipal user, Guid id, UpdatePollMetadataRequest request, CancellationToken cancellationToken)
@@ -461,7 +468,8 @@ public sealed class PollService : IPollService
 		}
 
 		await _db.SaveChangesAsync(cancellationToken);
-		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin));
+		var totalVotes = await CountSubmittedVotesAsync(poll.Id, cancellationToken);
+		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin, totalVotes));
 	}
 
 	public async Task<PollResult<PollResponse>> UpdateSubmissionSettingsAsync(ClaimsPrincipal user, Guid id, UpdateSubmissionSettingsRequest request, CancellationToken cancellationToken)
@@ -528,7 +536,8 @@ public sealed class PollService : IPollService
 		}
 
 		await _db.SaveChangesAsync(cancellationToken);
-		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin));
+		var totalVotes = await CountSubmittedVotesAsync(poll.Id, cancellationToken);
+		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin, totalVotes));
 	}
 
 	public async Task<PollResult<PollResponse>> UpdateVotingSettingsAsync(ClaimsPrincipal user, Guid id, UpdateVotingSettingsRequest request, CancellationToken cancellationToken)
@@ -597,7 +606,8 @@ public sealed class PollService : IPollService
 		}
 
 		await _db.SaveChangesAsync(cancellationToken);
-		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin));
+		var totalVotes = await CountSubmittedVotesAsync(poll.Id, cancellationToken);
+		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin, totalVotes));
 	}
 
 	public async Task<PollResult<object?>> DeleteAsync(ClaimsPrincipal user, Guid id, CancellationToken cancellationToken)
@@ -752,7 +762,8 @@ public sealed class PollService : IPollService
 		}
 
 		await _db.SaveChangesAsync(cancellationToken);
-		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin));
+		var totalVotes = await CountSubmittedVotesAsync(poll.Id, cancellationToken);
+		return PollResult<PollResponse>.Ok(BuildPollResponse(poll, member, authUser.IsAdmin, totalVotes));
 	}
 
 	private async Task<(AuthenticatedUser? AuthUser, CommunityMember? Member)> GetAuthMemberAsync(ClaimsPrincipal user, CancellationToken cancellationToken)
@@ -794,11 +805,12 @@ public sealed class PollService : IPollService
 			Status = poll.Status,
 			VotingMethod = poll.VotingMethod,
 			VotingClosesAt = poll.VotingClosesAt,
+			TotalVotes = poll.Votes.Count(v => v.SubmittedAt.HasValue),
 			Winners = winners
 		};
 	}
 
-	private PollResponse BuildPollResponse(Poll poll, CommunityMember member, bool isAdmin)
+	private PollResponse BuildPollResponse(Poll poll, CommunityMember member, bool isAdmin, int totalVotes)
 	{
 		var now = DateTimeOffset.UtcNow;
 		var memberRoles = DeserializeRoles(member.RoleIdsJson);
@@ -836,8 +848,28 @@ public sealed class PollService : IPollService
 			RequiredRoleIds = requiredRoles,
 			CanSubmit = canSubmit,
 			CanVote = canVote,
-			IsAdmin = isAdmin
+			IsAdmin = isAdmin,
+			TotalVotes = totalVotes
 		};
+	}
+
+	private Task<int> CountSubmittedVotesAsync(Guid pollId, CancellationToken cancellationToken)
+	{
+		return _db.Votes.CountAsync(v => v.PollId == pollId && v.SubmittedAt.HasValue, cancellationToken);
+	}
+
+	private async Task<Dictionary<Guid, int>> CountSubmittedVotesByPollIdAsync(IReadOnlyCollection<Guid> pollIds, CancellationToken cancellationToken)
+	{
+		if (pollIds.Count == 0)
+		{
+			return new Dictionary<Guid, int>();
+		}
+
+		return await _db.Votes
+			.Where(v => pollIds.Contains(v.PollId) && v.SubmittedAt.HasValue)
+			.GroupBy(v => v.PollId)
+			.Select(g => new { PollId = g.Key, Count = g.Count() })
+			.ToDictionaryAsync(x => x.PollId, x => x.Count, cancellationToken);
 	}
 
 	private static string[] DeserializeRoles(string? json)

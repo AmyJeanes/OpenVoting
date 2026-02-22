@@ -13,6 +13,7 @@ import {
   DiscordOAuthCallbackPage,
   votingMethodOptions
 } from './components';
+import { useBodyScrollLock } from './hooks/useBodyScrollLock';
 import { useVotingApp } from './hooks/useVotingApp';
 
 export default function App() {
@@ -92,6 +93,7 @@ export default function App() {
   } = app;
 
   const loginDisabled = !config?.discordAuthorizeUrl;
+  useBodyScrollLock(Boolean(openVotingModal));
 
   return (
     <PageShell topbar={

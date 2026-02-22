@@ -32,6 +32,7 @@ export function createPollResponse(overrides: Partial<PollResponse> = {}): PollR
     canSubmit: true,
     canVote: true,
     isAdmin: false,
+    totalVotes: 0,
     ...overrides
   };
 }

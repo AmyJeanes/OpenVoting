@@ -169,6 +169,7 @@ public class PollServiceTests
 			Assert.That(response.TitleRequirement, Is.EqualTo(FieldRequirement.Optional));
 			Assert.That(response.DescriptionRequirement, Is.EqualTo(FieldRequirement.Required));
 			Assert.That(response.ImageRequirement, Is.EqualTo(FieldRequirement.Off));
+			Assert.That(response.TotalVotes, Is.EqualTo(0));
 		});
 	}
 
@@ -344,6 +345,7 @@ public class PollServiceTests
 		var winners = result.Response!.Winners;
 		Assert.That(winners.Count, Is.EqualTo(2));
 		Assert.That(winners.Select(w => w.EntryId), Is.EquivalentTo(new[] { entryA, entryB }));
+		Assert.That(result.Response!.TotalVotes, Is.EqualTo(2));
 	}
 
 	[Test]
@@ -416,6 +418,7 @@ public class PollServiceTests
 		var winners = result.Response!.Winners;
 		Assert.That(winners.Count, Is.EqualTo(1));
 		Assert.That(winners.Single().EntryId, Is.EqualTo(entryA));
+		Assert.That(result.Response!.TotalVotes, Is.EqualTo(3));
 	}
 
 	[Test]

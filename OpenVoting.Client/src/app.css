@@ -1185,6 +1185,36 @@ textarea {
     cursor: not-allowed;
 }
 
+.vote-status-banner {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vote-status-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.vote-status-title {
+    margin: 0;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.vote-status-meta {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.vote-status-banner .muted {
+    margin: 0;
+}
+
 .vote-head {
     display: flex;
     justify-content: space-between;
@@ -1285,7 +1315,6 @@ textarea {
     animation: dropfade 180ms ease-out;
     cursor: pointer;
     pointer-events: auto;
-    min-width: 240px;
     max-width: 420px;
     max-height: 320px;
     overflow: hidden;
@@ -1335,6 +1364,7 @@ textarea {
     justify-content: center;
     padding: 16px;
     z-index: 1000;
+    overscroll-behavior: contain;
 }
 
 .modal-card {

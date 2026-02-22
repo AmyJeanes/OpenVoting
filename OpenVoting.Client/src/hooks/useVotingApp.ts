@@ -18,6 +18,30 @@ import type {
 import { useToast } from '../components';
 
 const tokenKey = 'ov_token';
+const refreshLeadTimeMs = 5 * 60 * 1000;
+const minRefreshDelayMs = 15 * 1000;
+
+type RefreshAuthResponse = MeResponse & { token: string };
+
+const getJwtExpiryMs = (jwt: string): number | null => {
+  if (!jwt) return null;
+  const parts = jwt.split('.');
+  if (parts.length < 2 || !parts[1]) return null;
+
+  try {
+    const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = payloadBase64.padEnd(Math.ceil(payloadBase64.length / 4) * 4, '=');
+    const payloadJson = atob(padded);
+    const payload = JSON.parse(payloadJson) as { exp?: number };
+    if (typeof payload.exp !== 'number') {
+      return null;
+    }
+
+    return payload.exp * 1000;
+  } catch {
+    return null;
+  }
+};
 
 const defaultCreateForm: CreatePollForm = {
   title: '',
@@ -76,6 +100,9 @@ export function useVotingApp() {
   const [confirmConfig, setConfirmConfig] = useState<import('../components').ConfirmDialogConfig | null>(null);
   const confirmResolver = useRef<ConfirmResolver | null>(null);
   const [openVotingModal, setOpenVotingModal] = useState<{ pollId: string; selectedMethod: number; submitting: boolean } | null>(null);
+  const refreshTimerRef = useRef<number | null>(null);
+  const refreshInFlightRef = useRef<Promise<boolean> | null>(null);
+  const skipNextTokenBootstrapRef = useRef(false);
 
   const [history, setHistory] = useState<PollHistoryResponse[]>([]);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -151,6 +178,11 @@ export function useVotingApp() {
       return;
     }
 
+    if (skipNextTokenBootstrapRef.current) {
+      skipNextTokenBootstrapRef.current = false;
+      return;
+    }
+
     const bootstrap = async () => {
       setSessionState('loading');
       try {
@@ -221,7 +253,71 @@ export function useVotingApp() {
     return res;
   };
 
+  const refreshToken = async (): Promise<boolean> => {
+    if (!token) {
+      return false;
+    }
+
+    if (refreshInFlightRef.current) {
+      return refreshInFlightRef.current;
+    }
+
+    const refreshPromise = (async () => {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (res.status === 401) {
+        logout('Your session expired, please sign in again');
+        return false;
+      }
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Unable to refresh session');
+      }
+
+      const data: RefreshAuthResponse = await res.json();
+      if (!data.token) {
+        logout('Your session expired, please sign in again');
+        return false;
+      }
+
+      localStorage.setItem(tokenKey, data.token);
+      if (data.token !== token) {
+        skipNextTokenBootstrapRef.current = true;
+        setToken(data.token);
+      }
+      setMe({
+        memberId: data.memberId,
+        communityId: data.communityId,
+        displayName: data.displayName,
+        joinedAt: data.joinedAt,
+        isEligible: data.isEligible,
+        ineligibleReason: data.ineligibleReason,
+        isAdmin: data.isAdmin
+      });
+      setSessionState('authenticated');
+      return true;
+    })();
+
+    refreshInFlightRef.current = refreshPromise;
+    try {
+      return await refreshPromise;
+    } finally {
+      refreshInFlightRef.current = null;
+    }
+  };
+
   const logout = (message?: string) => {
+    skipNextTokenBootstrapRef.current = false;
+    if (refreshTimerRef.current !== null) {
+      window.clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
     localStorage.removeItem(tokenKey);
     setToken('');
     setMe(null);
@@ -232,6 +328,50 @@ export function useVotingApp() {
     setSessionState('anonymous');
     setFlash(message && message.trim().length > 0 ? message : 'Signed out');
   };
+
+  useEffect(() => {
+    if (refreshTimerRef.current !== null) {
+      window.clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    if (!token) {
+      return;
+    }
+
+    let cancelled = false;
+    const expiresAt = getJwtExpiryMs(token);
+    const refreshDelay = Math.max((expiresAt ?? Date.now()) - Date.now() - refreshLeadTimeMs, minRefreshDelayMs);
+
+    const schedule = (delayMs: number) => {
+      refreshTimerRef.current = window.setTimeout(async () => {
+        if (cancelled) {
+          return;
+        }
+
+        try {
+          const refreshed = await refreshToken();
+          if (!refreshed && token) {
+            schedule(minRefreshDelayMs);
+          }
+        } catch {
+          if (token) {
+            schedule(minRefreshDelayMs);
+          }
+        }
+      }, delayMs);
+    };
+
+    schedule(refreshDelay);
+
+    return () => {
+      cancelled = true;
+      if (refreshTimerRef.current !== null) {
+        window.clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, [token]);
 
   const clearSelectedPollData = () => {
     setPoll(null);

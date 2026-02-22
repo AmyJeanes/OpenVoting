@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type React from 'react';
 import { ImageLightbox, type ImageLightboxData } from '../ImageLightbox';
 import type { AssetUploadResponse, PollEntryResponse, PollResponse } from '../../types';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 function rankingEntryTitle(poll: PollResponse, entry: PollEntryResponse) {
   const hasCustomTitle = (entry.displayName || '').trim().length > 0;
@@ -54,6 +55,7 @@ export function RankingModal(props: RankingModalProps) {
     setItemRef
   } = props;
   const [lightboxImage, setLightboxImage] = useState<ImageLightboxData | null>(null);
+  useBodyScrollLock(open);
 
   if (!open) return null;
 

@@ -25,6 +25,7 @@ public sealed class PollResponse
 	public bool CanSubmit { get; init; }
 	public bool CanVote { get; init; }
 	public bool IsAdmin { get; init; }
+	public int TotalVotes { get; init; }
 }
 
 public sealed class CreatePollRequest
@@ -65,6 +66,7 @@ public sealed class PollHistoryResponse
 	public PollStatus Status { get; init; }
 	public VotingMethod VotingMethod { get; init; }
 	public DateTimeOffset VotingClosesAt { get; init; }
+	public int TotalVotes { get; init; }
 	public IReadOnlyList<PollWinnerResponse> Winners { get; init; } = Array.Empty<PollWinnerResponse>();
 }
 
@@ -92,6 +94,7 @@ public sealed class PollDetailResponse
 	public bool HideEntriesUntilVoting { get; init; }
 	public int MaxSelections { get; init; }
 	public bool RequireRanking { get; init; }
+	public int TotalVotes { get; init; }
 	public FieldRequirement TitleRequirement { get; init; }
 	public FieldRequirement DescriptionRequirement { get; init; }
 	public FieldRequirement ImageRequirement { get; init; }

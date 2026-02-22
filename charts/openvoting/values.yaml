@@ -19,7 +19,7 @@ env:
     clientId: ""
     clientSecret: ""
     botToken: ""
-    interactionsPublicKey: ""
+    publicKey: ""
     guildId: ""
     adminRoleIds: ""
   jwt:

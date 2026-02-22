@@ -32,6 +32,10 @@ export function PollHeaderSection({ poll, onRefreshPoll }: PollHeaderSectionProp
             <p className="metric poll-header-detail-value">{pollStatusLabel(poll.status)}</p>
           </div>
           <div>
+            <p className="muted">Total votes</p>
+            <p className="metric poll-header-detail-value">{poll.totalVotes}</p>
+          </div>
+          <div>
             <p className="muted">Voting method</p>
             <div className="metric-row">
               <p className="metric poll-header-detail-value">{votingMethodLabel(poll.votingMethod)}</p>

@@ -44,6 +44,8 @@ export function VotingSection(props: VotingSectionProps) {
     onClearSelection
   } = props;
   const [lightboxImage, setLightboxImage] = useState<ImageLightboxData | null>(null);
+  const hasSubmittedVote = !!voteInfo;
+  const submittedAtLabel = voteInfo?.submittedAt ? new Date(voteInfo.submittedAt).toLocaleString() : 'Pending';
 
   return (
     <section className="card">
@@ -51,10 +53,20 @@ export function VotingSection(props: VotingSectionProps) {
         <h3>{isRankedMethod ? 'Vote: Step 1' : 'Vote'}</h3>
         <p className="muted">
           {isRankedMethod
-            ? `Select up to ${poll.maxSelections} entries you want to see win. You’ll rank them next; unranked entries won’t count`
+            ? `Select up to ${poll.maxSelections} entries to rank in the next step`
             : `Select up to ${poll.maxSelections} entries`}
         </p>
       </div>
+      {hasSubmittedVote && (
+        <div className="banner vote-status-banner" role="status" aria-live="polite">
+          <div className="vote-status-head">
+            <p className="vote-status-title">You've already voted</p>
+            <span className="pill winner">Saved</span>
+          </div>
+          <p className="vote-status-meta">Last submitted: {submittedAtLabel}</p>
+          <p className="muted">You can still change your selection and submit again before voting closes</p>
+        </div>
+      )}
       <div className="vote-grid">
         {entries.map((e) => {
           const current = voteState[e.id] ?? { selected: false, rank: '' };
@@ -137,9 +149,6 @@ export function VotingSection(props: VotingSectionProps) {
           </button>
         )}
       </div>
-      {voteInfo && (
-        <p className="muted">Last submitted: {voteInfo.submittedAt ? new Date(voteInfo.submittedAt).toLocaleString() : 'Pending'}</p>
-      )}
       {lightboxImage && (
         <ImageLightbox
           imageUrl={lightboxImage.imageUrl}

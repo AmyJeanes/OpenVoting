@@ -51,7 +51,7 @@ describe('ActivePollsPage', () => {
 
   it('lets admins trigger poll creation and see active polls', async () => {
     const onCreate = vi.fn();
-    const poll = createPollResponse({ id: 'poll-123', title: 'Spring Contest', status: 2 });
+    const poll = createPollResponse({ id: 'poll-123', title: 'Spring Contest', status: 2, totalVotes: 14 });
 
     renderWithProviders({
       sessionState: 'authenticated',
@@ -62,6 +62,8 @@ describe('ActivePollsPage', () => {
 
     expect(screen.getByText('Spring Contest')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View poll' })).toHaveAttribute('href', '/polls/poll-123');
+    expect(screen.getByText('Total votes')).toBeInTheDocument();
+    expect(screen.getByText('14')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Toggle create poll panel' }));
     const [titleInput] = screen.getAllByRole('textbox');

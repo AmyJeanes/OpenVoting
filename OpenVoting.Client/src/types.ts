@@ -38,6 +38,7 @@ export type PollResponse = {
   canSubmit: boolean;
   canVote: boolean;
   isAdmin: boolean;
+  totalVotes: number;
 };
 
 export type PollWinnerResponse = {
@@ -85,6 +86,7 @@ export type PollDetailResponse = {
   hideEntriesUntilVoting: boolean;
   maxSelections: number;
   requireRanking: boolean;
+  totalVotes: number;
   titleRequirement: FieldRequirement;
   descriptionRequirement: FieldRequirement;
   imageRequirement: FieldRequirement;
@@ -105,6 +107,7 @@ export type PollHistoryResponse = {
   status: number;
   votingMethod: number;
   votingClosesAt: string;
+  totalVotes: number;
   winners: PollWinnerResponse[];
 };
 

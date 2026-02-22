@@ -118,6 +118,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                             </div>
                             <div className="history-meta-title">{isTie ? `${p.winners.length} winners tied` : 'Winner'}</div>
                             <div className="history-meta-note">{closedText}</div>
+                            <div className="history-meta-note">{p.totalVotes} total vote{p.totalVotes === 1 ? '' : 's'}</div>
                             <div className="history-meta-pills">
                               {isTie ? (
                                 <span className="pill tie">Tie</span>

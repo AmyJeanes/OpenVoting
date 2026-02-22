@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 export type ConfirmDialogConfig = {
   title: string;
@@ -18,6 +19,8 @@ export type ConfirmDialogProps = {
 };
 
 export function ConfirmDialog({ config, onConfirm, onCancel }: ConfirmDialogProps) {
+  useBodyScrollLock(Boolean(config));
+
   useEffect(() => {
     if (!config) return undefined;
     const handleKey = (event: KeyboardEvent) => {

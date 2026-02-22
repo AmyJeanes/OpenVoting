@@ -151,6 +151,10 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                       <p className="live-poll-meta-label">Submissions</p>
                       <p className="live-poll-meta-value">{formatWindow(p.submissionOpensAt, p.submissionClosesAt)}</p>
                     </div>
+                    <div className="live-poll-meta-item">
+                      <p className="live-poll-meta-label">Total votes</p>
+                      <p className="live-poll-meta-value">{p.totalVotes}</p>
+                    </div>
                     {(p.status === 2 || p.status === 3 || p.status === 4) && (
                       <div className="live-poll-meta-item">
                         <p className="live-poll-meta-label">Voting</p>

@@ -41,7 +41,7 @@ public sealed class DiscordInteractionsController : ControllerBase
 			return Unauthorized();
 		}
 
-		if (string.IsNullOrWhiteSpace(_discordSettings.InteractionsPublicKey))
+		if (string.IsNullOrWhiteSpace(_discordSettings.PublicKey))
 		{
 			_logger.LogWarning("Discord interactions public key is not configured");
 			return Unauthorized();
@@ -50,7 +50,7 @@ public sealed class DiscordInteractionsController : ControllerBase
 		using var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
 		var body = await reader.ReadToEndAsync(cancellationToken);
 
-		if (!IsValidDiscordSignature(_discordSettings.InteractionsPublicKey, signatureHex, timestamp, body))
+		if (!IsValidDiscordSignature(_discordSettings.PublicKey, signatureHex, timestamp, body))
 		{
 			_logger.LogWarning("Rejected Discord interaction with invalid signature");
 			return Unauthorized();

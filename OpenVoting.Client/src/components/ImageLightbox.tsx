@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 export type ImageLightboxData = {
   imageUrl: string;
@@ -12,6 +13,8 @@ export type ImageLightboxProps = ImageLightboxData & {
 
 export function ImageLightbox({ imageUrl, alt, onClose }: ImageLightboxProps) {
   const [isClosing, setIsClosing] = useState(false);
+  useBodyScrollLock(true);
+
   const requestClose = useCallback(() => {
     if (isClosing) return;
     setIsClosing(true);

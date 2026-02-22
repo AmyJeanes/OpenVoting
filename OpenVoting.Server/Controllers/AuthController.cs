@@ -193,6 +193,38 @@ public class AuthController : ControllerBase
 		});
 	}
 
+	[Authorize]
+	[HttpPost("refresh")]
+	public async Task<ActionResult<AuthResponse>> Refresh(CancellationToken cancellationToken)
+	{
+		var authUser = AuthenticatedUser.FromPrincipal(User);
+		if (authUser is null)
+		{
+			return Unauthorized();
+		}
+
+		var member = await _db.CommunityMembers.FirstOrDefaultAsync(m => m.Id == authUser.MemberId, cancellationToken);
+		if (member is null)
+		{
+			return Unauthorized();
+		}
+
+		var eligibility = CalculateEligibilityFromStored(member);
+		var token = _tokenService.GenerateToken(member, authUser.IsAdmin);
+
+		return Ok(new AuthResponse
+		{
+			Token = token,
+			MemberId = member.Id,
+			CommunityId = member.CommunityId,
+			DisplayName = member.DisplayName,
+			JoinedAt = member.JoinedAt,
+			IsEligible = eligibility.IsEligible,
+			IneligibleReason = eligibility.Reason,
+			IsAdmin = authUser.IsAdmin
+		});
+	}
+
 	private async Task<Community> GetOrCreateCommunity(CancellationToken cancellationToken)
 	{
 		var existing = await _db.Communities.FirstOrDefaultAsync(c => c.Platform == Platform.Discord && c.ExternalCommunityId == _discordSettings.GuildId, cancellationToken);
