@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { useVotingApp } from './useVotingApp';
 
 declare const Response: typeof globalThis.Response;
+const showToastMock = vi.fn();
 
 describe('useVotingApp', () => {
   const originalFetch = global.fetch;
@@ -37,6 +38,7 @@ describe('useVotingApp', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    showToastMock.mockReset();
   });
 
   it('sets session anonymous when no saved token', async () => {
@@ -192,10 +194,41 @@ describe('useVotingApp', () => {
 
     expect(result.current.entryFiles.original?.name).toBe('professor_booboo_by_lieveheersbeestje-d7mb7og.jpg');
   });
+
+  it('rejects image files larger than 10MB during client-side validation', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/api/config')) {
+        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
+      }
+      return new Response('', { status: 404 });
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const { result } = renderHook(() => useVotingApp());
+
+    await waitFor(() => {
+      expect(result.current.sessionState).toBe('anonymous');
+    });
+
+    const file = new File(['image'], 'too-large.png', { type: 'image/png' });
+    Object.defineProperty(file, 'size', { value: (10 * 1024 * 1024) + 1 });
+
+    act(() => {
+      result.current.handleEntryFilesChange({ original: file });
+    });
+
+    await waitFor(() => {
+      expect(result.current.entrySubmitError).toBe('Images must be 10MB or smaller');
+    });
+
+    expect(result.current.entryFileInvalid).toBe(true);
+    expect(showToastMock).toHaveBeenCalledWith('Images must be 10MB or smaller', { tone: 'error' });
+  });
 });
 
 vi.mock('../components', () => ({
-  useToast: () => ({ showToast: vi.fn() })
+  useToast: () => ({ showToast: showToastMock })
 }));
 
 vi.mock('react-router-dom', () => ({

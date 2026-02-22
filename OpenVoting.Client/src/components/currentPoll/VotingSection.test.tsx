@@ -157,6 +157,32 @@ describe('VotingSection', () => {
     expect(screen.queryByText('Hidden Title')).not.toBeInTheDocument();
   });
 
+  it('shows Entry when optional title was left unset and stored as poll title fallback', () => {
+    const poll = createPollResponse({ title: 'Spring Contest', titleRequirement: 1, isAdmin: false });
+    const entry = createEntryResponse({ id: 'entry-1', displayName: 'Spring Contest' });
+
+    render(
+      <VotingSection
+        poll={poll}
+        entries={[entry]}
+        voteState={{}}
+        voteSubmitting={false}
+        voteInfo={null}
+        assetCache={{}}
+        isRankedMethod={false}
+        entryAssetId={() => ''}
+        onToggleSelection={vi.fn()}
+        onDisqualifiedSelectAttempt={vi.fn()}
+        onProceedToRanking={vi.fn()}
+        onSubmitVote={vi.fn()}
+        onClearSelection={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Entry')).toBeInTheDocument();
+    expect(screen.queryByText('Spring Contest')).not.toBeInTheDocument();
+  });
+
   it('does not show submitter byline in voting view, even for admins', () => {
     const poll = createPollResponse({ isAdmin: true, titleRequirement: 1 });
     const entry = createEntryResponse({ id: 'entry-1', displayName: 'Choice A', submittedByDisplayName: 'Alice' });

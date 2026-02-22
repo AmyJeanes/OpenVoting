@@ -15,3 +15,5 @@ env:
     connectionString: test-storage-connection-string
     containerName: test-container-name
     publicBaseUrl: https://example.com/storage/
+  upload:
+    maxFileSizeMB: "10"

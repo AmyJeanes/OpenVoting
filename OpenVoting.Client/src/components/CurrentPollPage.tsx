@@ -7,7 +7,7 @@ import { useToast } from './useToast';
 import { PollHeaderSection } from './currentPoll/PollHeaderSection';
 import { AdminPanel } from './currentPoll/AdminPanel';
 import { AdminEntriesSection } from './currentPoll/AdminEntriesSection';
-import { SubmissionSection } from './currentPoll/SubmissionSection';
+import SubmissionSection from './currentPoll/SubmissionSection';
 import { MySubmissionsSection } from './currentPoll/MySubmissionsSection';
 import { PreviewSection } from './currentPoll/PreviewSection';
 import { VotingSection } from './currentPoll/VotingSection';
@@ -67,6 +67,7 @@ export type CurrentPollProps = {
   onUpdateMetadata: (pollId: string, updates: { title?: string; description?: string; titleRequirement?: FieldRequirement; descriptionRequirement?: FieldRequirement; imageRequirement?: FieldRequirement }) => Promise<unknown>;
   onUpdateSubmissionSettings: (pollId: string, updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null }) => Promise<unknown>;
   onUpdateVotingSettings: (pollId: string, updates: { maxSelections?: number; votingClosesAt?: string | null }) => Promise<unknown>;
+  uploadMaxFileSizeMB: number;
   onLogin: () => void;
   loginCta: string;
   loginDisabled: boolean;
@@ -112,6 +113,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
     onUpdateMetadata,
     onUpdateSubmissionSettings,
     onUpdateVotingSettings,
+    uploadMaxFileSizeMB,
     onLogin,
     loginCta,
     loginDisabled
@@ -638,6 +640,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
           showEntryDescriptionField={showEntryDescriptionField}
           onEntryFormChange={onEntryFormChange}
           onEntryFilesChange={onEntryFilesChange}
+          maxUploadFileSizeMB={uploadMaxFileSizeMB}
           onSubmitEntry={onSubmitEntry}
         />
       )}
@@ -734,15 +737,19 @@ export function CurrentPollPage(props: CurrentPollProps) {
                 const firstChoice = pollDetail.votingMethod === 2 ? e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0 : undefined;
                 const isTieWinner = tiedForFirst && e.isWinner;
                 const positionLabel = isTieWinner ? '#1' : (typeof e.position === 'number' ? `#${e.position}` : null);
-                const hasTitle = (e.displayName || '').trim().length > 0;
-                const titleText = hasTitle
-                  ? e.displayName
-                  : (pollDetail.titleRequirement === 0 ? 'Entry' : 'Untitled entry');
+                const entryDisplayName = (e.displayName || '').trim();
+                const hasTitle = entryDisplayName.length > 0;
+                const isPollTitleFallback = pollDetail.titleRequirement === 1
+                  && hasTitle
+                  && entryDisplayName === (pollDetail.title || '').trim();
+                const titleText = pollDetail.titleRequirement === 0
+                  ? 'Entry'
+                  : (isPollTitleFallback ? 'Entry' : (hasTitle ? e.displayName : 'Untitled entry'));
                 const highlightClass = highlightedEntryId === e.id ? 'entry-highlight' : '';
                 return (
                   <li key={e.id} id={`entry-${e.id}`} className={`entry-card ${e.isWinner ? 'winner' : ''} ${e.isDisqualified ? 'unavailable' : ''} ${highlightClass}`}>
                     <div className="entry-head">
-                      <div>
+                      <div className="entry-meta">
                         <p className="entry-title">{titleText}</p>
                         {e.submittedByDisplayName && (
                           <p className="byline">
@@ -781,7 +788,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
                         )}
                       </div>
                     )}
-                    {e.description && <p className="muted">{e.description}</p>}
+                    {e.description && <p className="muted entry-description">{e.description}</p>}
                     <div className="actions entry-breakdown-summary">
                       {pollDetail.votingMethod === 2 ? (
                         <span className="pill subtle">{firstChoice} people ranked this #1</span>

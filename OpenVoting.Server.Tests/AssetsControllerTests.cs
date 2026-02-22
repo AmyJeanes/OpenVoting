@@ -15,6 +15,33 @@ namespace OpenVoting.Server.Tests;
 public class AssetsControllerTests
 {
 	[Test]
+	public async Task Upload_WithFileOver10Mb_ReturnsBadRequest()
+	{
+		await using var db = TestDbContextFactory.CreateContext();
+		var storage = new FakeAssetStorage();
+		var controller = BuildController(db, storage);
+		controller.ControllerContext = new ControllerContext
+		{
+			HttpContext = new DefaultHttpContext
+			{
+				User = TestAuthHelper.CreatePrincipal(Guid.NewGuid(), Guid.NewGuid())
+			}
+		};
+
+		var file = new FormFile(new MemoryStream(new byte[] { 1 }), 0, (10 * 1024 * 1024) + 1, "file", "too-large.png")
+		{
+			Headers = new HeaderDictionary(),
+			ContentType = "image/png"
+		};
+
+		var actionResult = await controller.Upload(file, CancellationToken.None);
+
+		var badRequest = actionResult.Result as BadRequestObjectResult;
+		Assert.That(badRequest, Is.Not.Null);
+		Assert.That(badRequest!.Value, Is.EqualTo("Images must be 10MB or smaller"));
+	}
+
+	[Test]
 	public async Task Upload_WithNonImage_ReturnsBadRequest()
 	{
 		await using var db = TestDbContextFactory.CreateContext();

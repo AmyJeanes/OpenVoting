@@ -124,8 +124,9 @@ describe('SubmissionSection', () => {
 
     expect(screen.getByText('Title')).toBeInTheDocument();
     expect(screen.getByText('Description')).toBeInTheDocument();
-    expect(screen.getAllByText('Required').length).toBe(1);
-    expect(screen.getAllByText('Optional').length).toBe(2);
+    expect(screen.getByText('Required')).toBeInTheDocument();
+    expect(screen.getByText('Optional', { selector: '.field-hint' })).toBeInTheDocument();
+    expect(screen.getByText('Optional · Max 10MB · Square · At least 512×512')).toBeInTheDocument();
   });
 
   it('disables submit while image validation is pending', () => {
@@ -152,7 +153,7 @@ describe('SubmissionSection', () => {
     expect(screen.getByText('Validating image…')).toBeInTheDocument();
   });
 
-  it('shows image constraint error under upload after submit attempt', () => {
+  it('keeps upload requirements helper text and shows invalid image styling when criteria validation fails', () => {
     const onSubmitEntry = vi.fn();
     const file = new File(['image'], 'bad.jpg', { type: 'image/jpeg' });
     render(
@@ -177,8 +178,10 @@ describe('SubmissionSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Submit entry' }));
 
     expect(onSubmitEntry).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/upload image/i)).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByText('Please correct the validation errors')).toBeInTheDocument();
-    expect(screen.getByText('Images must be at least 512×512')).toBeInTheDocument();
+    expect(screen.queryByText('Images must be at least 512×512')).not.toBeInTheDocument();
+    expect(screen.getByText('Required · Max 10MB · Square · At least 512×512')).toBeInTheDocument();
   });
 
   it('does not show required title error until interaction', () => {
@@ -258,7 +261,7 @@ describe('SubmissionSection', () => {
 
     expect(onSubmitEntry).not.toHaveBeenCalled();
     expect(screen.getByText('Please correct the validation errors')).toBeInTheDocument();
-    expect(screen.getByText('Required')).toBeInTheDocument();
+    expect(screen.getByText('Required · Max 10MB · Square · At least 512×512')).toBeInTheDocument();
   });
 
   it('shows title required state only after title interaction', () => {

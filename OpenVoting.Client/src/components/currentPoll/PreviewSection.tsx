@@ -7,10 +7,13 @@ export type PreviewSectionProps = {
 };
 
 function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
-  const hasCustomTitle = (entry.displayName || '').trim().length > 0;
+  const entryDisplayName = (entry.displayName || '').trim();
+  const hasCustomTitle = entryDisplayName.length > 0;
+  const pollTitle = (poll.title || '').trim();
   if (poll.titleRequirement === 0) {
-    return '';
+    return 'Entry';
   }
+  if (poll.titleRequirement === 1 && hasCustomTitle && pollTitle.length > 0 && entryDisplayName === pollTitle) return 'Entry';
   if (hasCustomTitle) return entry.displayName;
   return 'Untitled entry';
 }
@@ -28,7 +31,7 @@ export function PreviewSection({ poll, entries }: PreviewSectionProps) {
           return (
             <li key={e.id} className="entry-card">
               <div className="entry-head">
-                <div>
+                <div className="entry-meta">
                   <p className="entry-title">{title}</p>
                 </div>
               </div>
@@ -39,7 +42,7 @@ export function PreviewSection({ poll, entries }: PreviewSectionProps) {
               ) : (
                 <div className="entry-img blurhash-preview-fallback" aria-hidden="true" />
               )}
-              {e.description && <p className="muted">{e.description}</p>}
+              {e.description && <p className="muted entry-description">{e.description}</p>}
             </li>
           );
         })}

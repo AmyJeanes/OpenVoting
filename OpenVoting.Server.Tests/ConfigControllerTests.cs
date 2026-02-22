@@ -20,6 +20,10 @@ public class ConfigControllerTests
 				ClientId = "client-123",
 				ClientSecret = "secret",
 				GuildId = "guild"
+			},
+			Upload = new UploadSettings
+			{
+				MaxFileSizeMB = 14
 			}
 		});
 
@@ -48,6 +52,7 @@ public class ConfigControllerTests
 		Assert.That(payload!.DiscordAuthorizeUrl, Is.Not.Empty);
 		Assert.That(payload.ServerName, Is.EqualTo("OpenVoting Guild"));
 		Assert.That(payload.ServerIconUrl, Is.EqualTo("https://cdn.example/icon.png"));
+		Assert.That(payload.UploadMaxFileSizeMB, Is.EqualTo(14));
 
 		var authorizeUri = new Uri(payload.DiscordAuthorizeUrl);
 		var query = QueryHelpers.ParseQuery(authorizeUri.Query);
@@ -71,6 +76,10 @@ public class ConfigControllerTests
 				ClientId = string.Empty,
 				ClientSecret = "secret",
 				GuildId = "guild"
+			},
+			Upload = new UploadSettings
+			{
+				MaxFileSizeMB = 10
 			}
 		});
 
@@ -100,6 +109,7 @@ public class ConfigControllerTests
 			Assert.That(payload!.DiscordAuthorizeUrl, Is.Empty);
 			Assert.That(payload.ServerName, Is.EqualTo("OpenVoting"));
 			Assert.That(payload.ServerIconUrl, Is.Empty);
+			Assert.That(payload.UploadMaxFileSizeMB, Is.EqualTo(10));
 		});
 	}
 

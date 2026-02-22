@@ -82,6 +82,7 @@ export function createConfigResponse(overrides: Partial<ConfigResponse> = {}): C
     discordAuthorizeUrl: 'https://discord.example.com/auth',
     serverName: 'Test Server',
     serverIconUrl: undefined,
+    uploadMaxFileSizeMB: 10,
     ...overrides
   };
 }

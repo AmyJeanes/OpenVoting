@@ -19,8 +19,13 @@ export type VotingSectionProps = {
 };
 
 function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
-  const hasCustomTitle = (entry.displayName || '').trim().length > 0;
+  const entryDisplayName = (entry.displayName || '').trim();
+  const hasCustomTitle = entryDisplayName.length > 0;
+  const pollTitle = (poll.title || '').trim();
   if (poll.titleRequirement === 0) {
+    return 'Entry';
+  }
+  if (poll.titleRequirement === 1 && hasCustomTitle && pollTitle.length > 0 && entryDisplayName === pollTitle) {
     return 'Entry';
   }
   if (hasCustomTitle) return entry.displayName;
@@ -130,7 +135,7 @@ export function VotingSection(props: VotingSectionProps) {
                   <img src={previewUrl} alt={e.displayName} className="entry-img" />
                 </button>
               )}
-              {e.description && <p className="muted">{e.description}</p>}
+              {e.description && <p className="muted entry-description">{e.description}</p>}
               {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
             </div>
           );

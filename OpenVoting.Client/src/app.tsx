@@ -23,6 +23,7 @@ export default function App() {
     sessionState,
     me,
     config,
+    uploadMaxFileSizeMB,
     configError,
     flash,
     loginCta,
@@ -185,6 +186,7 @@ export default function App() {
               onUpdateMetadata={updatePollMetadata}
               onUpdateSubmissionSettings={updateSubmissionSettings}
               onUpdateVotingSettings={updateVotingSettings}
+              uploadMaxFileSizeMB={uploadMaxFileSizeMB}
             />
           }
         />
@@ -234,6 +236,7 @@ export default function App() {
               onUpdateMetadata={updatePollMetadata}
               onUpdateSubmissionSettings={updateSubmissionSettings}
               onUpdateVotingSettings={updateVotingSettings}
+              uploadMaxFileSizeMB={uploadMaxFileSizeMB}
             />
           }
         />

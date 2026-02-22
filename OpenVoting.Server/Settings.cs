@@ -5,6 +5,12 @@ public sealed class Settings
 	public DiscordSettings Discord { get; init; } = new();
 	public JwtSettings Jwt { get; init; } = new();
 	public BlobStorageSettings BlobStorage { get; init; } = new();
+	public UploadSettings Upload { get; init; } = new();
+}
+
+public sealed class UploadSettings
+{
+	public int MaxFileSizeMB { get; init; } = 10;
 }
 
 public sealed class DiscordSettings

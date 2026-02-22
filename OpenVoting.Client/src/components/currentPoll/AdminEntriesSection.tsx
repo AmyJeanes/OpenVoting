@@ -17,8 +17,11 @@ export type AdminEntriesSectionProps = {
 };
 
 function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
-  const hasCustomTitle = (entry.displayName || '').trim().length > 0;
+  const entryDisplayName = (entry.displayName || '').trim();
+  const hasCustomTitle = entryDisplayName.length > 0;
+  const pollTitle = (poll.title || '').trim();
   if (poll.titleRequirement === 0) return 'Entry';
+  if (poll.titleRequirement === 1 && hasCustomTitle && pollTitle.length > 0 && entryDisplayName === pollTitle) return 'Entry';
   if (hasCustomTitle) return entry.displayName;
   return 'Untitled entry';
 }
@@ -97,7 +100,7 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
               const topScore = leaderboard[0]?.score ?? 0;
               const isProjectedWinner = showAdminBreakdown && topScore > 0 && score === topScore;
               return (
-                <li key={e.id} className={`entry-card ${e.isDisqualified ? 'unavailable' : ''}`}>
+                <li key={e.id} className={`entry-card with-bottom-actions ${e.isDisqualified ? 'unavailable' : ''}`}>
                   <div className="entry-head">
                     <div className="entry-head-main">
                       <p className="entry-title">{entryTitle(poll, e)}</p>
@@ -108,7 +111,6 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                     </div>
                   </div>
                   <div className="admin-entry-details">
-                    {e.description && <p className="muted">{e.description}</p>}
                     {showByline && (
                       <p className="byline">
                         <span className="byline-label">By:</span>
@@ -127,6 +129,7 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                       <img src={previewUrl} alt={e.displayName || 'Entry image'} className="entry-img" />
                     </button>
                   )}
+                  {e.description && <p className="muted entry-description admin-entry-description">{e.description}</p>}
                   {e.isDisqualified && (
                     <div className="disqualification-details">
                       <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>

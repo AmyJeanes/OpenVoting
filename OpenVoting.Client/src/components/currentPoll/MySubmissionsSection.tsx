@@ -13,6 +13,7 @@ export type MySubmissionsSectionProps = {
 function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
   const hasCustomTitle = (entry.displayName || '').trim().length > 0;
   if (poll.titleRequirement === 0) return 'Entry';
+  if (poll.titleRequirement === 1 && (entry.displayName || '').trim() === (poll.title || '').trim()) return 'Entry';
   if (hasCustomTitle) return entry.displayName;
   return 'Untitled entry';
 }
@@ -34,17 +35,10 @@ export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, 
           const fullImageUrl = previewUrl ? (originalUrl ?? previewUrl) : null;
           const titleText = entryTitle(poll, e);
           return (
-            <li key={e.id} className={`entry-card ${e.isDisqualified ? 'unavailable' : ''}`}>
+            <li key={e.id} className={`entry-card with-bottom-actions ${e.isDisqualified ? 'unavailable' : ''}`}>
               <div className="entry-head">
-                <div>
+                <div className="entry-meta">
                   <p className="entry-title">{titleText}</p>
-                  {e.submittedByDisplayName && (
-                    <p className="byline">
-                      <span className="byline-label">By:</span>
-                      <span className="byline-name">{e.submittedByDisplayName}</span>
-                    </p>
-                  )}
-                  {e.description && <p className="muted">{e.description}</p>}
                 </div>
               </div>
               {previewUrl && (
@@ -57,6 +51,7 @@ export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, 
                   <img src={previewUrl} alt={e.displayName || 'Entry image'} className="entry-img" />
                 </button>
               )}
+              {e.description && <p className="muted entry-description">{e.description}</p>}
               {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
               <div className="actions my-entry-actions">
                 <button type="button" className="ghost danger" onClick={() => onAskDelete(e.id)}>Delete</button>

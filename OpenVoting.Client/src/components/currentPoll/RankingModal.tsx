@@ -5,9 +5,13 @@ import type { AssetUploadResponse, PollEntryResponse, PollResponse } from '../..
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 function rankingEntryTitle(poll: PollResponse, entry: PollEntryResponse) {
-  const hasCustomTitle = (entry.displayName || '').trim().length > 0;
+  const entryDisplayName = (entry.displayName || '').trim();
+  const hasCustomTitle = entryDisplayName.length > 0;
+  const pollTitle = (poll.title || '').trim();
+  if (poll.titleRequirement === 0) return 'Entry';
+  if (poll.titleRequirement === 1 && hasCustomTitle && pollTitle.length > 0 && entryDisplayName === pollTitle) return 'Entry';
   if (hasCustomTitle) return entry.displayName;
-  return poll.titleRequirement === 0 ? 'Entry' : 'Untitled entry';
+  return 'Untitled entry';
 }
 
 export type RankingModalProps = {

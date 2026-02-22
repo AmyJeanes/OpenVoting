@@ -69,6 +69,7 @@ function renderPage(overrides: Partial<CurrentPollProps> = {}) {
       onUpdateMetadata: vi.fn(),
       onUpdateSubmissionSettings: vi.fn(),
       onUpdateVotingSettings: vi.fn(),
+      uploadMaxFileSizeMB: 10,
       onLogin: vi.fn(),
       loginCta: 'Sign in',
       loginDisabled: false,

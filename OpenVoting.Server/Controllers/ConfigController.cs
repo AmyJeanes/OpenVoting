@@ -33,7 +33,8 @@ public sealed class ConfigController : ControllerBase
 		{
 			DiscordAuthorizeUrl = authorizeUrl,
 			ServerName = serverName,
-			ServerIconUrl = serverIcon
+			ServerIconUrl = serverIcon,
+			UploadMaxFileSizeMB = Math.Max(1, _settings.Upload.MaxFileSizeMB)
 		});
 	}
 
@@ -72,4 +73,5 @@ public sealed class ClientConfigResponse
 	public string DiscordAuthorizeUrl { get; init; } = string.Empty;
 	public string ServerName { get; init; } = string.Empty;
 	public string ServerIconUrl { get; init; } = string.Empty;
+	public int UploadMaxFileSizeMB { get; init; } = 10;
 }

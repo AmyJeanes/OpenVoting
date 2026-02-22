@@ -155,6 +155,7 @@ export type ConfigResponse = {
   discordAuthorizeUrl: string;
   serverName: string;
   serverIconUrl?: string;
+  uploadMaxFileSizeMB: number;
 };
 
 export type OneTimeDiscordLinkAuthResponse = {

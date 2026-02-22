@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -19,7 +20,14 @@ builder.Services.Configure<Settings>(builder.Configuration.GetSection("Settings"
 builder.Services.AddMemoryCache();
 
 var connectionString = builder.Configuration.GetConnectionString("Database") ?? throw new InvalidOperationException("Connection string 'Database' not found");
+var appSettings = builder.Configuration.GetSection("Settings").Get<Settings>() ?? new Settings();
 var jwtSettings = builder.Configuration.GetSection("Settings:Jwt").Get<JwtSettings>() ?? throw new InvalidOperationException("JWT settings not configured");
+var maxUploadFileSizeMb = Math.Max(1, appSettings.Upload.MaxFileSizeMB);
+
+builder.Services.Configure<FormOptions>(options =>
+{
+	options.MultipartBodyLengthLimit = ((long)maxUploadFileSizeMb * 1024 * 1024) + (1024 * 1024);
+});
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
 

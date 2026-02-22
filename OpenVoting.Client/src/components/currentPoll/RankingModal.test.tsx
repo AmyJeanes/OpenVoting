@@ -131,4 +131,36 @@ describe('RankingModal', () => {
     expect(screen.queryByText('By:')).not.toBeInTheDocument();
     expect(screen.queryByText('Alice')).not.toBeInTheDocument();
   });
+
+  it('shows Entry when optional title value matches poll title fallback', () => {
+    const pollWithOptionalTitle = createPollResponse({ title: 'Spring Contest', requireRanking: true, titleRequirement: 1 });
+    const fallbackTitleEntry = createEntryResponse({ id: 'entry-1', displayName: 'Spring Contest' });
+
+    render(
+      <RankingModal
+        open
+        poll={pollWithOptionalTitle}
+        rankedEntries={[fallbackTitleEntry]}
+        draggingId={null}
+        dragOverId={null}
+        dragOverAfter={false}
+        hasRankChanges
+        voteSubmitting={false}
+        hasExistingVote={false}
+        assetCache={{}}
+        entryAssetId={() => ''}
+        onBackToSelection={vi.fn()}
+        onSubmitRanks={vi.fn()}
+        onMoveRank={vi.fn()}
+        onDragStart={vi.fn()}
+        onDragOverItem={vi.fn()}
+        onDropOnItem={vi.fn()}
+        onDragEnd={vi.fn()}
+        setItemRef={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Entry')).toBeInTheDocument();
+    expect(screen.queryByText('Spring Contest')).not.toBeInTheDocument();
+  });
 });

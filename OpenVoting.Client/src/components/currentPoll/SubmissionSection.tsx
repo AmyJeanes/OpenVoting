@@ -14,6 +14,7 @@ export type SubmissionSectionProps = {
   submissionsRemaining: number | null;
   showEntryTitleField: boolean;
   showEntryDescriptionField: boolean;
+  maxUploadFileSizeMB?: number;
   onEntryFormChange: (form: SubmissionSectionProps['entryForm']) => void;
   onEntryFilesChange: (files: SubmissionSectionProps['entryFiles']) => void;
   onSubmitEntry: () => void;
@@ -33,6 +34,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
     submissionsRemaining,
     showEntryTitleField,
     showEntryDescriptionField,
+    maxUploadFileSizeMB = 10,
     onEntryFormChange,
     onEntryFilesChange,
     onSubmitEntry
@@ -46,7 +48,8 @@ export function SubmissionSection(props: SubmissionSectionProps) {
 
   const imageValidationMessages = new Set([
     'Please upload an image file',
-    'Images must be 5MB or smaller',
+    `Images must be ${maxUploadFileSizeMB}MB or smaller`,
+    `File exceeds the allowed limit of ${maxUploadFileSizeMB} MB`,
     'Images must be square (1:1 aspect ratio)',
     'Images must be at least 512×512',
     'Unable to read the selected image'
@@ -58,13 +61,9 @@ export function SubmissionSection(props: SubmissionSectionProps) {
   const showTitleInvalid = isTitleMissing && (titleTouched || submitAttempted);
   const showDescriptionInvalid = isDescriptionMissing && (descriptionTouched || submitAttempted);
   const showImageMissingInvalid = isImageMissing && (imageTouched || submitAttempted);
-  const showImageConstraintError = !!entrySubmitError
-    && imageValidationMessages.has(entrySubmitError)
-    && (imageTouched || submitAttempted);
-  const imageHelperText = showImageConstraintError
-    ? entrySubmitError
-    : (poll.imageRequirement === 2 ? 'Required' : 'Optional');
-  const hasValidationErrors = showTitleInvalid || showDescriptionInvalid || showImageMissingInvalid || showImageConstraintError || entryFileInvalid || entryFileValidationPending;
+  const imageRequirementsLabel = `${poll.imageRequirement === 2 ? 'Required' : 'Optional'} · Max ${maxUploadFileSizeMB}MB · Square · At least 512×512`;
+  const imageHelperText = imageRequirementsLabel;
+  const hasValidationErrors = showTitleInvalid || showDescriptionInvalid || showImageMissingInvalid || entryFileInvalid;
   const showValidationBanner = submitAttempted && hasValidationErrors;
   const disableSubmit = entrySubmitting
     || submissionLimitReached
@@ -120,8 +119,8 @@ export function SubmissionSection(props: SubmissionSectionProps) {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                        className={(showImageMissingInvalid || showImageConstraintError) ? 'input-invalid' : undefined}
-                        aria-invalid={showImageMissingInvalid || showImageConstraintError}
+                        className={(showImageMissingInvalid || entryFileInvalid) ? 'input-invalid' : undefined}
+                        aria-invalid={showImageMissingInvalid || entryFileInvalid}
                 onClick={(e) => {
                   e.currentTarget.value = '';
                 }}
@@ -130,7 +129,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
                   onEntryFilesChange({ ...entryFiles, original: e.target.files?.[0] ?? undefined });
                 }}
               />
-              <span className={(showImageMissingInvalid || showImageConstraintError) ? 'field-error' : 'field-hint'}>{imageHelperText}</span>
+              <span className={(showImageMissingInvalid || entryFileInvalid) ? 'field-error' : 'field-hint'}>{imageHelperText}</span>
             </label>
           )}
         </div>
@@ -172,3 +171,5 @@ export function SubmissionSection(props: SubmissionSectionProps) {
     </section>
   );
 }
+
+export default SubmissionSection;

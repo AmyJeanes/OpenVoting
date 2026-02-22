@@ -580,6 +580,8 @@ button.ghost {
     display: inline-flex;
     align-items: baseline;
     gap: 6px;
+    margin: 0;
+    line-height: 1.25;
 }
 
 .byline-label {
@@ -623,6 +625,11 @@ button.ghost {
 .entries.entry-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+}
+
+.entries.entry-grid > .entry-card.with-bottom-actions {
+    height: 100%;
 }
 
 .history-item {
@@ -974,14 +981,29 @@ button.ghost {
     height: 100%;
 }
 
+.entry-card.with-bottom-actions {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 .admin-entry-details {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
+    margin-top: 6px;
 }
 
 .admin-entry-details p {
     margin: 0;
+}
+
+.entry-card .entry-meta,
+.entry-card .entry-head-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
 }
 
 .admin-entry-badges {
@@ -1007,16 +1029,10 @@ button.ghost {
     background: color-mix(in srgb, var(--selected-bg) 88%, var(--ghost-bg-hover));
 }
 
-.admin-card .entry-card .actions {
+.entry-card.with-bottom-actions .actions.admin-entry-actions,
+.entry-card.with-bottom-actions .actions.my-entry-actions {
     margin-top: auto;
-}
-
-.admin-card .entry-card .actions.admin-entry-actions {
-    margin-top: 12px;
-}
-
-.entry-card .actions.my-entry-actions {
-    margin-top: 12px;
+    padding-top: 12px;
 }
 
 .entry-card.draft {
@@ -1057,6 +1073,17 @@ button.ghost {
 .entry-title {
     font-weight: 700;
     margin: 0;
+    line-height: 1.25;
+}
+
+.entry-card .byline {
+    margin: 0;
+    line-height: 1.25;
+}
+
+.entry-card .entry-description {
+    margin: 6px 0 0;
+    line-height: 1.35;
 }
 
 .disqualification-details {
@@ -1092,6 +1119,10 @@ button.ghost {
     width: 100%;
     text-align: inherit;
     cursor: zoom-in;
+}
+
+.admin-entry-description {
+    margin: 6px 0 0;
 }
 
 .entry-img-button:focus-visible {

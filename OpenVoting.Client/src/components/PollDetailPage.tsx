@@ -79,17 +79,21 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
   const isTie = detail.winners.length > 1 && detail.winners.every((w) => w.votes === detail.winners[0].votes);
 
   const winnerTitle = (winner: PollWinnerResponse) => {
-    const hasCustomTitle = (winner.displayName || '').trim().length > 0;
+    const winnerDisplayName = (winner.displayName || '').trim();
+    const hasCustomTitle = winnerDisplayName.length > 0;
+    const pollTitle = (detail.title || '').trim();
+    if (detail.titleRequirement === 0) return 'Entry';
+    if (detail.titleRequirement === 1 && hasCustomTitle && pollTitle.length > 0 && winnerDisplayName === pollTitle) return 'Entry';
     if (hasCustomTitle) return winner.displayName;
-    return detail.titleRequirement === 0 ? 'Entry' : 'Untitled entry';
+    return 'Untitled entry';
   };
 
   const entryTitle = (entry: PollDetailResponse['entries'][number]) => {
-    const hasCustomTitle = (entry.displayName || '').trim().length > 0;
-    if (detail.titleRequirement === 0) {
-      if (entry.submittedByDisplayName) return 'Entry';
-      return '';
-    }
+    const entryDisplayName = (entry.displayName || '').trim();
+    const hasCustomTitle = entryDisplayName.length > 0;
+    const pollTitle = (detail.title || '').trim();
+    if (detail.titleRequirement === 0) return 'Entry';
+    if (detail.titleRequirement === 1 && hasCustomTitle && pollTitle.length > 0 && entryDisplayName === pollTitle) return 'Entry';
     if (hasCustomTitle) return entry.displayName;
     return 'Untitled entry';
   };
@@ -184,7 +188,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
               return (
                 <li key={e.id} className={`entry-card ${e.isDisqualified ? 'unavailable' : ''}`}>
                   <div className="entry-head">
-                    <div>
+                    <div className="entry-meta">
                       <p className="entry-title">{titleText}</p>
                       {e.submittedByDisplayName && (
                         <p className="byline">
@@ -214,7 +218,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
                       )}
                     </div>
                   )}
-                  <p className="muted">{e.description}</p>
+                  <p className="muted entry-description">{e.description}</p>
                   <div className="actions entry-breakdown-summary">
                     <span className="pill subtle">{detail.votingMethod === 2 ? `${e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0} first-choice` : `${e.approvalVotes} approvals`}</span>
                   </div>

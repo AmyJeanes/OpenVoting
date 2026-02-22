@@ -14,24 +14,23 @@ namespace OpenVoting.Server.Controllers;
 [Authorize]
 public sealed class AssetsController : ControllerBase
 {
-	private const long MaxUploadBytes = 5 * 1024 * 1024;
-
 	private readonly ApplicationDbContext _db;
 	private readonly IAssetStorage _storage;
-	private readonly BlobStorageSettings _blobSettings;
+	private readonly Settings _settings;
 
 	public AssetsController(ApplicationDbContext db, IAssetStorage storage, IOptions<Settings> options)
 	{
 		_db = db;
 		_storage = storage;
-		_blobSettings = options.Value.BlobStorage;
+		_settings = options.Value;
 	}
 
 	[HttpPost]
-	[RequestSizeLimit(6 * 1024 * 1024)]
 	[Consumes("multipart/form-data")]
 	public async Task<ActionResult<AssetResponse>> Upload([FromForm] IFormFile file, CancellationToken cancellationToken)
 	{
+		var maxUploadBytes = GetMaxUploadBytes();
+
 		var authUser = AuthenticatedUser.FromPrincipal(User);
 		if (authUser is null)
 		{
@@ -43,9 +42,9 @@ public sealed class AssetsController : ControllerBase
 			return BadRequest("File is required");
 		}
 
-		if (file.Length > MaxUploadBytes)
+		if (file.Length > maxUploadBytes)
 		{
-			return BadRequest("Images must be 5MB or smaller");
+			return BadRequest($"Images must be {_settings.Upload.MaxFileSizeMB}MB or smaller");
 		}
 
 		if (string.IsNullOrWhiteSpace(file.ContentType) || !file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
@@ -59,7 +58,7 @@ public sealed class AssetsController : ControllerBase
 			{
 				RequireSquare = true,
 				MinDimension = 512,
-				MaxBytes = MaxUploadBytes
+				MaxBytes = maxUploadBytes
 			});
 
 			_db.Assets.Add(asset);
@@ -114,9 +113,9 @@ public sealed class AssetsController : ControllerBase
 
 	private AssetResponse ToResponse(Asset asset)
 	{
-		var url = string.IsNullOrWhiteSpace(_blobSettings.PublicBaseUrl)
+		var url = string.IsNullOrWhiteSpace(_settings.BlobStorage.PublicBaseUrl)
 			? null
-			: $"{_blobSettings.PublicBaseUrl.TrimEnd('/')}/{asset.StorageKey}";
+			: $"{_settings.BlobStorage.PublicBaseUrl.TrimEnd('/')}/{asset.StorageKey}";
 
 		return new AssetResponse
 		{
@@ -128,6 +127,8 @@ public sealed class AssetsController : ControllerBase
 			Url = url
 		};
 	}
+
+	private long GetMaxUploadBytes() => (long)Math.Max(1, _settings.Upload.MaxFileSizeMB) * 1024 * 1024;
 }
 
 public sealed class AssetResponse

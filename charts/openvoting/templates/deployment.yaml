@@ -74,6 +74,8 @@ spec:
               value: {{ $env.blobStorage.containerName | quote }}
             - name: Settings__BlobStorage__PublicBaseUrl
               value: {{ $env.blobStorage.publicBaseUrl | quote }}
+            - name: Settings__Upload__MaxFileSizeMB
+              value: {{ $env.upload.maxFileSizeMB | quote }}
           livenessProbe:
             httpGet:
               path: /healthz

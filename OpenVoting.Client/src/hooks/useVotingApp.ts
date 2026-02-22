@@ -54,7 +54,7 @@ const defaultEntryForm = {
   description: ''
 };
 
-const maxUploadBytes = 5 * 1024 * 1024;
+const defaultMaxUploadFileSizeMB = 10;
 
 type ConfirmResolver = (result: boolean) => void;
 
@@ -111,6 +111,17 @@ export function useVotingApp() {
 
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const uploadMaxFileSizeMB = Math.max(1, config?.uploadMaxFileSizeMB ?? defaultMaxUploadFileSizeMB);
+  const uploadMaxBytes = uploadMaxFileSizeMB * 1024 * 1024;
+
+  const isImageValidationMessage = (message: string) => {
+    return message === 'Please upload an image file'
+      || message === `Images must be ${uploadMaxFileSizeMB}MB or smaller`
+      || message === `File exceeds the allowed limit of ${uploadMaxFileSizeMB} MB`
+      || message === 'Images must be square (1:1 aspect ratio)'
+      || message === 'Images must be at least 512×512'
+      || message === 'Unable to read the selected image';
+  };
 
   useEffect(() => {
     const storedFlash = localStorage.getItem('ov_flash');
@@ -662,8 +673,8 @@ export function useVotingApp() {
       throw new Error('Please upload an image file');
     }
 
-    if (file.size > maxUploadBytes) {
-      throw new Error('Images must be 5MB or smaller');
+    if (file.size > uploadMaxBytes) {
+      throw new Error(`Images must be ${uploadMaxFileSizeMB}MB or smaller`);
     }
 
     const { width, height } = await readImageDimensions(file);
@@ -769,9 +780,10 @@ export function useVotingApp() {
         originalId = upload.id;
       }
 
+      const normalizedDisplayName = displayNameInput.trim();
       const payloadDisplayName = titleRequirement === 0
-        ? poll.title || 'Entry'
-        : displayNameInput || poll.title || 'Entry';
+        ? 'Entry'
+        : (normalizedDisplayName || 'Entry');
       const payloadDescription = descriptionRequirement === 0 ? undefined : descriptionInput || undefined;
 
       const res = await authedFetch(`/api/polls/${poll.id}/entries`, {
@@ -800,14 +812,9 @@ export function useVotingApp() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to submit entry';
       setEntrySubmitError(message);
-      if (
-        message === 'Please upload an image file'
-        || message === 'Images must be 5MB or smaller'
-        || message === 'Images must be square (1:1 aspect ratio)'
-        || message === 'Images must be at least 512×512'
-        || message === 'Unable to read the selected image'
-      ) {
+      if (isImageValidationMessage(message)) {
         setEntryFileInvalid(true);
+        showToast(message, { tone: 'error' });
       }
     } finally {
       setEntrySubmitting(false);
@@ -855,8 +862,9 @@ export function useVotingApp() {
         }
         setEntryFileValidationPending(false);
         setEntryFileInvalid(true);
-        const message = err instanceof Error ? err.message : 'Please choose a square image under 5MB and at least 512×512';
+        const message = err instanceof Error ? err.message : `Please choose a square image under ${uploadMaxFileSizeMB}MB and at least 512×512`;
         setEntrySubmitError(message);
+        showToast(message, { tone: 'error' });
       });
   };
 
@@ -1296,6 +1304,7 @@ export function useVotingApp() {
     setToken,
     me,
     config,
+    uploadMaxFileSizeMB,
     configError,
     flash,
     setFlash,
