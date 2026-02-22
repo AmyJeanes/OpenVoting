@@ -31,8 +31,35 @@ export function VotingMethodInfo({ method }: { method: number }) {
     return () => window.removeEventListener('pointerdown', handlePointerDown);
   }, [open]);
 
+  const handlePointerEnter = (event: React.PointerEvent<HTMLSpanElement>) => {
+    if (event.pointerType !== 'mouse') return;
+    setOpen(true);
+  };
+
+  const handlePointerLeave = (event: React.PointerEvent<HTMLSpanElement>) => {
+    if (event.pointerType !== 'mouse') return;
+    const nextTarget = event.relatedTarget;
+    if (nextTarget instanceof Node && rootRef.current?.contains(nextTarget)) {
+      return;
+    }
+    setOpen(false);
+  };
+
+  const handlePointerDownCapture = (event: React.PointerEvent<HTMLSpanElement>) => {
+    if (!open || event.pointerType === 'mouse') return;
+    setOpen(false);
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   return (
-    <span ref={rootRef} className="method-info" onMouseLeave={() => setOpen(false)}>
+    <span
+      ref={rootRef}
+      className={`method-info${open ? ' open' : ''}`}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+      onPointerDownCapture={handlePointerDownCapture}
+    >
       <button
         className="info-chip"
         type="button"

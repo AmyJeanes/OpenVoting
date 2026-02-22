@@ -821,24 +821,25 @@ button.ghost {
 }
 
 .history-preview-grid.is-tie {
+    --tie-count: 2;
+    display: grid;
+    grid-template-columns: repeat(var(--tie-count), minmax(0, 1fr));
     justify-content: center;
+    gap: 10px;
+    width: min(392px, 100%);
+    max-width: 392px;
 }
 
 .history-preview-grid.is-tie .history-thumb {
-    width: min(190px, 100%);
-    flex: 1 1 190px;
-    max-width: 190px;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: 0 0 auto;
 }
 
 .history-preview-grid.is-tie .history-thumb img,
 .history-preview-grid.is-tie .history-thumb-fallback {
     width: 100%;
-}
-
-.history-preview-grid.is-tie .history-thumb--remaining {
-    width: 96px;
-    height: 96px;
-    flex: 0 0 96px;
 }
 
 .history-side {
@@ -894,6 +895,14 @@ button.ghost {
     border: 1px solid var(--pill-winner-border);
 }
 
+.history-thumb-label.stacked {
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+    line-height: 1.1;
+    padding: 6px 10px;
+}
+
 .history-thumb-title {
     font-weight: 700;
 }
@@ -905,19 +914,6 @@ button.ghost {
 .history-thumb--fallback {
     text-transform: uppercase;
     letter-spacing: 1px;
-}
-
-.history-thumb--remaining {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: var(--ghost-bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    border: 1px dashed var(--border-strong);
-    color: var(--text-muted);
 }
 
 .history-meta {
@@ -1992,6 +1988,21 @@ textarea {
     z-index: 30;
 }
 
+.method-info.open {
+    z-index: 90;
+}
+
+.method-info.open::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -6px;
+    width: 332px;
+    height: 54px;
+    clip-path: polygon(86% 0, 100% 0, 100% 100%, 0 100%);
+    pointer-events: auto;
+}
+
 .info-chip {
     border: 1px solid var(--border);
     background: var(--surface-alt);
@@ -2015,7 +2026,7 @@ textarea {
 
 .method-popover {
     position: absolute;
-    top: 120%;
+    top: calc(100% + 18px);
     right: 0;
     min-width: 260px;
     max-width: 320px;
@@ -2028,7 +2039,24 @@ textarea {
     text-align: left;
 }
 
+.method-popover::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    right: 8px;
+    width: 12px;
+    height: 12px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    transform: rotate(45deg);
+}
+
 @media (max-width: 540px) {
+    .method-info.open::after {
+        display: none;
+    }
+
     .method-popover {
         position: fixed;
         min-width: 0;

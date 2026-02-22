@@ -64,4 +64,38 @@ describe('HistoryPage', () => {
     expect(screen.getByText('Spring Contest')).toBeInTheDocument();
     expect(screen.queryByText('Summer Clash')).not.toBeInTheDocument();
   });
+
+  it('shows all tied winners in the preview without a remaining counter', () => {
+    const tiePoll = createHistoryPoll({
+      winners: [
+        {
+          entryId: 'entry-1',
+          displayName: 'Winner One',
+          votes: 10,
+          submittedByDisplayName: 'Winner One'
+        },
+        {
+          entryId: 'entry-2',
+          displayName: 'Winner Two',
+          votes: 10,
+          submittedByDisplayName: 'Winner Two'
+        },
+        {
+          entryId: 'entry-3',
+          displayName: 'Winner Three',
+          votes: 10,
+          submittedByDisplayName: 'Winner Three'
+        }
+      ]
+    });
+
+    renderHistory({ history: [tiePoll] });
+
+    expect(screen.getByTitle('Winner One')).toBeInTheDocument();
+    expect(screen.getByTitle('Winner Two')).toBeInTheDocument();
+    expect(screen.getByTitle('Winner Three')).toBeInTheDocument();
+    const stackedVoteLabels = screen.getAllByText('10 votes').filter((node) => node.closest('.history-thumb-label.stacked'));
+    expect(stackedVoteLabels).toHaveLength(3);
+    expect(screen.queryByText('+1')).not.toBeInTheDocument();
+  });
 });

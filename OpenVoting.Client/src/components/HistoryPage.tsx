@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { VotingMethodInfo } from './VotingMethodInfo';
@@ -100,6 +100,10 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
               {(() => {
                 const closedText = `Closed ${new Date(p.votingClosesAt).toLocaleString()}`;
                 const isTie = p.winners.length > 1 && p.winners.every((w) => w.votes === p.winners[0].votes);
+                const stackVoteCount = isTie && p.winners.length > 2;
+                const tiePreviewStyle = isTie
+                  ? ({ ['--tie-count' as '--tie-count']: Math.max(p.winners.length, 1) } as CSSProperties)
+                  : undefined;
 
                 const renderThumb = (winner: PollHistoryResponse['winners'][number]) => {
                   const asset = winner.assetId ? assetCache[winner.assetId] : undefined;
@@ -117,18 +121,18 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                       className="history-thumb"
                     >
                       <img src={asset.url} alt={titleText} />
-                      <div className="history-thumb-label pill winner">
+                      <div className={`history-thumb-label pill winner${stackVoteCount ? ' stacked' : ''}`}>
                         <span className="history-thumb-title">{winnerUser(winner)}</span>
-                        <span aria-hidden="true">·</span>
+                        {!stackVoteCount && <span aria-hidden="true">·</span>}
                         <span className="history-thumb-count">{voteLabel}</span>
                       </div>
                     </Link>
                   ) : (
                     <Link key={winner.entryId} to={entryLink} className="history-thumb history-thumb--fallback" title={titleText}>
                       <div className="history-thumb-fallback">{fallbackLabel}</div>
-                      <div className="history-thumb-label pill winner">
+                      <div className={`history-thumb-label pill winner${stackVoteCount ? ' stacked' : ''}`}>
                         <span className="history-thumb-title">{winnerUser(winner)}</span>
-                        <span aria-hidden="true">·</span>
+                        {!stackVoteCount && <span aria-hidden="true">·</span>}
                         <span className="history-thumb-count">{voteLabel}</span>
                       </div>
                     </Link>
@@ -151,11 +155,8 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                         <div className="history-body">
                           <div className="history-side" />
 
-                          <div className={`history-preview-grid ${isTie ? 'is-tie' : ''}`}>
-                            {isTie ? p.winners.slice(0, 2).map(renderThumb) : renderThumb(p.winners[0])}
-                            {isTie && p.winners.length > 2 && (
-                              <div className="history-thumb history-thumb--remaining">+{p.winners.length - 2}</div>
-                            )}
+                          <div className={`history-preview-grid ${isTie ? 'is-tie' : ''}`} style={tiePreviewStyle}>
+                            {isTie ? p.winners.map(renderThumb) : renderThumb(p.winners[0])}
                           </div>
 
                           <div className="history-meta">
