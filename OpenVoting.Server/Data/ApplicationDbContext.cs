@@ -13,6 +13,7 @@ public sealed class ApplicationDbContext : DbContext
   public DbSet<Vote> Votes => Set<Vote>();
   public DbSet<VoteChoice> VoteChoices => Set<VoteChoice>();
   public DbSet<Asset> Assets => Set<Asset>();
+    public DbSet<OneTimeLoginToken> OneTimeLoginTokens => Set<OneTimeLoginToken>();
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
@@ -37,6 +38,22 @@ public sealed class ApplicationDbContext : DbContext
 
     modelBuilder.Entity<VoteChoice>()
         .HasIndex(c => new { c.VoteId, c.Rank });
+
+    modelBuilder.Entity<OneTimeLoginToken>()
+        .HasIndex(t => t.TokenHash)
+        .IsUnique();
+
+    modelBuilder.Entity<OneTimeLoginToken>()
+        .HasIndex(t => t.ExpiresAt);
+
+    modelBuilder.Entity<OneTimeLoginToken>()
+        .HasIndex(t => new { t.CommunityMemberId, t.UsedAt, t.RevokedAt, t.ExpiresAt });
+
+    modelBuilder.Entity<OneTimeLoginToken>()
+        .HasOne(t => t.CommunityMember)
+        .WithMany()
+        .HasForeignKey(t => t.CommunityMemberId)
+        .OnDelete(DeleteBehavior.Cascade);
 
     modelBuilder.Entity<PollEntry>()
         .HasOne(e => e.DisqualifiedByMember)

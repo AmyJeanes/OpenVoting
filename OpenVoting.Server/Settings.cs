@@ -13,6 +13,8 @@ public sealed class DiscordSettings
 	public string ClientSecret { get; init; } = string.Empty;
 	public string GuildId { get; init; } = string.Empty;
 	public string? BotToken { get; init; }
+	public string? InteractionsPublicKey { get; init; }
+	public int LoginLinkExpirationMinutes { get; init; } = 5;
 	public string[] AdminRoleIds { get; init; } = Array.Empty<string>();
 }
 

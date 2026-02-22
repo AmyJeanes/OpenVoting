@@ -56,7 +56,19 @@ builder.Services.AddHttpClient<IDiscordGuildService, DiscordGuildService>((sp, c
 	}
 });
 
+builder.Services.AddHttpClient<IDiscordCommandRegistrar, DiscordCommandRegistrar>((sp, client) =>
+{
+	var settings = sp.GetRequiredService<IOptions<Settings>>().Value;
+	client.BaseAddress = new Uri("https://discord.com/api/");
+	if (!string.IsNullOrWhiteSpace(settings.Discord.BotToken))
+	{
+		client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bot", settings.Discord.BotToken);
+	}
+});
+builder.Services.AddHostedService<DiscordCommandRegistrationHostedService>();
+
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<IOneTimeLoginLinkService, OneTimeLoginLinkService>();
 builder.Services.AddSingleton<BlobServiceClient>(sp =>
 {
 	var settings = sp.GetRequiredService<IOptions<Settings>>().Value;

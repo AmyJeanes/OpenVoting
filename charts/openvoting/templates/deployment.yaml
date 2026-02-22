@@ -50,6 +50,8 @@ spec:
                 secretKeyRef:
                   name: openvoting-secrets
                   key: "discord-bot-token"
+            - name: Settings__Discord__InteractionsPublicKey
+              value: {{ $env.discord.interactionsPublicKey | quote }}
             {{- $roles := splitList "," $env.discord.adminRoleIds }}
             {{- range $idx, $role := $roles }}
               {{- $trimmed := trim $role }}

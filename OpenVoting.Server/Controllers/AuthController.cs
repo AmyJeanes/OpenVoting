@@ -18,6 +18,7 @@ public class AuthController : ControllerBase
 	private readonly ApplicationDbContext _db;
 	private readonly TokenService _tokenService;
 	private readonly IDiscordOAuthService _discordOAuthService;
+	private readonly IOneTimeLoginLinkService _oneTimeLoginLinkService;
 	private readonly DiscordSettings _discordSettings;
 	private readonly ILogger<AuthController> _logger;
 
@@ -25,14 +26,38 @@ public class AuthController : ControllerBase
 		ApplicationDbContext db,
 		TokenService tokenService,
 		IDiscordOAuthService discordOAuthService,
+		IOneTimeLoginLinkService oneTimeLoginLinkService,
 		IOptions<Settings> settings,
 		ILogger<AuthController> logger)
 	{
 		_db = db;
 		_tokenService = tokenService;
 		_discordOAuthService = discordOAuthService;
+		_oneTimeLoginLinkService = oneTimeLoginLinkService;
 		_discordSettings = settings.Value.Discord;
 		_logger = logger;
+	}
+
+	[AllowAnonymous]
+	[HttpGet("discord-link")]
+	public async Task<ActionResult> ExchangeOneTimeDiscordLink([FromQuery] string token, CancellationToken cancellationToken)
+	{
+		var result = await _oneTimeLoginLinkService.ConsumeAsync(token, cancellationToken);
+		if (!result.IsSuccess || result.Payload is null)
+		{
+			var reason = result.Error ?? "Login link is invalid";
+			return new ContentResult
+			{
+				StatusCode = StatusCodes.Status403Forbidden,
+				ContentType = MediaTypeNames.Text.Html,
+				Content = BuildForbiddenHtml(reason)
+			};
+		}
+
+		var payload = result.Payload;
+		var tokenJs = JsonSerializer.Serialize(payload.Token);
+		var html = $"<html><body><script>localStorage.setItem('ov_token',{tokenJs});window.location='/'</script></body></html>";
+		return Content(html, "text/html");
 	}
 
 	[AllowAnonymous]
