@@ -9,7 +9,6 @@ TODO:
 - Voting details could all be under a dropdown to reduce clutter
 - Adjustable slider for the size of the entries per row on the voting page
 - Show total number of votes cast so far in the poll (but not specifics)
-- Blur the images much more during submission stage
 - Add Discord bot for a command to easy one-time login link without having to sign in via browser Discord (where people are often not logged in)
 - Fill out README with overview, setup instructions, etc.
 - Add proper logo to Discord bot and site favicon
