@@ -38,16 +38,16 @@ public class AuthController : ControllerBase
 	}
 
 	[AllowAnonymous]
-	[HttpGet("discord-link")]
-	public ActionResult ExchangeOneTimeDiscordLink([FromQuery] string token)
+	[HttpGet("discord-link/status")]
+	public async Task<ActionResult<DiscordLinkStatusResponse>> GetDiscordLinkStatus([FromQuery] string token, CancellationToken cancellationToken)
 	{
-		if (string.IsNullOrWhiteSpace(token))
+		var status = await _oneTimeLoginLinkService.GetStatusAsync(token, cancellationToken);
+		return Ok(new DiscordLinkStatusResponse
 		{
-			return BadRequest("Missing login token");
-		}
-
-		var encodedToken = Uri.EscapeDataString(token);
-		return Redirect($"/auth/discord-link?token={encodedToken}");
+			Status = status.Status.ToString().ToLowerInvariant(),
+			DisplayName = status.DisplayName,
+			Message = status.Message
+		});
 	}
 
 	[AllowAnonymous]
@@ -237,6 +237,13 @@ public sealed class DiscordAuthRequest
 public sealed class DiscordLinkAuthRequest
 {
 	public string Token { get; init; } = string.Empty;
+}
+
+public sealed class DiscordLinkStatusResponse
+{
+	public string Status { get; init; } = "invalid";
+	public string? DisplayName { get; init; }
+	public string? Message { get; init; }
 }
 
 public sealed class AuthResponse

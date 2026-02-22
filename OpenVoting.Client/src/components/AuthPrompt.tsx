@@ -10,6 +10,7 @@ export function AuthPrompt({ onLogin, loginCta = 'Sign in', loginDisabled = fals
       <p className="eyebrow">Sign-in required</p>
       <h2>Please log in to continue</h2>
       <p className="muted">You need to be a member of the Discord server to view polls and vote. Sign in with Discord to continue</p>
+      <p className="muted">You can also run <code>/voting</code> anywhere in the server to get a one-time login link</p>
       {onLogin && (
         <div className="actions">
           <button className="primary" disabled={loginDisabled} onClick={onLogin}>{loginCta}</button>

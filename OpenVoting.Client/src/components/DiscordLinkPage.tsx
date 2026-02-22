@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import type { OneTimeDiscordLinkAuthResponse } from '../types';
+import type { FlashMessage, OneTimeDiscordLinkAuthResponse, OneTimeDiscordLinkStatusResponse } from '../types';
 
 const tokenStorageKey = 'ov_token';
 
@@ -10,18 +10,91 @@ export function DiscordLinkPage() {
   const token = params.get('token') ?? '';
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [status, setStatus] = useState<OneTimeDiscordLinkStatusResponse | null>(null);
 
   const hasToken = token.trim().length > 0;
-  const description = useMemo(() => {
+  const canContinue = hasToken && status?.status === 'valid';
+
+  useEffect(() => {
     if (!hasToken) {
-      return 'This login link is missing a token';
+      setStatus({ status: 'invalid', message: 'Missing login token' });
+      return;
     }
 
-    return 'This one-time link signs you in to OpenVoting';
-  }, [hasToken]);
+    let cancelled = false;
+    const fetchStatus = async () => {
+      setStatusLoading(true);
+      try {
+        const response = await fetch(`/api/auth/discord-link/status?token=${encodeURIComponent(token)}`);
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || 'Unable to verify login link');
+        }
+
+        const payload: OneTimeDiscordLinkStatusResponse = await response.json();
+        if (!cancelled) {
+          setStatus(payload);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Unable to verify login link';
+          setStatus({ status: 'invalid', message });
+        }
+      } finally {
+        if (!cancelled) {
+          setStatusLoading(false);
+        }
+      }
+    };
+
+    fetchStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasToken, token]);
+
+  const title = useMemo(() => {
+    if (!hasToken) {
+      return 'Do you want to log in?';
+    }
+
+    if (statusLoading) {
+      return 'Checking login link…';
+    }
+
+    if (status?.displayName) {
+      return `Do you want to log in as ${status.displayName}?`;
+    }
+
+    return 'Do you want to log in?';
+  }, [hasToken, statusLoading, status]);
+
+  const warningMessage = useMemo<FlashMessage | null>(() => {
+    if (status?.status === 'used') {
+      return {
+        text: `${status.message ?? 'This login link has already been used'}. Run this in the Discord server for a new link:`,
+        code: '/voting'
+      };
+    }
+
+    if (status && status.status !== 'valid' && status.message) {
+      return status.message;
+    }
+
+    return null;
+  }, [status]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent<FlashMessage | null>('ov-flash', { detail: warningMessage }));
+
+    return () => {
+      window.dispatchEvent(new CustomEvent<FlashMessage | null>('ov-flash', { detail: null }));
+    };
+  }, [warningMessage]);
 
   const handleContinue = async () => {
-    if (!hasToken || submitting) {
+    if (!canContinue || submitting) {
       return;
     }
 
@@ -56,11 +129,10 @@ export function DiscordLinkPage() {
   return (
     <section className="card splash">
       <p className="eyebrow">Discord sign in</p>
-      <h2>Continue sign in</h2>
-      <p className="muted">{description}</p>
+      <h2>{title}</h2>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
-        <button className="primary" type="button" onClick={handleContinue} disabled={!hasToken || submitting}>
+        <button className="primary" type="button" onClick={handleContinue} disabled={!canContinue || statusLoading || submitting}>
           {submitting ? 'Signing in…' : 'Continue'}
         </button>
         <button className="ghost" type="button" onClick={() => navigate('/', { replace: true })}>

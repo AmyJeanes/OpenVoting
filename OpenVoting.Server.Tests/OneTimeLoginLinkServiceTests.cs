@@ -112,6 +112,54 @@ public class OneTimeLoginLinkServiceTests
 		});
 	}
 
+	[Test]
+	public async Task GetStatusAsync_UsedToken_ReturnsUsed()
+	{
+		using var db = TestDbContextFactory.CreateContext(useSqlite: true);
+		var service = CreateService(db);
+
+		var issue = await service.IssueForDiscordUserAsync(
+			new DiscordInteractionUserContext("user-5", "UserFive", "User Five", [], null),
+			"https://vote.example.com",
+			CancellationToken.None);
+
+		var token = ExtractToken(issue.LoginLink);
+		_ = await service.ConsumeAsync(token, CancellationToken.None);
+
+		var status = await service.GetStatusAsync(token, CancellationToken.None);
+		Assert.Multiple(() =>
+		{
+			Assert.That(status.Status, Is.EqualTo(OneTimeLoginLinkStatus.Used));
+			Assert.That(status.DisplayName, Is.EqualTo("User Five"));
+		});
+	}
+
+	[Test]
+	public async Task CleanupStaleAsync_RemovesOldExpiredRows()
+	{
+		using var db = TestDbContextFactory.CreateContext(useSqlite: true);
+		var service = CreateService(db);
+
+		var issue = await service.IssueForDiscordUserAsync(
+			new DiscordInteractionUserContext("user-6", "UserSix", null, [], null),
+			"https://vote.example.com",
+			CancellationToken.None);
+
+		var tokenHash = GetTokenHash(db);
+		var entity = await db.OneTimeLoginTokens.SingleAsync(t => t.TokenHash == tokenHash, CancellationToken.None);
+		entity.ExpiresAt = DateTimeOffset.UtcNow.AddDays(-2);
+		await db.SaveChangesAsync(CancellationToken.None);
+
+		var deletedCount = await service.CleanupStaleAsync(CancellationToken.None);
+		var remaining = await db.OneTimeLoginTokens.CountAsync(CancellationToken.None);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(deletedCount, Is.EqualTo(1));
+			Assert.That(remaining, Is.EqualTo(0));
+		});
+	}
+
 	private static OneTimeLoginLinkService CreateService(ApplicationDbContext db, string[]? adminRoleIds = null)
 	{
 		var settings = Options.Create(new Settings

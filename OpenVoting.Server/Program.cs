@@ -69,6 +69,7 @@ builder.Services.AddHostedService<DiscordCommandRegistrationHostedService>();
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IOneTimeLoginLinkService, OneTimeLoginLinkService>();
+builder.Services.AddHostedService<OneTimeLoginTokenCleanupHostedService>();
 builder.Services.AddSingleton<BlobServiceClient>(sp =>
 {
 	var settings = sp.GetRequiredService<IOptions<Settings>>().Value;

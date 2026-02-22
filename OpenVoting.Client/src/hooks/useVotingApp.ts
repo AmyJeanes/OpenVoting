@@ -12,7 +12,8 @@ import type {
   CreatePollForm,
   SessionState,
   VoteResponse,
-  VotingBreakdownEntry
+  VotingBreakdownEntry,
+  FlashMessage
 } from '../types';
 import { useToast } from '../components';
 
@@ -39,7 +40,7 @@ export function useVotingApp() {
   const [me, setMe] = useState<MeResponse | null>(null);
   const [config, setConfig] = useState<ConfigResponse | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, setFlash] = useState<FlashMessage | null>(null);
 
   const [poll, setPoll] = useState<PollResponse | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
@@ -98,6 +99,30 @@ export function useVotingApp() {
     } else {
       setSessionState('anonymous');
     }
+  }, []);
+
+  useEffect(() => {
+    const handleFlashEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<FlashMessage | null>;
+      const message = customEvent.detail;
+
+      if (typeof message === 'string') {
+        setFlash(message.trim().length > 0 ? message : null);
+        return;
+      }
+
+      if (message && message.text.trim().length > 0) {
+        setFlash(message);
+        return;
+      }
+
+      setFlash(null);
+    };
+
+    window.addEventListener('ov-flash', handleFlashEvent);
+    return () => {
+      window.removeEventListener('ov-flash', handleFlashEvent);
+    };
   }, []);
 
   useEffect(() => {

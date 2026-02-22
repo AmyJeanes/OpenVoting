@@ -157,4 +157,17 @@ export type OneTimeDiscordLinkAuthResponse = {
   token: string;
 };
 
+export type OneTimeDiscordLinkStatus = 'valid' | 'used' | 'expired' | 'revoked' | 'banned' | 'invalid';
+
+export type OneTimeDiscordLinkStatusResponse = {
+  status: OneTimeDiscordLinkStatus;
+  displayName?: string;
+  message?: string;
+};
+
+export type FlashMessage = string | {
+  text: string;
+  code?: string;
+};
+
 export type SessionState = 'idle' | 'loading' | 'authenticated' | 'anonymous';

@@ -79,7 +79,7 @@ public sealed class DiscordInteractionsController : ControllerBase
 
 		if (interaction.Member?.User is null)
 		{
-			return Ok(EphemeralResponse("Run this command in the OpenVoting server"));
+			return Ok(EphemeralResponse("Run this command in the Discord server not in a DM to get your login link"));
 		}
 
 		var appBaseUrl = UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase);
