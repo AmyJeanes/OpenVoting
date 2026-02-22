@@ -1,0 +1,67 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { HistoryPage } from './HistoryPage';
+import { ToastProvider } from './ToastProvider';
+import type { HistoryProps } from './HistoryPage';
+
+const iso = () => new Date('2024-01-01T00:00:00.000Z').toISOString();
+
+const createHistoryPoll = (overrides: Partial<HistoryProps['history'][number]> = {}): HistoryProps['history'][number] => ({
+  id: 'poll-1',
+  title: 'Sample Poll',
+  description: 'Sample description',
+  status: 5,
+  votingMethod: 1,
+  votingClosesAt: iso(),
+  totalVotes: 3,
+  winners: [
+    {
+      entryId: 'entry-1',
+      displayName: 'Winner',
+      votes: 3,
+      submittedByDisplayName: 'Winner'
+    }
+  ],
+  ...overrides
+});
+
+const renderHistory = (props: Partial<HistoryProps> = {}) => {
+  return render(
+    <ToastProvider>
+      <MemoryRouter>
+        <HistoryPage
+          sessionState={props.sessionState ?? 'authenticated'}
+          history={props.history ?? []}
+          historyError={props.historyError ?? null}
+          assetCache={props.assetCache ?? {}}
+          onRefresh={props.onRefresh ?? vi.fn()}
+          onLogin={props.onLogin ?? vi.fn()}
+          loginCta={props.loginCta ?? 'Sign in'}
+          loginDisabled={props.loginDisabled ?? false}
+        />
+      </MemoryRouter>
+    </ToastProvider>
+  );
+};
+
+describe('HistoryPage', () => {
+  it('filters past polls by title and description in realtime', async () => {
+    const springPoll = createHistoryPoll({ id: 'poll-1', title: 'Spring Contest', description: 'Season opener' });
+    const summerPoll = createHistoryPoll({ id: 'poll-2', title: 'Summer Clash', description: 'Beach theme' });
+
+    renderHistory({ history: [springPoll, summerPoll] });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open search' }));
+    const searchInput = screen.getByRole('textbox', { name: 'Search past polls' });
+
+    await userEvent.type(searchInput, 'beach');
+    expect(screen.getByText('Summer Clash')).toBeInTheDocument();
+    expect(screen.queryByText('Spring Contest')).not.toBeInTheDocument();
+
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, 'spring');
+    expect(screen.getByText('Spring Contest')).toBeInTheDocument();
+    expect(screen.queryByText('Summer Clash')).not.toBeInTheDocument();
+  });
+});

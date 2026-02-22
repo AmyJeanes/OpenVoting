@@ -106,6 +106,7 @@ export function VotingSection(props: VotingSectionProps) {
                 }}>
                   <input
                     type="checkbox"
+                    className={isUnavailable ? 'unavailable-checkbox' : undefined}
                     checked={isSelected}
                     disabled={isUnavailable}
                     aria-disabled={isUnavailable}

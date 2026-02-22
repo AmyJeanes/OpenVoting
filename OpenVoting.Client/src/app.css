@@ -230,6 +230,97 @@
     margin-bottom: 8px;
 }
 
+.section-head-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.poll-search-shell {
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;
+    border-radius: 12px;
+}
+
+.poll-search-input-wrap {
+    display: flex;
+    align-items: center;
+    position: absolute;
+    right: calc(100% - 1px);
+    top: 0;
+    bottom: 0;
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: width 180ms ease, opacity 120ms ease, border-color 150ms ease;
+    border: 1px solid var(--border);
+    border-right: 0;
+    border-radius: 12px 0 0 12px;
+    background: var(--input-bg);
+    padding-left: 10px;
+}
+
+.poll-search-shell.expanded .poll-search-input-wrap {
+    width: 230px;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.poll-search-input {
+    width: 220px;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    padding-left: 0;
+}
+
+.poll-search-shell.expanded:focus-within .poll-search-input,
+.poll-search-shell.expanded:focus-within .search-toggle,
+.poll-search-shell.expanded:focus-within .poll-search-input-wrap {
+    border-color: var(--selected-border);
+}
+
+.poll-search-input:focus-visible {
+    box-shadow: none;
+}
+
+.search-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 56px;
+    height: calc(1.6em + 22px);
+    min-height: calc(1.6em + 22px);
+    padding-inline: 14px;
+    padding-block: 10px;
+    border-color: var(--border);
+    transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.search-toggle:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.poll-search-shell.expanded .search-toggle {
+    border-radius: 0 12px 12px 0;
+    border-left: 0;
+}
+
+.poll-search-icon {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .poll-header-head {
     align-items: flex-start;
     margin-bottom: 24px;
@@ -1079,6 +1170,85 @@ textarea {
     resize: vertical;
 }
 
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: none;
+    border-color: var(--selected-border);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--selected-border) 28%, transparent);
+}
+
+input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: var(--surface);
+    position: relative;
+    cursor: pointer;
+    transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+input[type="checkbox"]:hover {
+    border-color: var(--selected-border);
+}
+
+input[type="checkbox"]:focus-visible {
+    outline: none;
+    border-color: var(--selected-border);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--selected-border) 35%, transparent);
+}
+
+input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0.32rem;
+    height: 0.62rem;
+    border-right: 2px solid var(--accent-strong);
+    border-bottom: 2px solid var(--accent-strong);
+    transform: translate(-50%, -58%) rotate(45deg) scale(0);
+    transform-origin: center;
+}
+
+input[type="checkbox"]:checked {
+    border-color: var(--selected-border);
+    background: var(--selected-bg);
+}
+
+input[type="checkbox"]:checked::after {
+    transform: translate(-50%, -58%) rotate(45deg) scale(1);
+}
+
+input[type="checkbox"]:indeterminate {
+    border-color: var(--selected-border);
+    background: var(--selected-bg);
+}
+
+input[type="checkbox"]:indeterminate::after {
+    width: 0.58rem;
+    height: 2px;
+    border: 0;
+    background: var(--accent-strong);
+    border-radius: 2px;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    background: var(--surface-subtle);
+}
+
+input[type="checkbox"]:disabled::after {
+    border-right-color: var(--text-muted);
+    border-bottom-color: var(--text-muted);
+    background: var(--text-muted);
+}
+
 input[type="file"] {
     width: 100%;
     max-width: 100%;
@@ -1146,6 +1316,11 @@ textarea {
     font-weight: 600;
 }
 
+.check-row input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin-top: 1px;
+}
+
 .vote-list .entry-vote {
     display: grid;
     grid-template-columns: auto 1fr;
@@ -1203,6 +1378,18 @@ textarea {
 
 .vote-card.unavailable .check-row input[type="checkbox"] {
     cursor: not-allowed;
+    background: var(--surface-subtle);
+}
+
+.vote-card.unavailable .check-row input[type="checkbox"].unavailable-checkbox::after {
+    width: 0.7rem;
+    height: 0.7rem;
+    border: 0;
+    transform: translate(-50%, -50%);
+    background:
+        linear-gradient(45deg, transparent 44%, var(--danger-text) 44%, var(--danger-text) 56%, transparent 56%),
+        linear-gradient(-45deg, transparent 44%, var(--danger-text) 44%, var(--danger-text) 56%, transparent 56%);
+    border-radius: 2px;
 }
 
 .vote-status-banner {
@@ -1447,27 +1634,33 @@ textarea {
 }
 
 .lightbox-card {
-    width: min(96vw, 1100px);
-    max-width: 1100px;
+    width: auto;
+    max-width: none;
     gap: 12px;
     padding: 14px;
     animation: lightbox-scale-in 200ms ease;
 }
 
 .lightbox-body {
-    background: var(--surface-inner);
-    border: 1px solid var(--border);
+    background: transparent;
+    border: 0;
     border-radius: 14px;
-    padding: 10px;
+    padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    max-height: 82vh;
+    max-height: calc(100vh - 148px);
+    max-height: calc(100dvh - 148px);
 }
 
 .lightbox-img {
-    max-height: 80vh;
-    width: 100%;
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: min(calc(100vw - 96px), 980px);
+    max-width: min(calc(100dvw - 96px), 980px);
+    max-height: calc(100vh - 148px);
+    max-height: calc(100dvh - 148px);
     object-fit: contain;
     border-radius: 12px;
     background: var(--surface);

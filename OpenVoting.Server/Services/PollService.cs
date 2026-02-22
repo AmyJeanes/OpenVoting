@@ -802,6 +802,7 @@ public sealed class PollService : IPollService
 		{
 			Id = poll.Id,
 			Title = poll.Title,
+			Description = poll.Description,
 			Status = poll.Status,
 			VotingMethod = poll.VotingMethod,
 			VotingClosesAt = poll.VotingClosesAt,

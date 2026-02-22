@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
@@ -27,13 +27,20 @@ export type ActivePollsPageProps = {
 
 export function ActivePollsPage({ sessionState, me, activePolls, pollError, loading, onRefresh, createForm, setCreateForm, creating, createError, createSuccessCount = 0, onCreatePoll, onLogin, loginCta, loginDisabled }: ActivePollsPageProps) {
   const { showToast } = useToast();
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [adminExpanded, setAdminExpanded] = useState(false);
   const [titleTouched, setTitleTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const titleMissing = createForm.title.trim().length === 0;
   const showTitleInvalid = titleMissing && (titleTouched || submitAttempted);
   const hasValidationErrors = showTitleInvalid;
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredActivePolls = normalizedSearch.length === 0
+    ? activePolls
+    : activePolls.filter((poll) => `${poll.title} ${poll.description ?? ''}`.toLowerCase().includes(normalizedSearch));
 
   const handleCreate = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -52,6 +59,12 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
   useEffect(() => {
     if (pollError) showToast(pollError, { tone: 'error' });
   }, [pollError, showToast]);
+
+  useEffect(() => {
+    if (searchExpanded) {
+      searchInputRef.current?.focus();
+    }
+  }, [searchExpanded]);
 
   if (sessionState !== 'authenticated') {
     return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
@@ -118,15 +131,49 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
             <p className="eyebrow">Live polls</p>
             <h2>Select a poll to participate</h2>
           </div>
-          <button className="ghost" onClick={onRefresh} disabled={loading}>
-            {loading ? 'Refreshing…' : 'Refresh'}
-          </button>
+          <div className="section-head-controls">
+            <div className={`poll-search-shell${searchExpanded ? ' expanded' : ''}`}>
+              <div className="poll-search-input-wrap">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  className="poll-search-input"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search polls"
+                  aria-label="Search live polls"
+                  aria-hidden={!searchExpanded}
+                  disabled={!searchExpanded}
+                />
+              </div>
+              <button
+                className="ghost search-toggle"
+                onClick={() => {
+                  if (searchExpanded) {
+                    setSearchTerm('');
+                  }
+                  setSearchExpanded((value) => !value);
+                }}
+                aria-expanded={searchExpanded}
+                aria-label={searchExpanded ? 'Close search' : 'Open search'}
+              >
+                <svg className="poll-search-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                  <circle cx="7" cy="7" r="4" />
+                  <line x1="10.3" y1="10.3" x2="14" y2="14" />
+                </svg>
+              </button>
+            </div>
+            <button className="ghost" onClick={onRefresh} disabled={loading}>
+              {loading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
         </div>
         {loading && <p className="muted">Loading live polls…</p>}
         {!loading && activePolls.length === 0 && !pollError && <p className="muted">No active polls right now</p>}
-        {!loading && activePolls.length > 0 && (
+        {!loading && activePolls.length > 0 && filteredActivePolls.length === 0 && <p className="muted">No polls match your search</p>}
+        {!loading && filteredActivePolls.length > 0 && (
           <ul className="entries poll-list live-poll-list">
-            {activePolls.map((p) => {
+            {filteredActivePolls.map((p) => {
               const entryClass = p.status === 0 ? 'entry-card draft' : 'entry-card';
               const statusLabel = pollStatusLabel(p.status);
               const canHaveVotes = p.status === 2 || p.status === 3 || p.status === 4;

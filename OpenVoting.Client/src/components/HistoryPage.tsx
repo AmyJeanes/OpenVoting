@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { VotingMethodInfo } from './VotingMethodInfo';
@@ -19,10 +19,23 @@ export type HistoryProps = {
 
 export function HistoryPage({ sessionState, history, historyError, assetCache, onRefresh, onLogin, loginCta, loginDisabled }: HistoryProps) {
   const { showToast } = useToast();
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredHistory = normalizedSearch.length === 0
+    ? history
+    : history.filter((poll) => `${poll.title} ${poll.description ?? ''}`.toLowerCase().includes(normalizedSearch));
 
   useEffect(() => {
     if (historyError) showToast(historyError, { tone: 'error' });
   }, [historyError, showToast]);
+
+  useEffect(() => {
+    if (searchExpanded) {
+      searchInputRef.current?.focus();
+    }
+  }, [searchExpanded]);
 
   if (sessionState !== 'authenticated') {
     return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
@@ -43,12 +56,46 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
           <p className="eyebrow">Archive</p>
           <h2>Past polls</h2>
         </div>
-        <button className="ghost" onClick={onRefresh}>Refresh</button>
+        <div className="section-head-controls">
+          <div className={`poll-search-shell${searchExpanded ? ' expanded' : ''}`}>
+            <div className="poll-search-input-wrap">
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="poll-search-input"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search polls"
+                aria-label="Search past polls"
+                aria-hidden={!searchExpanded}
+                disabled={!searchExpanded}
+              />
+            </div>
+            <button
+              className="ghost search-toggle"
+              onClick={() => {
+                if (searchExpanded) {
+                  setSearchTerm('');
+                }
+                setSearchExpanded((value) => !value);
+              }}
+              aria-expanded={searchExpanded}
+              aria-label={searchExpanded ? 'Close search' : 'Open search'}
+            >
+              <svg className="poll-search-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <circle cx="7" cy="7" r="4" />
+                <line x1="10.3" y1="10.3" x2="14" y2="14" />
+              </svg>
+            </button>
+          </div>
+          <button className="ghost" onClick={onRefresh}>Refresh</button>
+        </div>
       </div>
       {history.length === 0 && !historyError && <p className="muted">No closed polls yet</p>}
-      {history.length > 0 && (
+      {history.length > 0 && filteredHistory.length === 0 && <p className="muted">No polls match your search</p>}
+      {filteredHistory.length > 0 && (
         <ul className="entries poll-list">
-          {history.map((p) => (
+          {filteredHistory.map((p) => (
             <li key={p.id} className="entry-card history-item">
               {(() => {
                 const closedText = `Closed ${new Date(p.votingClosesAt).toLocaleString()}`;

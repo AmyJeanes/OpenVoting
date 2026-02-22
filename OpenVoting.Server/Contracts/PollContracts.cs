@@ -63,6 +63,7 @@ public sealed class PollHistoryResponse
 {
 	public Guid Id { get; init; }
 	public string Title { get; init; } = string.Empty;
+	public string? Description { get; init; }
 	public PollStatus Status { get; init; }
 	public VotingMethod VotingMethod { get; init; }
 	public DateTimeOffset VotingClosesAt { get; init; }

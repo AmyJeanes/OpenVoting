@@ -124,7 +124,9 @@ describe('VotingSection', () => {
 
     await userEvent.click(screen.getByText('Choice A'));
 
-    expect(screen.getByRole('checkbox')).toBeDisabled();
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox).toBeDisabled();
+    expect(checkbox).toHaveClass('unavailable-checkbox');
     expect(onToggleSelection).not.toHaveBeenCalled();
     expect(onDisqualifiedSelectAttempt).toHaveBeenCalledWith(expect.objectContaining({ id: 'entry-1' }));
   });

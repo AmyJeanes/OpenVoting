@@ -104,6 +104,7 @@ export type VotingBreakdownEntry = {
 export type PollHistoryResponse = {
   id: string;
   title: string;
+  description?: string;
   status: number;
   votingMethod: number;
   votingClosesAt: string;

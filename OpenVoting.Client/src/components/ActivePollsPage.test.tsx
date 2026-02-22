@@ -108,4 +108,26 @@ describe('ActivePollsPage', () => {
     expect(onCreate).not.toHaveBeenCalled();
     expect(screen.getByText('Please correct the validation errors')).toBeInTheDocument();
   });
+
+  it('filters live polls by title and description in realtime', async () => {
+    const springPoll = createPollResponse({ id: 'poll-1', title: 'Spring Contest', description: 'Season opener', status: 2 });
+    const summerPoll = createPollResponse({ id: 'poll-2', title: 'Summer Clash', description: 'Beach theme', status: 2 });
+
+    renderWithProviders({
+      sessionState: 'authenticated',
+      activePolls: [springPoll, summerPoll]
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open search' }));
+    const searchInput = screen.getByRole('textbox', { name: 'Search live polls' });
+
+    await userEvent.type(searchInput, 'beach');
+    expect(screen.getByText('Summer Clash')).toBeInTheDocument();
+    expect(screen.queryByText('Spring Contest')).not.toBeInTheDocument();
+
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, 'spring');
+    expect(screen.getByText('Spring Contest')).toBeInTheDocument();
+    expect(screen.queryByText('Summer Clash')).not.toBeInTheDocument();
+  });
 });
