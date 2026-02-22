@@ -153,4 +153,8 @@ export type ConfigResponse = {
   serverIconUrl?: string;
 };
 
+export type OneTimeDiscordLinkAuthResponse = {
+  token: string;
+};
+
 export type SessionState = 'idle' | 'loading' | 'authenticated' | 'anonymous';

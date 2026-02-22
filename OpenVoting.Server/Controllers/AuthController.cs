@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Net.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -40,41 +39,47 @@ public class AuthController : ControllerBase
 
 	[AllowAnonymous]
 	[HttpGet("discord-link")]
-	public async Task<ActionResult> ExchangeOneTimeDiscordLink([FromQuery] string token, CancellationToken cancellationToken)
+	public ActionResult ExchangeOneTimeDiscordLink([FromQuery] string token)
 	{
-		var result = await _oneTimeLoginLinkService.ConsumeAsync(token, cancellationToken);
+		if (string.IsNullOrWhiteSpace(token))
+		{
+			return BadRequest("Missing login token");
+		}
+
+		var encodedToken = Uri.EscapeDataString(token);
+		return Redirect($"/auth/discord-link?token={encodedToken}");
+	}
+
+	[AllowAnonymous]
+	[HttpPost("discord-link")]
+	public async Task<ActionResult<OneTimeLoginAuthPayload>> ExchangeOneTimeDiscordLinkPost([FromBody] DiscordLinkAuthRequest request, CancellationToken cancellationToken)
+	{
+		var result = await _oneTimeLoginLinkService.ConsumeAsync(request.Token, cancellationToken);
 		if (!result.IsSuccess || result.Payload is null)
 		{
 			var reason = result.Error ?? "Login link is invalid";
-			return new ContentResult
-			{
-				StatusCode = StatusCodes.Status403Forbidden,
-				ContentType = MediaTypeNames.Text.Html,
-				Content = BuildForbiddenHtml(reason)
-			};
+			return StatusCode(StatusCodes.Status403Forbidden, reason);
 		}
 
-		var payload = result.Payload;
-		var tokenJs = JsonSerializer.Serialize(payload.Token);
-		var html = $"<html><body><script>localStorage.setItem('ov_token',{tokenJs});window.location='/'</script></body></html>";
-		return Content(html, "text/html");
+		return Ok(result.Payload);
 	}
 
 	[AllowAnonymous]
 	[HttpPost("discord")]
-	public async Task<ActionResult> ExchangeDiscordCode([FromBody] DiscordAuthRequest request, CancellationToken cancellationToken)
+	public async Task<ActionResult<AuthResponse>> ExchangeDiscordCode([FromBody] DiscordAuthRequest request, CancellationToken cancellationToken)
 	{
-		return await ExchangeDiscordCodeInternal(request.Code, request.RedirectUri, returnHtml: false, cancellationToken);
+		return await ExchangeDiscordCodeInternal(request.Code, request.RedirectUri, cancellationToken);
 	}
 
 	[AllowAnonymous]
 	[HttpGet("discord")]
-	public async Task<ActionResult> ExchangeDiscordCodeGet([FromQuery] string code, [FromQuery] string? redirectUri, CancellationToken cancellationToken)
+	public ActionResult ExchangeDiscordCodeGet()
 	{
-		return await ExchangeDiscordCodeInternal(code, redirectUri, returnHtml: true, cancellationToken);
+		var query = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
+		return Redirect($"/auth/discord-callback{query}");
 	}
 
-	private async Task<ActionResult> ExchangeDiscordCodeInternal(string code, string? redirectUri, bool returnHtml, CancellationToken cancellationToken)
+	private async Task<ActionResult<AuthResponse>> ExchangeDiscordCodeInternal(string code, string? redirectUri, CancellationToken cancellationToken)
 	{
 		if (string.IsNullOrWhiteSpace(code))
 		{
@@ -89,16 +94,6 @@ public class AuthController : ControllerBase
 		if (!authResult.IsGuildMember)
 		{
 			const string reason = "You must be a member of the Discord server to sign in";
-			if (returnHtml)
-			{
-				return new ContentResult
-				{
-					StatusCode = StatusCodes.Status403Forbidden,
-					ContentType = MediaTypeNames.Text.Html,
-					Content = BuildForbiddenHtml(reason)
-				};
-			}
-
 			return StatusCode(StatusCodes.Status403Forbidden, reason);
 		}
 
@@ -146,13 +141,6 @@ public class AuthController : ControllerBase
 			IneligibleReason = eligibility.Reason,
 			IsAdmin = isAdmin
 		};
-
-		if (returnHtml)
-		{
-			var tokenJs = JsonSerializer.Serialize(token);
-			var html = $"<html><body><script>localStorage.setItem('ov_token',{tokenJs});window.location='/'</script></body></html>";
-			return Content(html, "text/html");
-		}
 
 		return Ok(payload);
 	}
@@ -229,13 +217,6 @@ public class AuthController : ControllerBase
 		return EligibilityResult.Allowed();
 	}
 
-	private static string BuildForbiddenHtml(string reason)
-	{
-		var reasonEscaped = System.Net.WebUtility.HtmlEncode(reason);
-		var serializedReason = JsonSerializer.Serialize(reason);
-		return $"<html><body><script>try{{{{localStorage.removeItem('ov_token');localStorage.setItem('ov_flash', {serializedReason});}}}}catch(e){{}}window.location='/'</script><p>{reasonEscaped}</p><p><a href='/'>Back to app</a></p></body></html>";
-	}
-
 	private string BuildDiscordRedirectUri()
 	{
 		if (Request.Host == default)
@@ -243,7 +224,7 @@ public class AuthController : ControllerBase
 			return string.Empty;
 		}
 
-		return UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/api/auth/discord");
+		return UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/auth/discord-callback");
 	}
 }
 
@@ -251,6 +232,11 @@ public sealed class DiscordAuthRequest
 {
 	public string Code { get; init; } = string.Empty;
 	public string? RedirectUri { get; init; }
+}
+
+public sealed class DiscordLinkAuthRequest
+{
+	public string Token { get; init; } = string.Empty;
 }
 
 public sealed class AuthResponse

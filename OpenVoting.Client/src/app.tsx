@@ -9,6 +9,8 @@ import {
   PageShell,
   Topbar,
   ConfirmDialog,
+  DiscordLinkPage,
+  DiscordOAuthCallbackPage,
   votingMethodOptions
 } from './components';
 import { useVotingApp } from './hooks/useVotingApp';
@@ -111,6 +113,8 @@ export default function App() {
       ) : (
       <Routes>
         <Route path="/" element={<Navigate to="/polls/live" replace />} />
+        <Route path="/auth/discord-link" element={<DiscordLinkPage />} />
+        <Route path="/auth/discord-callback" element={<DiscordOAuthCallbackPage />} />
         <Route
           path="/polls/live"
           element={

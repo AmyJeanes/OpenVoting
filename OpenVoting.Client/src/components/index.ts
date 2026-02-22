@@ -4,6 +4,8 @@ export { ActivePollsPage } from './ActivePollsPage';
 export { CurrentPollPage } from './CurrentPollPage';
 export { ConfirmDialog } from './ConfirmDialog';
 export type { ConfirmDialogConfig } from './ConfirmDialog';
+export { DiscordLinkPage } from './DiscordLinkPage';
+export { DiscordOAuthCallbackPage } from './DiscordOAuthCallbackPage';
 export { VotingMethodInfo, votingMethodSummary, votingMethodOptions } from './VotingMethodInfo';
 export { HistoryPage } from './HistoryPage';
 export { Home } from './Home';
