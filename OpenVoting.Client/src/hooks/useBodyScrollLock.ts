@@ -60,6 +60,7 @@ function unlockBodyScroll() {
   try {
     window.scrollTo(0, lockScrollY);
   } catch {
+    return;
   }
 }
 

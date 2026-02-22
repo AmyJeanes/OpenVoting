@@ -1,11 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
-
-type ToastTone = 'info' | 'success' | 'error';
-
-type ToastOptions = {
-  tone?: ToastTone;
-  durationMs?: number;
-};
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ToastContext, type ToastOptions, type ToastTone } from './useToast';
 
 type Toast = {
   id: number;
@@ -13,12 +7,6 @@ type Toast = {
   tone: ToastTone;
   isExiting: boolean;
 };
-
-type ToastContextValue = {
-  showToast: (message: string, options?: ToastOptions) => void;
-};
-
-const ToastContext = createContext<ToastContextValue | null>(null);
 
 const EXIT_ANIMATION_MS = 220;
 const DUPLICATE_SUPPRESSION_MS = 600;
@@ -69,12 +57,4 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext.Provider>
   );
-}
-
-export function useToast() {
-  const ctx = useContext(ToastContext);
-  if (!ctx) {
-    throw new Error('useToast must be used within a ToastProvider');
-  }
-  return ctx;
 }

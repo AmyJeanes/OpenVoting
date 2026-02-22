@@ -18,6 +18,18 @@ export type AdminPageProps = {
 };
 
 export function AdminPage({ sessionState, me, createForm, setCreateForm, creating, createError, createSuccessCount = 0, onCreatePoll, onLogin, loginCta, loginDisabled }: AdminPageProps) {
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  const titleMissing = createForm.title.trim().length === 0;
+  const showTitleInvalid = titleMissing && (titleTouched || submitAttempted);
+  const hasValidationErrors = showTitleInvalid;
+
+  useEffect(() => {
+    setTitleTouched(false);
+    setSubmitAttempted(false);
+  }, [createSuccessCount]);
+
   if (sessionState !== 'authenticated') {
     return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
   }
@@ -26,15 +38,6 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
     return <section className="card"><p>You need admin access to manage polls</p></section>;
   }
 
-  const [titleTouched, setTitleTouched] = useState(false);
-  const [descriptionTouched, setDescriptionTouched] = useState(false);
-  const [submitAttempted, setSubmitAttempted] = useState(false);
-
-  const titleMissing = createForm.title.trim().length === 0;
-  const showTitleInvalid = titleMissing && (titleTouched || submitAttempted);
-  const showDescriptionInvalid = false && descriptionTouched;
-  const hasValidationErrors = showTitleInvalid;
-
   const handleCreate = () => {
     setSubmitAttempted(true);
     if (titleMissing) {
@@ -42,12 +45,6 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
     }
     onCreatePoll();
   };
-
-  useEffect(() => {
-    setTitleTouched(false);
-    setDescriptionTouched(false);
-    setSubmitAttempted(false);
-  }, [createSuccessCount]);
 
   return (
     <div className="stack">
@@ -73,9 +70,6 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
             <textarea
               rows={3}
               value={createForm.description}
-              className={showDescriptionInvalid ? 'input-invalid' : undefined}
-              aria-invalid={showDescriptionInvalid}
-              onBlur={() => setDescriptionTouched(true)}
               onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
             />
             <span className="field-hint">Optional</span>

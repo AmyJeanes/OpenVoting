@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
-import { useToast } from './ToastProvider';
+import { useToast } from './useToast';
 import type { Dispatch, SetStateAction } from 'react';
 import type { CreatePollForm, PollResponse, SessionState } from '../types';
 import { formatWindow, pollStatusLabel } from '../utils/format';
@@ -26,19 +26,13 @@ export type ActivePollsPageProps = {
 };
 
 export function ActivePollsPage({ sessionState, me, activePolls, pollError, loading, onRefresh, createForm, setCreateForm, creating, createError, createSuccessCount = 0, onCreatePoll, onLogin, loginCta, loginDisabled }: ActivePollsPageProps) {
-  if (sessionState !== 'authenticated') {
-    return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
-  }
-
   const { showToast } = useToast();
   const [adminExpanded, setAdminExpanded] = useState(false);
   const [titleTouched, setTitleTouched] = useState(false);
-  const [descriptionTouched, setDescriptionTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const titleMissing = createForm.title.trim().length === 0;
   const showTitleInvalid = titleMissing && (titleTouched || submitAttempted);
-  const showDescriptionInvalid = false && descriptionTouched;
   const hasValidationErrors = showTitleInvalid;
 
   const handleCreate = (e: MouseEvent<HTMLButtonElement>) => {
@@ -52,13 +46,16 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
 
   useEffect(() => {
     setTitleTouched(false);
-    setDescriptionTouched(false);
     setSubmitAttempted(false);
   }, [createSuccessCount]);
 
   useEffect(() => {
     if (pollError) showToast(pollError, { tone: 'error' });
   }, [pollError, showToast]);
+
+  if (sessionState !== 'authenticated') {
+    return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
+  }
 
   return (
     <div className="stack">
@@ -97,9 +94,6 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                     <textarea
                       rows={3}
                       value={createForm.description}
-                      className={showDescriptionInvalid ? 'input-invalid' : undefined}
-                      aria-invalid={showDescriptionInvalid}
-                      onBlur={() => setDescriptionTouched(true)}
                       onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                     />
                     <span className="field-hint">Optional</span>
@@ -135,6 +129,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
             {activePolls.map((p) => {
               const entryClass = p.status === 0 ? 'entry-card draft' : 'entry-card';
               const statusLabel = pollStatusLabel(p.status);
+              const canHaveVotes = p.status === 2 || p.status === 3 || p.status === 4;
               return (
                 <li key={p.id} className={`${entryClass} live-poll-card`}>
                   <div className="entry-head live-poll-card-head">
@@ -151,10 +146,6 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                       <p className="live-poll-meta-label">Submissions</p>
                       <p className="live-poll-meta-value">{formatWindow(p.submissionOpensAt, p.submissionClosesAt)}</p>
                     </div>
-                    <div className="live-poll-meta-item">
-                      <p className="live-poll-meta-label">Total votes</p>
-                      <p className="live-poll-meta-value">{p.totalVotes}</p>
-                    </div>
                     {(p.status === 2 || p.status === 3 || p.status === 4) && (
                       <div className="live-poll-meta-item">
                         <p className="live-poll-meta-label">Voting</p>
@@ -164,6 +155,12 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                   </div>
                   <div className="actions live-poll-actions">
                     <Link className="primary" to={`/polls/${p.id}`}>View poll</Link>
+                    {canHaveVotes && (
+                      <div className="live-poll-votes-tail" aria-label={`Total votes for ${p.title}`}>
+                        <span className="live-poll-votes-tail-label">Total votes</span>
+                        <span className="live-poll-votes-tail-value">{p.totalVotes}</span>
+                      </div>
+                    )}
                   </div>
                 </li>
               );

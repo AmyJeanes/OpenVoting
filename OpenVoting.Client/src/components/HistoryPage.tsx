@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { VotingMethodInfo } from './VotingMethodInfo';
-import { useToast } from './ToastProvider';
+import { useToast } from './useToast';
 import type { AssetUploadResponse, PollHistoryResponse, SessionState } from '../types';
 import { votingMethodLabel } from '../utils/format';
 
@@ -18,11 +18,15 @@ export type HistoryProps = {
 };
 
 export function HistoryPage({ sessionState, history, historyError, assetCache, onRefresh, onLogin, loginCta, loginDisabled }: HistoryProps) {
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    if (historyError) showToast(historyError, { tone: 'error' });
+  }, [historyError, showToast]);
+
   if (sessionState !== 'authenticated') {
     return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;
   }
-
-  const { showToast } = useToast();
   const winnerTitle = (winner: PollHistoryResponse['winners'][number]) => {
     const hasTitle = (winner.displayName || '').trim().length > 0;
     if (hasTitle) return winner.displayName;
@@ -31,10 +35,6 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
   };
 
   const winnerUser = (winner: PollHistoryResponse['winners'][number]) => winner.submittedByDisplayName || winner.displayName || 'Anonymous';
-
-  useEffect(() => {
-    if (historyError) showToast(historyError, { tone: 'error' });
-  }, [historyError, showToast]);
 
   return (
     <section className="card">

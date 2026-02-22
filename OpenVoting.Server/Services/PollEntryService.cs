@@ -218,6 +218,16 @@ public sealed class PollEntryService : IPollEntryService
 		entry.DisqualifiedByMemberId = member.Id;
 		entry.DisqualifiedAt = DateTimeOffset.UtcNow;
 		entry.DisqualifiedByMember = member;
+
+		var voteChoicesToRemove = await _db.VoteChoices
+			.Where(vc => vc.EntryId == entry.Id)
+			.ToListAsync(cancellationToken);
+
+		if (voteChoicesToRemove.Count > 0)
+		{
+			_db.VoteChoices.RemoveRange(voteChoicesToRemove);
+		}
+
 		await _db.SaveChangesAsync(cancellationToken);
 
 		return PollEntryResult<PollEntryResponse>.Ok(ToResponse(entry));

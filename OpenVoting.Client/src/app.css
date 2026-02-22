@@ -650,6 +650,26 @@ button.ghost {
 
 .live-poll-actions {
     margin-top: 2px;
+    justify-content: space-between;
+}
+
+.live-poll-votes-tail {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.live-poll-votes-tail-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.live-poll-votes-tail-value {
+    color: var(--text-primary);
+    font-weight: 700;
 }
 
 .entries.poll-list > .entry-card > .actions {

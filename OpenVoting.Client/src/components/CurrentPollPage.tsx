@@ -3,7 +3,7 @@ import { useLocation, useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { ConfirmDialog, type ConfirmDialogConfig } from './ConfirmDialog';
 import { ImageLightbox, type ImageLightboxData } from './ImageLightbox';
-import { useToast } from './ToastProvider';
+import { useToast } from './useToast';
 import { PollHeaderSection } from './currentPoll/PollHeaderSection';
 import { AdminPanel } from './currentPoll/AdminPanel';
 import { AdminEntriesSection } from './currentPoll/AdminEntriesSection';
@@ -163,7 +163,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
       .filter((c) => typeof c.rank === 'number')
       .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
       .map((c) => c.entryId);
-  }, [poll?.id, poll?.requireRanking, voteInfo]);
+  }, [poll?.requireRanking, voteInfo]);
 
   const hasRankChanges = useMemo(() => {
     if (!poll?.requireRanking) return true;
@@ -253,6 +253,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
     if (pollId) {
       onSelectPoll(pollId);
     }
+    // Intentionally depend on route param only; onSelectPoll identity can change between renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pollId]);
 
   useEffect(() => {
@@ -305,7 +307,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
     setIrvStage('select');
     setRankedIds(ordered);
-  }, [poll?.id, poll?.requireRanking, voteInfo?.voteId, entries]);
+  }, [poll?.id, poll?.requireRanking, voteInfo?.voteId, entries, voteState]);
 
   useEffect(() => {
     const justFinishedSuccessfulSubmit = prevVoteSubmittingRef.current && !voteSubmitting && !voteError;
@@ -521,7 +523,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
       maxSelections: poll.maxSelections,
       votingClosesAt: isMaxTimestamp(poll.votingClosesAt) ? '' : toLocal(poll.votingClosesAt)
     });
-  }, [poll?.id]);
+  }, [poll]);
 
   const disqualifyReasonRequired = pendingAction === 'disqualify' && pendingReason.trim().length === 0;
 
@@ -676,7 +678,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
           entryAssetId={entryAssetId}
           onToggleSelection={handleToggleSelection}
           onDisqualifiedSelectAttempt={() => {
-            showToast('This entry is disqualified and cannot be selected', { tone: 'info' });
+            showToast('This entry is disqualified and cannot be selected', { tone: 'error' });
           }}
           onProceedToRanking={handleProceedToRanking}
           onSubmitVote={() => onSubmitVote()}

@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ToastProvider, useToast } from './ToastProvider';
+import { ToastProvider } from './ToastProvider';
+import { useToast } from './useToast';
 
 describe('ToastProvider', () => {
   it('shows and auto-dismisses a toast', async () => {

@@ -199,6 +199,7 @@ export function useVotingApp() {
     };
 
     bootstrap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
@@ -208,6 +209,7 @@ export function useVotingApp() {
 
   useEffect(() => {
     history.forEach((p) => p.winners.forEach((w) => w.assetId && loadAsset(w.assetId)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [history]);
 
   const pollById = (id: string | null) => {
@@ -371,6 +373,7 @@ export function useVotingApp() {
         refreshTimerRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const clearSelectedPollData = () => {

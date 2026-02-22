@@ -85,8 +85,11 @@ public class PollEntryServiceTests
 		var communityId = Guid.NewGuid();
 		var adminId = Guid.NewGuid();
 		var submitterId = Guid.NewGuid();
+		var voterId = Guid.NewGuid();
 		var pollId = Guid.NewGuid();
 		var entryId = Guid.NewGuid();
+		var otherEntryId = Guid.NewGuid();
+		var voteId = Guid.NewGuid();
 
 		db.CommunityMembers.AddRange(
 			new CommunityMember
@@ -106,6 +109,15 @@ public class PollEntryServiceTests
 				ExternalUserId = "user",
 				DisplayName = "Submitter",
 				JoinedAt = DateTimeOffset.UtcNow.AddMonths(-2)
+			},
+			new CommunityMember
+			{
+				Id = voterId,
+				CommunityId = communityId,
+				Platform = Platform.Discord,
+				ExternalUserId = "voter",
+				DisplayName = "Voter",
+				JoinedAt = DateTimeOffset.UtcNow.AddMonths(-2)
 			});
 
 		db.Polls.Add(new Poll
@@ -119,14 +131,49 @@ public class PollEntryServiceTests
 			VotingClosesAt = DateTimeOffset.UtcNow.AddHours(2)
 		});
 
-		db.PollEntries.Add(new PollEntry
+		db.PollEntries.AddRange(
+			new PollEntry
+			{
+				Id = entryId,
+				PollId = pollId,
+				SubmittedByMemberId = submitterId,
+				DisplayName = "Entry",
+				CreatedAt = DateTimeOffset.UtcNow
+			},
+			new PollEntry
+			{
+				Id = otherEntryId,
+				PollId = pollId,
+				SubmittedByMemberId = submitterId,
+				DisplayName = "Other Entry",
+				CreatedAt = DateTimeOffset.UtcNow
+			});
+
+		db.Votes.Add(new Vote
 		{
-			Id = entryId,
+			Id = voteId,
 			PollId = pollId,
-			SubmittedByMemberId = submitterId,
-			DisplayName = "Entry",
-			CreatedAt = DateTimeOffset.UtcNow
+			MemberId = voterId,
+			CreatedAt = DateTimeOffset.UtcNow,
+			SubmittedAt = DateTimeOffset.UtcNow,
+			IsFinal = true
 		});
+
+		db.VoteChoices.AddRange(
+			new VoteChoice
+			{
+				Id = Guid.NewGuid(),
+				VoteId = voteId,
+				EntryId = entryId,
+				Rank = 1
+			},
+			new VoteChoice
+			{
+				Id = Guid.NewGuid(),
+				VoteId = voteId,
+				EntryId = otherEntryId,
+				Rank = 2
+			});
 
 		await db.SaveChangesAsync();
 
@@ -151,6 +198,9 @@ public class PollEntryServiceTests
 			Assert.That(entry.DisqualifiedByMemberId, Is.EqualTo(adminId));
 			Assert.That(entry.DisqualifiedAt, Is.Not.Null);
 		});
+
+		Assert.That(await db.VoteChoices.AnyAsync(vc => vc.EntryId == entryId), Is.False);
+		Assert.That(await db.VoteChoices.AnyAsync(vc => vc.EntryId == otherEntryId), Is.True);
 
 		var requalifyResult = await service.RequalifyAsync(
 			TestAuthHelper.CreatePrincipal(adminId, communityId, isAdmin: true),

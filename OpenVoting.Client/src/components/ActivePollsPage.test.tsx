@@ -72,6 +72,19 @@ describe('ActivePollsPage', () => {
     expect(onCreate).toHaveBeenCalledTimes(1);
   });
 
+  it('hides total votes on stages where votes cannot exist yet', () => {
+    const poll = createPollResponse({ id: 'poll-123', title: 'Spring Contest', status: 1, totalVotes: 14 });
+
+    renderWithProviders({
+      sessionState: 'authenticated',
+      me: { isAdmin: true },
+      activePolls: [poll]
+    });
+
+    expect(screen.queryByText('Total votes')).not.toBeInTheDocument();
+    expect(screen.queryByText('14')).not.toBeInTheDocument();
+  });
+
   it('surfaces creation errors inline', async () => {
     renderWithProviders({
       sessionState: 'authenticated',
