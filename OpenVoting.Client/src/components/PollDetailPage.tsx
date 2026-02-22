@@ -178,7 +178,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
               const positionLabel = isTie && e.isWinner ? '#1' : (typeof e.position === 'number' ? `#${e.position}` : null);
               const titleText = entryTitle(e);
               return (
-                <li key={e.id} className="entry-card">
+                <li key={e.id} className={`entry-card ${e.isDisqualified ? 'unavailable' : ''}`}>
                   <div className="entry-head">
                     <div>
                       <p className="entry-title">{titleText}</p>
@@ -188,20 +188,6 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
                           <span className="byline-name">{e.submittedByDisplayName}</span>
                         </p>
                       )}
-                      {e.isDisqualified && (
-                        <div className="disqualification-details">
-                          <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>
-                          {(e.disqualifiedByDisplayName || e.disqualifiedAt) && (
-                            <p className="muted">
-                              <span className="byline">
-                                <span className="byline-label">By:</span>
-                                <span className="byline-name">{e.disqualifiedByDisplayName ?? 'unknown admin'}</span>
-                              </span>
-                              {e.disqualifiedAt ? ` on ${new Date(e.disqualifiedAt).toLocaleString()}` : ''}
-                            </p>
-                          )}
-                        </div>
-                      )}
                     </div>
                     <div className="badges">
                       {positionLabel && <span className="pill subtle">{positionLabel}</span>}
@@ -210,6 +196,20 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
                     </div>
                   </div>
                   {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
+                  {e.isDisqualified && (
+                    <div className="disqualification-details">
+                      <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>
+                      {(e.disqualifiedByDisplayName || e.disqualifiedAt) && (
+                        <p className="disqualification-meta">
+                          <span className="byline">
+                            <span className="byline-label">By:</span>
+                            <span className="byline-name">{e.disqualifiedByDisplayName ?? 'unknown admin'}</span>
+                          </span>
+                          {e.disqualifiedAt ? ` on ${new Date(e.disqualifiedAt).toLocaleString()}` : ''}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <p className="muted">{e.description}</p>
                   <div className="actions entry-breakdown-summary">
                     <span className="pill subtle">{detail.votingMethod === 2 ? `${e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0} first-choice` : `${e.approvalVotes} approvals`}</span>

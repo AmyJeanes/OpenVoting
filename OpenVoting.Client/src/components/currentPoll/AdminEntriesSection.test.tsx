@@ -33,6 +33,7 @@ describe('AdminEntriesSection', () => {
 
     expect(screen.getByText(/Disqualified by Alice Mod/)).toBeInTheDocument();
     expect(screen.getByText('Disqualified: Bad picture')).toBeInTheDocument();
+    expect(screen.getByText('Entry One').closest('.entry-card')).toHaveClass('unavailable');
   });
 
   it('uses dedicated styling class for requalify action', () => {

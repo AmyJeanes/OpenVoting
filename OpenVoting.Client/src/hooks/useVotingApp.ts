@@ -876,7 +876,7 @@ export function useVotingApp() {
       }
       const data: VoteResponse = await res.json();
       setVoteInfo(data);
-      showToast('Vote saved', { tone: 'success' });
+      showToast('Vote submitted', { tone: 'success' });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to submit vote';
       setVoteError(message);

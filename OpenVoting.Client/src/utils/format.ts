@@ -46,7 +46,7 @@ export function isMaxTimestamp(iso?: string | null) {
 export function formatWindow(openIso: string, closeIso: string) {
   const open = new Date(openIso).toLocaleString();
   if (isMaxTimestamp(closeIso)) {
-    return `${open} → Stays open until closed`;
+    return `${open} → Closing time not set`;
   }
   return `${open} → ${new Date(closeIso).toLocaleString()}`;
 }

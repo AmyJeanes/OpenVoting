@@ -97,7 +97,7 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
               const topScore = leaderboard[0]?.score ?? 0;
               const isProjectedWinner = showAdminBreakdown && topScore > 0 && score === topScore;
               return (
-                <li key={e.id} className="entry-card">
+                <li key={e.id} className={`entry-card ${e.isDisqualified ? 'unavailable' : ''}`}>
                   <div className="entry-head">
                     <div className="entry-head-main">
                       <p className="entry-title">{entryTitle(poll, e)}</p>

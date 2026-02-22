@@ -3,6 +3,29 @@ import { SubmissionSection } from './SubmissionSection';
 import { createPollResponse } from '../../test/factories';
 
 describe('SubmissionSection', () => {
+  it('renders submission card emphasis styling class', () => {
+    const { container } = render(
+      <SubmissionSection
+        poll={createPollResponse({ imageRequirement: 1 })}
+        entryForm={{ displayName: '', description: '' }}
+        entrySubmitting={false}
+        entryFiles={{}}
+        entryFileValidationPending={false}
+        entryFileInvalid={false}
+        entrySubmitError={null}
+        submissionLimitReached={false}
+        submissionsRemaining={2}
+        showEntryTitleField
+        showEntryDescriptionField
+        onEntryFormChange={vi.fn()}
+        onEntryFilesChange={vi.fn()}
+        onSubmitEntry={vi.fn()}
+      />
+    );
+
+    expect(container.querySelector('section.card.submission-card')).not.toBeNull();
+  });
+
   it('clears file input value on click so selecting the same file re-triggers change', () => {
     render(
       <SubmissionSection
@@ -27,6 +50,54 @@ describe('SubmissionSection', () => {
     Object.defineProperty(input, 'value', { value: 'C:\\fakepath\\professor_booboo_by_lieveheersbeestje-d7mb7og.jpg', writable: true, configurable: true });
 
     fireEvent.click(input);
+
+    expect(input.value).toBe('');
+  });
+
+  it('clears file input value after successful submit', () => {
+    const poll = createPollResponse({ imageRequirement: 2 });
+    const { rerender } = render(
+      <SubmissionSection
+        poll={poll}
+        entryForm={{ displayName: '', description: '' }}
+        entrySubmitting={false}
+        entryFiles={{}}
+        entryFileValidationPending={false}
+        entryFileInvalid={false}
+        entrySubmitError={null}
+        entrySubmitSuccessCount={0}
+        submissionLimitReached={false}
+        submissionsRemaining={2}
+        showEntryTitleField
+        showEntryDescriptionField
+        onEntryFormChange={vi.fn()}
+        onEntryFilesChange={vi.fn()}
+        onSubmitEntry={vi.fn()}
+      />
+    );
+
+    const input = screen.getByLabelText(/upload image/i) as HTMLInputElement;
+    Object.defineProperty(input, 'value', { value: 'C:\\fakepath\\image.jpg', writable: true, configurable: true });
+
+    rerender(
+      <SubmissionSection
+        poll={poll}
+        entryForm={{ displayName: '', description: '' }}
+        entrySubmitting={false}
+        entryFiles={{}}
+        entryFileValidationPending={false}
+        entryFileInvalid={false}
+        entrySubmitError={null}
+        entrySubmitSuccessCount={1}
+        submissionLimitReached={false}
+        submissionsRemaining={2}
+        showEntryTitleField
+        showEntryDescriptionField
+        onEntryFormChange={vi.fn()}
+        onEntryFilesChange={vi.fn()}
+        onSubmitEntry={vi.fn()}
+      />
+    );
 
     expect(input.value).toBe('');
   });

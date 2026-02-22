@@ -34,7 +34,7 @@ export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, 
           const fullImageUrl = previewUrl ? (originalUrl ?? previewUrl) : null;
           const titleText = entryTitle(poll, e);
           return (
-            <li key={e.id} className="entry-card">
+            <li key={e.id} className={`entry-card ${e.isDisqualified ? 'unavailable' : ''}`}>
               <div className="entry-head">
                 <div>
                   <p className="entry-title">{titleText}</p>

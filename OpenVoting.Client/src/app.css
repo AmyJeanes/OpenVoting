@@ -232,6 +232,7 @@
 
 .poll-header-head {
     align-items: flex-start;
+    margin-bottom: 24px;
 }
 
 .section-head > .muted {
@@ -261,6 +262,36 @@
     font-weight: 700;
     font-size: 1.05rem;
     margin: 4px 0;
+}
+
+.poll-header-details {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 8px;
+}
+
+.poll-header-details > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.poll-header-details p {
+    margin: 0;
+}
+
+.poll-header-details .muted {
+    font-size: 0.8rem;
+}
+
+.poll-header-details .metric-row {
+    gap: 6px;
+}
+
+.poll-header-detail-value,
+.poll-header-details .metric {
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.3;
 }
 
 .actions {
@@ -500,13 +531,7 @@ button.ghost {
 
 .entries.entry-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-}
-
-@media (min-width: 1100px) {
-    .entries.entry-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .history-item {
@@ -564,7 +589,7 @@ button.ghost {
 
 .live-poll-status-pill.status-1 {
     background: var(--accent-soft);
-    color: var(--accent-strong);
+    color: var(--danger-contrast);
     border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 }
 
@@ -941,8 +966,13 @@ button.ghost {
 
 .disqualification-meta {
     margin-top: 4px;
-    color: var(--text-primary);
+    color: var(--danger-text);
     font-weight: 600;
+}
+
+.disqualification-meta .byline-label,
+.disqualification-meta .byline-name {
+    color: inherit;
 }
 
 .entry-img-button {
@@ -1033,6 +1063,35 @@ input[type="file"] {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+    padding: 6px 8px;
+    line-height: 1.3;
+}
+
+input[type="file"]::file-selector-button,
+input[type="file"]::-webkit-file-upload-button {
+    margin-right: 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font: inherit;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: var(--surface-alt);
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+input[type="file"]:hover::file-selector-button,
+input[type="file"]:hover::-webkit-file-upload-button {
+    background: var(--ghost-bg-hover);
+    border-color: var(--border-strong);
+}
+
+input[type="file"]:focus-visible::file-selector-button,
+input[type="file"]:focus-visible::-webkit-file-upload-button {
+    outline: none;
+    border-color: var(--selected-border);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--selected-border) 35%, transparent);
 }
 
 .input-invalid {
@@ -1076,9 +1135,30 @@ textarea {
 
 .vote-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
     margin-bottom: 12px;
+}
+
+@media (min-width: 480px) {
+    .entries.entry-grid,
+    .vote-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 760px) {
+    .entries.entry-grid,
+    .vote-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1000px) {
+    .entries.entry-grid,
+    .vote-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
 }
 
 .vote-card {
@@ -1095,7 +1175,8 @@ textarea {
     background: var(--selected-bg);
 }
 
-.vote-card.unavailable {
+.entry-card.unavailable,
+.entry-vote.unavailable {
     opacity: 0.78;
     border-style: dashed;
 }
@@ -1180,12 +1261,13 @@ textarea {
 
 .toast-stack {
     position: fixed;
-    top: 18px;
-    right: 18px;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse;
     gap: 10px;
-    align-items: flex-end;
+    align-items: center;
     z-index: 1100;
     pointer-events: none;
 }
@@ -1208,13 +1290,13 @@ textarea {
     max-height: 320px;
     overflow: hidden;
     transition: opacity 200ms ease, transform 220ms ease, max-height 220ms ease, margin 220ms ease, padding 220ms ease;
-    transform-origin: top right;
+    transform-origin: bottom center;
     will-change: opacity, transform;
 }
 
 .toast.leaving {
     opacity: 0;
-    transform: translateY(-10px) scale(0.97);
+    transform: translateY(10px) scale(0.97);
     max-height: 0;
     margin: 0;
     padding-top: 0;
@@ -1236,7 +1318,7 @@ textarea {
 @keyframes dropfade {
     from {
         opacity: 0;
-        transform: translateY(-8px);
+        transform: translateY(8px);
     }
     to {
         opacity: 1;
@@ -1294,7 +1376,7 @@ textarea {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding-right: 2px;
+    padding: 3px 5px 3px 3px;
 }
 
 .ranking-modal-head {
@@ -1636,6 +1718,11 @@ textarea {
     transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
+.submission-card {
+    border-color: var(--selected-border);
+    box-shadow: var(--shadow-card), 0 0 0 2px color-mix(in srgb, var(--selected-border) 55%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--selected-border) 35%, transparent);
+}
+
 .radio-card.selected {
     border-color: var(--selected-border);
     box-shadow: var(--selection-shadow);
@@ -1803,11 +1890,6 @@ textarea {
 }
 
 @media (max-width: 540px) {
-    .entries.entry-grid,
-    .vote-grid {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
     .topbar {
         grid-template-columns: minmax(0, 1fr);
         grid-template-areas:

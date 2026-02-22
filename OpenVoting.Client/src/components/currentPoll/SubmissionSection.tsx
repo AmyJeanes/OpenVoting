@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PollResponse } from '../../types';
 
 export type SubmissionSectionProps = {
@@ -42,6 +42,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
   const [descriptionTouched, setDescriptionTouched] = useState(false);
   const [imageTouched, setImageTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const imageValidationMessages = new Set([
     'Please upload an image file',
@@ -89,10 +90,13 @@ export function SubmissionSection(props: SubmissionSectionProps) {
     setDescriptionTouched(false);
     setImageTouched(false);
     setSubmitAttempted(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   }, [entrySubmitSuccessCount]);
 
   return (
-    <section className="card">
+    <section className="card submission-card">
       <div className="section-head">
         <h3>Submit an entry</h3>
       </div>
@@ -113,6 +117,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
           {poll.imageRequirement !== 0 && (
                     <label className="auto">Upload image
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                         className={(showImageMissingInvalid || showImageConstraintError) ? 'input-invalid' : undefined}

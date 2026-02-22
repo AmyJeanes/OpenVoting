@@ -3,6 +3,7 @@ General:
 - Make sure all changes are covered by unit tests where appropriate
 - You are running in a PowerShell terminal, you do not need to run `pwsh -Command` before using PowerShell commands / syntax
 - User-facing text in the UI should rarely have a full stop at the end, except for longer sentences, e.g. instructions, where it may be appropriate
+- Only build the server backend when necessary, as it requires the app to shutdown and restart
 
 OpenVoting.Server:
 - This is a .NET backend server application using EF Core Migrations

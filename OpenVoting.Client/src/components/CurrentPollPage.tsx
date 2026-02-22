@@ -83,6 +83,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
     entriesError,
     entriesLoading,
     voteState,
+    voteError,
     voteSubmitting,
     voteInfo,
     votingBreakdown,
@@ -153,6 +154,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverAfter, setDragOverAfter] = useState(false);
   const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null);
+  const prevVoteSubmittingRef = useRef(false);
   const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
   const itemPositions = useRef<Record<string, number>>({});
   const lastSubmittedRanks = useMemo(() => {
@@ -304,6 +306,17 @@ export function CurrentPollPage(props: CurrentPollProps) {
     setIrvStage('select');
     setRankedIds(ordered);
   }, [poll?.id, poll?.requireRanking, voteInfo?.voteId, entries]);
+
+  useEffect(() => {
+    const justFinishedSuccessfulSubmit = prevVoteSubmittingRef.current && !voteSubmitting && !voteError;
+    if (justFinishedSuccessfulSubmit && poll?.requireRanking && irvStage === 'rank') {
+      setIrvStage('select');
+      setDraggingId(null);
+      setDragOverId(null);
+      setDragOverAfter(false);
+    }
+    prevVoteSubmittingRef.current = voteSubmitting;
+  }, [voteSubmitting, voteError, poll?.requireRanking, irvStage]);
 
   const buildMetaUpdates = () => {
     if (!poll) return null;
@@ -725,7 +738,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
                   : (pollDetail.titleRequirement === 0 ? 'Entry' : 'Untitled entry');
                 const highlightClass = highlightedEntryId === e.id ? 'entry-highlight' : '';
                 return (
-                  <li key={e.id} id={`entry-${e.id}`} className={`entry-card ${e.isWinner ? 'winner' : ''} ${highlightClass}`}>
+                  <li key={e.id} id={`entry-${e.id}`} className={`entry-card ${e.isWinner ? 'winner' : ''} ${e.isDisqualified ? 'unavailable' : ''} ${highlightClass}`}>
                     <div className="entry-head">
                       <div>
                         <p className="entry-title">{titleText}</p>
@@ -734,20 +747,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
                             <span className="byline-label">By:</span>
                             <span className="byline-name">{e.submittedByDisplayName}</span>
                           </p>
-                        )}
-                        {e.isDisqualified && (
-                          <div className="disqualification-details">
-                            <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>
-                            {poll.isAdmin && (e.disqualifiedByDisplayName || e.disqualifiedAt) && (
-                              <p className="muted">
-                                <span className="byline">
-                                  <span className="byline-label">By:</span>
-                                  <span className="byline-name">{e.disqualifiedByDisplayName ?? 'unknown admin'}</span>
-                                </span>
-                                {e.disqualifiedAt ? ` on ${new Date(e.disqualifiedAt).toLocaleString()}` : ''}
-                              </p>
-                            )}
-                          </div>
                         )}
                       </div>
                       <div className="badges">
@@ -765,6 +764,20 @@ export function CurrentPollPage(props: CurrentPollProps) {
                       >
                         <img src={previewUrl} alt={e.displayName || 'Entry image'} className="entry-img" />
                       </button>
+                    )}
+                    {e.isDisqualified && (
+                      <div className="disqualification-details">
+                        <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>
+                        {poll.isAdmin && (e.disqualifiedByDisplayName || e.disqualifiedAt) && (
+                          <p className="disqualification-meta">
+                            <span className="byline">
+                              <span className="byline-label">By:</span>
+                              <span className="byline-name">{e.disqualifiedByDisplayName ?? 'unknown admin'}</span>
+                            </span>
+                            {e.disqualifiedAt ? ` on ${new Date(e.disqualifiedAt).toLocaleString()}` : ''}
+                          </p>
+                        )}
+                      </div>
                     )}
                     {e.description && <p className="muted">{e.description}</p>}
                     <div className="actions entry-breakdown-summary">
