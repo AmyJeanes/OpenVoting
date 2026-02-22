@@ -6,6 +6,9 @@ using OpenVoting.Server.Contracts;
 using OpenVoting.Server.Services;
 using OpenVoting.Server.Tests.Helpers;
 using NUnit.Framework;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace OpenVoting.Server.Tests;
 
@@ -236,14 +239,15 @@ public class PollEntryServiceTests
 		};
 
 		var storage = new FakeAssetStorage();
-		var originalAsset = storage.SaveAssetFromBytes(new byte[] { 1, 2, 3, 4 }, contentType: "image/png", storageKey: "assets/original.png");
+		var imageBytes = CreateValidSquarePngBytes();
+		var originalAsset = storage.SaveAssetFromBytes(imageBytes, contentType: "image/png", storageKey: "assets/original.png");
 
 		db.CommunityMembers.Add(member);
 		db.Polls.Add(poll);
 		db.Assets.Add(originalAsset);
 		await db.SaveChangesAsync();
 
-		storage.RegisterAsset(originalAsset, new byte[] { 1, 2, 3, 4 });
+		storage.RegisterAsset(originalAsset, imageBytes);
 
 		var service = new PollEntryService(db, NullLogger<PollEntryService>.Instance, storage);
 		var result = await service.SubmitAsync(
@@ -254,11 +258,27 @@ public class PollEntryServiceTests
 
 		Assert.That(result.Outcome, Is.EqualTo(PollEntryOutcome.Ok));
 		Assert.That(await db.PollEntries.CountAsync(), Is.EqualTo(1));
-		Assert.That(await db.Assets.CountAsync(), Is.EqualTo(3));
+		Assert.That(await db.Assets.CountAsync(), Is.EqualTo(2));
 
 		var entry = await db.PollEntries.FirstAsync();
-		Assert.That(entry.TeaserAssetId, Is.Not.Null);
+		Assert.That(entry.TeaserBlurHash, Is.Not.Null.And.Not.Empty);
 		Assert.That(entry.PublicAssetId, Is.Not.Null);
+	}
+
+	private static byte[] CreateValidSquarePngBytes()
+	{
+		using var image = new Image<Rgba32>(8, 8);
+		for (var y = 0; y < image.Height; y++)
+		{
+			for (var x = 0; x < image.Width; x++)
+			{
+				image[x, y] = new Rgba32((byte)(x * 24), (byte)(y * 24), 140, 255);
+			}
+		}
+
+		using var ms = new MemoryStream();
+		image.Save(ms, new PngEncoder());
+		return ms.ToArray();
 	}
 
 	[Test]
@@ -289,11 +309,9 @@ public class PollEntryServiceTests
 		};
 
 		var originalAsset = storage.SaveAssetFromBytes(new byte[] { 1, 2 }, storageKey: "assets/original.png");
-		var teaserAsset = storage.SaveAssetFromBytes(new byte[] { 3, 4 }, storageKey: "assets/teaser.png");
-
 		db.CommunityMembers.Add(member);
 		db.Polls.Add(poll);
-		db.Assets.AddRange(originalAsset, teaserAsset);
+		db.Assets.Add(originalAsset);
 
 		var entryId = Guid.NewGuid();
 		var entry = new PollEntry
@@ -303,7 +321,6 @@ public class PollEntryServiceTests
 			SubmittedByMemberId = memberId,
 			DisplayName = "Entry",
 			OriginalAssetId = originalAsset.Id,
-			TeaserAssetId = teaserAsset.Id,
 			PublicAssetId = null,
 			CreatedAt = DateTimeOffset.UtcNow
 		};
@@ -318,7 +335,7 @@ public class PollEntryServiceTests
 		Assert.That(result.Outcome, Is.EqualTo(PollEntryOutcome.NoContent));
 		Assert.That(await db.PollEntries.CountAsync(), Is.EqualTo(0));
 		Assert.That(await db.VoteChoices.CountAsync(), Is.EqualTo(0));
-		Assert.That(storage.DeletedKeys, Is.EquivalentTo(new[] { "assets/original.png", "assets/teaser.png" }));
+		Assert.That(storage.DeletedKeys, Is.EquivalentTo(new[] { "assets/original.png" }));
 	}
 
 	[Test]
@@ -429,7 +446,7 @@ public class PollEntryServiceTests
 
 		var originalAssetId = Guid.NewGuid();
 		var publicAssetId = Guid.NewGuid();
-		var teaserAssetId = Guid.NewGuid();
+		var teaserBlurHash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
 
 		db.Polls.Add(poll);
 		db.PollEntries.Add(new PollEntry
@@ -440,7 +457,7 @@ public class PollEntryServiceTests
 			DisplayName = "Entry",
 			OriginalAssetId = originalAssetId,
 			PublicAssetId = publicAssetId,
-			TeaserAssetId = teaserAssetId,
+			TeaserBlurHash = teaserBlurHash,
 			CreatedAt = now.AddMinutes(-5)
 		});
 
@@ -458,7 +475,7 @@ public class PollEntryServiceTests
 		{
 			Assert.That(entry.OriginalAssetId, Is.Null);
 			Assert.That(entry.PublicAssetId, Is.Null);
-			Assert.That(entry.TeaserAssetId, Is.EqualTo(teaserAssetId));
+			Assert.That(entry.TeaserBlurHash, Is.EqualTo(teaserBlurHash));
 		});
 	}
 
@@ -493,7 +510,7 @@ public class PollEntryServiceTests
 
 		var originalAssetId = Guid.NewGuid();
 		var publicAssetId = Guid.NewGuid();
-		var teaserAssetId = Guid.NewGuid();
+		var teaserBlurHash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
 
 		db.Polls.Add(poll);
 		db.PollEntries.Add(new PollEntry
@@ -504,7 +521,7 @@ public class PollEntryServiceTests
 			DisplayName = "Entry",
 			OriginalAssetId = originalAssetId,
 			PublicAssetId = publicAssetId,
-			TeaserAssetId = teaserAssetId,
+			TeaserBlurHash = teaserBlurHash,
 			CreatedAt = now.AddMinutes(-5)
 		});
 
@@ -519,7 +536,7 @@ public class PollEntryServiceTests
 		{
 			Assert.That(entry.OriginalAssetId, Is.EqualTo(originalAssetId));
 			Assert.That(entry.PublicAssetId, Is.EqualTo(publicAssetId));
-			Assert.That(entry.TeaserAssetId, Is.EqualTo(teaserAssetId));
+			Assert.That(entry.TeaserBlurHash, Is.EqualTo(teaserBlurHash));
 		});
 	}
 

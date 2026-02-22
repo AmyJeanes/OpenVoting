@@ -15,8 +15,7 @@ public sealed class PollEntry
   public Guid? OriginalAssetId { get; set; }
   public Asset? OriginalAsset { get; set; }
 
-  public Guid? TeaserAssetId { get; set; }
-  public Asset? TeaserAsset { get; set; }
+  public string? TeaserBlurHash { get; set; }
 
   public Guid? PublicAssetId { get; set; }
   public Asset? PublicAsset { get; set; }

@@ -1,10 +1,9 @@
-import type { AssetUploadResponse, PollEntryResponse, PollResponse } from '../../types';
+import { Blurhash } from 'react-blurhash';
+import type { PollEntryResponse, PollResponse } from '../../types';
 
 export type PreviewSectionProps = {
   poll: PollResponse;
   entries: PollEntryResponse[];
-  assetCache: Record<string, AssetUploadResponse>;
-  entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => string;
 };
 
 function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
@@ -16,7 +15,7 @@ function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
   return 'Untitled entry';
 }
 
-export function PreviewSection({ poll, entries, assetCache, entryAssetId }: PreviewSectionProps) {
+export function PreviewSection({ poll, entries }: PreviewSectionProps) {
   return (
     <section className="card">
       <div className="section-head">
@@ -25,16 +24,21 @@ export function PreviewSection({ poll, entries, assetCache, entryAssetId }: Prev
       </div>
       <ul className="entries entry-grid">
         {entries.map((e) => {
-          const assetId = entryAssetId(e);
-          const asset = assetCache[assetId];
+          const title = entryTitle(poll, e);
           return (
             <li key={e.id} className="entry-card">
               <div className="entry-head">
                 <div>
-                  <p className="entry-title">{entryTitle(poll, e)}</p>
+                  <p className="entry-title">{title}</p>
                 </div>
               </div>
-              {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
+              {e.teaserBlurHash ? (
+                <div className="entry-img blurhash-preview" aria-label={`${title || 'Entry'} blurred preview`}>
+                  <Blurhash hash={e.teaserBlurHash} width="100%" height="100%" resolutionX={32} resolutionY={32} punch={1} />
+                </div>
+              ) : (
+                <div className="entry-img blurhash-preview-fallback" aria-hidden="true" />
+              )}
               {e.description && <p className="muted">{e.description}</p>}
             </li>
           );

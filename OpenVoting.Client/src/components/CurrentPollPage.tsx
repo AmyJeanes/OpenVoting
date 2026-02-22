@@ -207,18 +207,17 @@ export function CurrentPollPage(props: CurrentPollProps) {
     if (!poll?.isAdmin) return entries;
     return [...entries].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [entries, poll?.isAdmin]);
-  const getEntryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }, preferTeaser: boolean) => {
+  const getEntryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string }, preferTeaser: boolean) => {
     if (poll?.imageRequirement === 0) {
       return '';
     }
 
-    if (preferTeaser && entry.teaserAssetId) {
-      return entry.teaserAssetId;
+    if (preferTeaser) {
+      return '';
     }
-    return entry.publicAssetId ?? entry.originalAssetId ?? entry.teaserAssetId ?? '';
+    return entry.publicAssetId ?? entry.originalAssetId ?? '';
   };
-  const entryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => getEntryAssetId(entry, !!preferTeaserAssetForParticipants);
-  const previewEntryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => getEntryAssetId(entry, !!preferTeaserAssetForPreview);
+  const entryAssetId = (entry: { publicAssetId?: string; originalAssetId?: string }) => getEntryAssetId(entry, !!preferTeaserAssetForParticipants);
   const requirementOptions: Array<{ value: FieldRequirement; label: string }> = [
     { value: 0, label: 'Off' },
     { value: 1, label: 'Optional' },
@@ -649,7 +648,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
       )}
 
       {showBlurredPreview && (
-        <PreviewSection poll={poll} entries={entries} assetCache={assetCache} entryAssetId={previewEntryAssetId} />
+        <PreviewSection poll={poll} entries={entries} />
       )}
 
       {poll?.canVote && !isClosed && entries.length > 0 && (

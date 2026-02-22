@@ -254,8 +254,7 @@ public class PollServiceTests
 			SubmittedByMemberId = adminId,
 			DisplayName = "Entry",
 			OriginalAssetId = asset1.Id,
-			TeaserAssetId = asset2.Id,
-			PublicAssetId = null,
+			PublicAssetId = asset2.Id,
 			CreatedAt = DateTimeOffset.UtcNow
 		};
 
@@ -462,7 +461,7 @@ public class PollServiceTests
 
 		var entryId = Guid.NewGuid();
 		var originalAssetId = Guid.NewGuid();
-		var teaserAssetId = Guid.NewGuid();
+		var teaserBlurHash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
 		var publicAssetId = Guid.NewGuid();
 
 		db.Polls.Add(poll);
@@ -473,7 +472,7 @@ public class PollServiceTests
 			SubmittedByMemberId = submitterId,
 			DisplayName = "Entry",
 			OriginalAssetId = originalAssetId,
-			TeaserAssetId = teaserAssetId,
+			TeaserBlurHash = teaserBlurHash,
 			PublicAssetId = publicAssetId,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
@@ -489,7 +488,7 @@ public class PollServiceTests
 		{
 			Assert.That(entry.OriginalAssetId, Is.Null);
 			Assert.That(entry.PublicAssetId, Is.Null);
-			Assert.That(entry.TeaserAssetId, Is.EqualTo(teaserAssetId));
+			Assert.That(entry.TeaserBlurHash, Is.EqualTo(teaserBlurHash));
 		});
 	}
 
@@ -508,7 +507,7 @@ public class PollServiceTests
 		var entryId = Guid.NewGuid();
 		var originalAssetId = Guid.NewGuid();
 		var publicAssetId = Guid.NewGuid();
-		var teaserAssetId = Guid.NewGuid();
+		var teaserBlurHash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
 
 		db.Polls.Add(new Poll
 		{
@@ -529,7 +528,7 @@ public class PollServiceTests
 			DisplayName = "Entry",
 			OriginalAssetId = originalAssetId,
 			PublicAssetId = publicAssetId,
-			TeaserAssetId = teaserAssetId,
+			TeaserBlurHash = teaserBlurHash,
 			CreatedAt = now.AddMinutes(-5)
 		});
 
@@ -544,7 +543,7 @@ public class PollServiceTests
 		{
 			Assert.That(entry.OriginalAssetId, Is.EqualTo(originalAssetId));
 			Assert.That(entry.PublicAssetId, Is.EqualTo(publicAssetId));
-			Assert.That(entry.TeaserAssetId, Is.EqualTo(teaserAssetId));
+			Assert.That(entry.TeaserBlurHash, Is.EqualTo(teaserBlurHash));
 		});
 	}
 
@@ -628,7 +627,7 @@ public class PollServiceTests
 		var entryB = Guid.NewGuid();
 		var originalAssetA = Guid.NewGuid();
 		var publicAssetA = Guid.NewGuid();
-		var teaserAssetA = Guid.NewGuid();
+		var teaserBlurHashA = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
 
 		db.Polls.Add(new Poll
 		{
@@ -643,7 +642,7 @@ public class PollServiceTests
 		});
 
 		db.PollEntries.AddRange(
-			new PollEntry { Id = entryA, PollId = pollId, SubmittedByMemberId = submitterA, DisplayName = "Entry A", OriginalAssetId = originalAssetA, PublicAssetId = publicAssetA, TeaserAssetId = teaserAssetA, CreatedAt = DateTimeOffset.UtcNow.AddHours(-2) },
+			new PollEntry { Id = entryA, PollId = pollId, SubmittedByMemberId = submitterA, DisplayName = "Entry A", OriginalAssetId = originalAssetA, PublicAssetId = publicAssetA, TeaserBlurHash = teaserBlurHashA, CreatedAt = DateTimeOffset.UtcNow.AddHours(-2) },
 			new PollEntry { Id = entryB, PollId = pollId, SubmittedByMemberId = submitterB, DisplayName = "Entry B", CreatedAt = DateTimeOffset.UtcNow.AddHours(-1) });
 
 		var vote = new Vote { Id = Guid.NewGuid(), PollId = pollId, MemberId = submitterA, IsFinal = true, SubmittedAt = DateTimeOffset.UtcNow };
@@ -669,7 +668,7 @@ public class PollServiceTests
 			var entryAResponse = response.Entries.First(e => e.Id == entryA);
 			Assert.That(entryAResponse.OriginalAssetId, Is.Null);
 			Assert.That(entryAResponse.PublicAssetId, Is.Null);
-			Assert.That(entryAResponse.TeaserAssetId, Is.EqualTo(teaserAssetA));
+			Assert.That(entryAResponse.TeaserBlurHash, Is.EqualTo(teaserBlurHashA));
 		});
 	}
 

@@ -763,6 +763,14 @@ button.ghost {
     margin-top: auto;
 }
 
+.admin-card .entry-card .actions.admin-entry-actions {
+    margin-top: 12px;
+}
+
+.entry-card .actions.my-entry-actions {
+    margin-top: 12px;
+}
+
 .entry-card.draft {
     background: var(--draft-card-bg);
     border-color: var(--draft-card-border);
@@ -868,6 +876,23 @@ button.ghost {
     object-fit: cover;
     border-radius: 12px;
     border: 1px solid var(--border-strong);
+}
+
+.entry-img.blurhash-preview {
+    margin-top: 10px;
+    overflow: hidden;
+    background: var(--surface-subtle);
+}
+
+.entry-img.blurhash-preview canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+.entry-img.blurhash-preview-fallback {
+    margin-top: 10px;
+    background: var(--surface-subtle);
 }
 
 .form-grid {

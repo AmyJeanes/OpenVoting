@@ -224,7 +224,7 @@ public sealed class PollService : IPollService
 					entryDisplayName,
 					e.Description,
 					originalAssetId,
-					e.TeaserAssetId,
+					e.TeaserBlurHash,
 					publicAssetId,
 					e.IsDisqualified,
 					e.DisqualificationReason,
@@ -627,7 +627,7 @@ public sealed class PollService : IPollService
 		}
 
 		var entryAssetIds = poll.Entries
-			.SelectMany(e => new[] { e.OriginalAssetId, e.TeaserAssetId, e.PublicAssetId })
+			.SelectMany(e => new[] { e.OriginalAssetId, e.PublicAssetId })
 			.Where(a => a.HasValue)
 			.Select(a => a!.Value)
 			.Distinct()
@@ -862,7 +862,7 @@ public sealed class PollService : IPollService
 				e => e.Id,
 				e => new EntryInfo(
 					hideTitles ? string.Empty : e.DisplayName,
-					e.PublicAssetId ?? e.TeaserAssetId ?? e.OriginalAssetId,
+					e.PublicAssetId ?? e.OriginalAssetId,
 					e.SubmittedByMember?.DisplayName ?? string.Empty
 				)
 			);
@@ -995,7 +995,7 @@ public sealed class PollService : IPollService
 			DisplayName = data.DisplayName,
 			Description = data.Description,
 			OriginalAssetId = data.OriginalAssetId,
-			TeaserAssetId = data.TeaserAssetId,
+			TeaserBlurHash = data.TeaserBlurHash,
 			PublicAssetId = data.PublicAssetId,
 			IsDisqualified = data.IsDisqualified,
 			DisqualificationReason = data.DisqualificationReason,
@@ -1015,7 +1015,7 @@ public sealed class PollService : IPollService
 		string DisplayName,
 		string? Description,
 		Guid? OriginalAssetId,
-		Guid? TeaserAssetId,
+		string? TeaserBlurHash,
 		Guid? PublicAssetId,
 		bool IsDisqualified,
 		string? DisqualificationReason,

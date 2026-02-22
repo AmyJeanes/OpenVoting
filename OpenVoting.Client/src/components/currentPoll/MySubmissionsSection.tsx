@@ -6,7 +6,7 @@ export type MySubmissionsSectionProps = {
   poll: PollResponse;
   entries: PollEntryResponse[];
   assetCache: Record<string, AssetUploadResponse>;
-  entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => string;
+  entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string }) => string;
   onAskDelete: (entryId: string) => void;
 };
 
@@ -58,7 +58,7 @@ export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, 
                 </button>
               )}
               {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
-              <div className="actions">
+              <div className="actions my-entry-actions">
                 <button type="button" className="ghost danger" onClick={() => onAskDelete(e.id)}>Delete</button>
               </div>
             </li>

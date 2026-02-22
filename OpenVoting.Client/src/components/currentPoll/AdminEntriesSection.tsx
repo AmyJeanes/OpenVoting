@@ -10,7 +10,7 @@ export type AdminEntriesSectionProps = {
   votingBreakdownError: string | null;
   breakdownByEntryId: Map<string, VotingBreakdownEntry>;
   assetCache: Record<string, AssetUploadResponse>;
-  entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => string;
+  entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string }) => string;
   onAskDisqualify: (entryId: string) => void;
   onRequalify: (entryId: string) => void;
   onAskDelete: (entryId: string) => void;

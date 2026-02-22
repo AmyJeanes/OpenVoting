@@ -120,7 +120,7 @@ public class AssetsControllerTests
 	}
 
 	[Test]
-	public async Task Get_TeaserAssetBeforeVoting_AllowsAccess()
+	public async Task Get_PublicAssetBeforeVoting_AllowsAccess()
 	{
 		await using var db = TestDbContextFactory.CreateContext();
 		var communityId = Guid.NewGuid();
@@ -137,16 +137,16 @@ public class AssetsControllerTests
 			VotingClosesAt = DateTimeOffset.UtcNow.AddHours(2)
 		};
 
-		var teaser = new Asset { Id = Guid.NewGuid(), StorageKey = "assets/teaser.png", ContentType = "image/png", Bytes = 8 };
+		var publicAsset = new Asset { Id = Guid.NewGuid(), StorageKey = "assets/public.png", ContentType = "image/png", Bytes = 8 };
 
 		db.Polls.Add(poll);
-		db.Assets.Add(teaser);
+		db.Assets.Add(publicAsset);
 		db.PollEntries.Add(new PollEntry
 		{
 			Id = Guid.NewGuid(),
 			PollId = poll.Id,
 			SubmittedByMemberId = memberId,
-			TeaserAssetId = teaser.Id,
+			PublicAssetId = publicAsset.Id,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await db.SaveChangesAsync();
@@ -160,12 +160,12 @@ public class AssetsControllerTests
 			}
 		};
 
-		var result = await controller.Get(teaser.Id, CancellationToken.None);
+		var result = await controller.Get(publicAsset.Id, CancellationToken.None);
 		var ok = result.Result as OkObjectResult;
 		Assert.That(ok, Is.Not.Null);
 		var response = ok!.Value as AssetResponse;
 		Assert.That(response, Is.Not.Null);
-		Assert.That(response!.Id, Is.EqualTo(teaser.Id));
+		Assert.That(response!.Id, Is.EqualTo(publicAsset.Id));
 	}
 
 	[Test]

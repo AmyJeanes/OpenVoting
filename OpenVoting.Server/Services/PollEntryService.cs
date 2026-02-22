@@ -1,9 +1,12 @@
 using System.Security.Claims;
+using Blurhash.ImageSharp;
 using Microsoft.EntityFrameworkCore;
 using OpenVoting.Data;
 using OpenVoting.Data.Enums;
 using OpenVoting.Server.Auth;
 using OpenVoting.Server.Contracts;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace OpenVoting.Server.Services;
 
@@ -23,7 +26,7 @@ public sealed class PollEntryService : IPollEntryService
 	private readonly IAssetStorage _assetStorage;
 
 	private const int PublicImageSize = 512;
-	private const int TeaserImageSize = 512;
+	private const string FallbackTeaserBlurHash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
 
 	public PollEntryService(ApplicationDbContext db, ILogger<PollEntryService> logger, IAssetStorage assetStorage)
 	{
@@ -67,7 +70,7 @@ public sealed class PollEntryService : IPollEntryService
 			DisplayName = e.DisplayName,
 			Description = e.Description,
 			OriginalAssetId = CanExposeFullAssets(poll, authUser, e.SubmittedByMemberId) ? e.OriginalAssetId : null,
-			TeaserAssetId = e.TeaserAssetId,
+			TeaserBlurHash = e.TeaserBlurHash,
 			PublicAssetId = CanExposeFullAssets(poll, authUser, e.SubmittedByMemberId) ? e.PublicAssetId : null,
 			IsDisqualified = e.IsDisqualified,
 			DisqualificationReason = e.DisqualificationReason,
@@ -137,7 +140,7 @@ public sealed class PollEntryService : IPollEntryService
 			}
 		}
 
-		var assetIds = new List<Guid?> { entry.OriginalAssetId, entry.TeaserAssetId, entry.PublicAssetId }
+		var assetIds = new List<Guid?> { entry.OriginalAssetId, entry.PublicAssetId }
 			.Where(id => id.HasValue && id.Value != Guid.Empty)
 			.Select(id => id!.Value)
 			.ToList();
@@ -328,7 +331,7 @@ public sealed class PollEntryService : IPollEntryService
 
 		Asset? originalAsset = null;
 		Asset? publicAsset = null;
-		Asset? teaserAsset = null;
+		string? teaserBlurHash = null;
 
 		if (hasImage)
 		{
@@ -345,7 +348,7 @@ public sealed class PollEntryService : IPollEntryService
 
 			try
 			{
-				(publicAsset, teaserAsset) = await CreateDerivedAssetsAsync(originalAsset, cancellationToken);
+				(publicAsset, teaserBlurHash) = await CreateDerivedAssetsAsync(originalAsset, cancellationToken);
 			}
 			catch (InvalidOperationException ex)
 			{
@@ -358,7 +361,10 @@ public sealed class PollEntryService : IPollEntryService
 			}
 
 			ArgumentNullException.ThrowIfNull(publicAsset);
-			ArgumentNullException.ThrowIfNull(teaserAsset);
+			if (string.IsNullOrWhiteSpace(teaserBlurHash))
+			{
+				teaserBlurHash = FallbackTeaserBlurHash;
+			}
 		}
 
 		var resolvedDisplayName = request.DisplayName?.Trim() ?? string.Empty;
@@ -381,7 +387,7 @@ public sealed class PollEntryService : IPollEntryService
 			DisplayName = resolvedDisplayName,
 			Description = resolvedDescription,
 			OriginalAssetId = hasImage ? request.OriginalAssetId : null,
-			TeaserAssetId = teaserAsset?.Id,
+			TeaserBlurHash = hasImage ? teaserBlurHash : null,
 			PublicAssetId = publicAsset?.Id,
 			CreatedAt = now,
 			IsDisqualified = false,
@@ -391,7 +397,7 @@ public sealed class PollEntryService : IPollEntryService
 
 		if (hasImage)
 		{
-			_db.Assets.AddRange(publicAsset!, teaserAsset!);
+			_db.Assets.Add(publicAsset!);
 		}
 		_db.PollEntries.Add(entry);
 		await _db.SaveChangesAsync(cancellationToken);
@@ -399,7 +405,7 @@ public sealed class PollEntryService : IPollEntryService
 		return PollEntryResult<PollEntryResponse>.Ok(ToResponse(entry));
 	}
 
-	private async Task<(Asset PublicAsset, Asset TeaserAsset)> CreateDerivedAssetsAsync(Asset originalAsset, CancellationToken cancellationToken)
+	private async Task<(Asset PublicAsset, string TeaserBlurHash)> CreateDerivedAssetsAsync(Asset originalAsset, CancellationToken cancellationToken)
 	{
 		await using var source = await _assetStorage.OpenReadAsync(originalAsset.StorageKey, cancellationToken);
 		await using var buffer = new MemoryStream();
@@ -424,21 +430,10 @@ public sealed class PollEntryService : IPollEntryService
 
 			buffer.Position = 0;
 
-			var teaserAsset = await _assetStorage.SaveAsync(
-				buffer,
-				"teaser.png",
-				"image/png",
-				cancellationToken,
-				new AssetSaveOptions
-				{
-					RequireSquare = true,
-					ResizeTo = TeaserImageSize,
-					ApplyBlur = true,
-					NormalizeToPng = true
-				});
-			created.Add(teaserAsset);
+			buffer.Position = 0;
+			var teaserBlurHash = CreateTeaserBlurHash(buffer);
 
-			return (publicAsset, teaserAsset);
+			return (publicAsset, teaserBlurHash);
 		}
 		catch
 		{
@@ -456,6 +451,14 @@ public sealed class PollEntryService : IPollEntryService
 
 			throw;
 		}
+	}
+
+	private static string CreateTeaserBlurHash(MemoryStream source)
+	{
+		source.Position = 0;
+		using var image = Image.Load<Rgba32>(source);
+		var blurHash = Blurhasher.Encode(image, 4, 3);
+		return string.IsNullOrWhiteSpace(blurHash) ? FallbackTeaserBlurHash : blurHash;
 	}
 
 	private static bool CanExposeFullAssets(Poll poll, AuthenticatedUser authUser, Guid submittedByMemberId)
@@ -535,7 +538,7 @@ public sealed class PollEntryService : IPollEntryService
 			DisplayName = entry.DisplayName,
 			Description = entry.Description,
 			OriginalAssetId = entry.OriginalAssetId,
-			TeaserAssetId = entry.TeaserAssetId,
+			TeaserBlurHash = entry.TeaserBlurHash,
 			PublicAssetId = entry.PublicAssetId,
 			IsDisqualified = entry.IsDisqualified,
 			DisqualificationReason = entry.DisqualificationReason,

@@ -58,7 +58,7 @@ export type PollDetailEntryResponse = {
   displayName: string;
   description?: string;
   originalAssetId?: string;
-  teaserAssetId?: string;
+  teaserBlurHash?: string;
   publicAssetId?: string;
   isDisqualified: boolean;
   disqualificationReason?: string;
@@ -113,7 +113,7 @@ export type PollEntryResponse = {
   displayName: string;
   description?: string;
   originalAssetId?: string;
-  teaserAssetId?: string;
+  teaserBlurHash?: string;
   publicAssetId?: string;
   isDisqualified: boolean;
   disqualificationReason?: string;

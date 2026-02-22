@@ -10,7 +10,7 @@ export type VotingSectionProps = {
   voteInfo: VoteResponse | null;
   assetCache: Record<string, AssetUploadResponse>;
   isRankedMethod: boolean;
-  entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => string;
+  entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string }) => string;
   onToggleSelection: (entryId: string, selected: boolean) => void;
   onDisqualifiedSelectAttempt: (entry: PollEntryResponse) => void;
   onProceedToRanking: () => void;

@@ -90,7 +90,7 @@ public sealed class AssetsController : ControllerBase
 
 		var entry = await _db.PollEntries
 			.Include(e => e.Poll)
-			.FirstOrDefaultAsync(e => e.OriginalAssetId == asset.Id || e.PublicAssetId == asset.Id || e.TeaserAssetId == asset.Id, cancellationToken);
+			.FirstOrDefaultAsync(e => e.OriginalAssetId == asset.Id || e.PublicAssetId == asset.Id, cancellationToken);
 
 		if (entry is not null)
 		{

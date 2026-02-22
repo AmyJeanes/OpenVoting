@@ -42,7 +42,6 @@ export function createEntryResponse(overrides: Partial<PollEntryResponse> = {}):
     displayName: 'Entry One',
     description: 'Entry description',
     originalAssetId: undefined,
-    teaserAssetId: undefined,
     publicAssetId: undefined,
     isDisqualified: false,
     disqualificationReason: undefined,

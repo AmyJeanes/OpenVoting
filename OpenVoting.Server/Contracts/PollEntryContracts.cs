@@ -5,8 +5,6 @@ public sealed class SubmitEntryRequest
 	public string DisplayName { get; init; } = string.Empty;
 	public string? Description { get; init; }
 	public Guid? OriginalAssetId { get; init; }
-	public Guid? TeaserAssetId { get; init; }
-	public Guid? PublicAssetId { get; init; }
 }
 
 public sealed class DisqualifyEntryRequest
@@ -20,7 +18,7 @@ public sealed class PollEntryResponse
 	public string DisplayName { get; init; } = string.Empty;
 	public string? Description { get; init; }
 	public Guid? OriginalAssetId { get; init; }
-	public Guid? TeaserAssetId { get; init; }
+	public string? TeaserBlurHash { get; init; }
 	public Guid? PublicAssetId { get; init; }
 	public bool IsDisqualified { get; init; }
 	public string? DisqualificationReason { get; init; }

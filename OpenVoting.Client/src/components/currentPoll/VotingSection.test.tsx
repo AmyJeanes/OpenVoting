@@ -65,9 +65,9 @@ describe('VotingSection', () => {
   it('renders entries in the order provided without resorting', () => {
     const poll = createPollResponse({ maxSelections: 3, requireRanking: false, titleRequirement: 1 });
     const entries = [
-      createEntryResponse({ id: 'entry-1', displayName: 'First', teaserAssetId: 'asset-1' }),
-      createEntryResponse({ id: 'entry-2', displayName: 'Second', teaserAssetId: 'asset-2' }),
-      createEntryResponse({ id: 'entry-3', displayName: 'Third', teaserAssetId: 'asset-3' })
+      createEntryResponse({ id: 'entry-1', displayName: 'First', publicAssetId: 'asset-1' }),
+      createEntryResponse({ id: 'entry-2', displayName: 'Second', publicAssetId: 'asset-2' }),
+      createEntryResponse({ id: 'entry-3', displayName: 'Third', publicAssetId: 'asset-3' })
     ];
 
     const assetCache = {
@@ -85,7 +85,7 @@ describe('VotingSection', () => {
         voteInfo={null}
         assetCache={assetCache}
         isRankedMethod={false}
-        entryAssetId={(e) => e.teaserAssetId ?? ''}
+        entryAssetId={(e) => e.publicAssetId ?? ''}
         onToggleSelection={vi.fn()}
         onDisqualifiedSelectAttempt={vi.fn()}
         onProceedToRanking={vi.fn()}

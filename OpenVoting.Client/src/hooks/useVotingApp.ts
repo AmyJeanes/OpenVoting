@@ -501,11 +501,10 @@ export function useVotingApp() {
     }
   };
 
-  const loadAssetsForEntries = (data: Array<{ originalAssetId?: string; publicAssetId?: string; teaserAssetId?: string }>) => {
+  const loadAssetsForEntries = (data: Array<{ originalAssetId?: string; publicAssetId?: string }>) => {
     const ids = new Set<string>();
     data.forEach((e) => {
       if (e.publicAssetId) ids.add(e.publicAssetId);
-      if (e.teaserAssetId) ids.add(e.teaserAssetId);
       if (e.originalAssetId) ids.add(e.originalAssetId);
     });
     ids.forEach((id) => loadAsset(id));

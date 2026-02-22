@@ -173,7 +173,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
         {detail.entries.length > 0 && (
           <ul className="entries entry-grid">
             {detail.entries.map((e) => {
-              const assetId = e.publicAssetId ?? e.teaserAssetId ?? e.originalAssetId ?? '';
+              const assetId = e.publicAssetId ?? e.originalAssetId ?? '';
               const asset = assetCache[assetId];
               const positionLabel = isTie && e.isWinner ? '#1' : (typeof e.position === 'number' ? `#${e.position}` : null);
               const titleText = entryTitle(e);

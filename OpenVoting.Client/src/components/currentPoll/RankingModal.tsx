@@ -20,7 +20,7 @@ export type RankingModalProps = {
   voteSubmitting: boolean;
   hasExistingVote: boolean;
   assetCache: Record<string, AssetUploadResponse>;
-  entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string; teaserAssetId?: string }) => string;
+  entryAssetId: (entry: { publicAssetId?: string; originalAssetId?: string }) => string;
   onBackToSelection: () => void;
   onSubmitRanks: () => void;
   onMoveRank: (entryId: string, direction: -1 | 1) => void;
