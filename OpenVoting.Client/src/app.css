@@ -467,6 +467,10 @@ button.ghost {
     gap: 24px;
 }
 
+.entries.poll-list.live-poll-list {
+    gap: 14px;
+}
+
 .entries.entry-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -495,20 +499,105 @@ button.ghost {
 
 .live-title {
     margin: 0;
-    font-size: 1.55rem;
+    font-size: 1.32rem;
     font-weight: 700;
-    line-height: 1.25;
-    padding: 6px 0 10px;
+    line-height: 1.3;
 }
 
-.live-poll-details {
+.live-poll-card {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 14px;
+    padding: 16px;
 }
 
-.live-poll-details p {
+.live-poll-card-head {
+    gap: 12px;
+}
+
+.live-poll-description {
+    margin: 8px 0 0;
+}
+
+.live-poll-status-pill {
+    padding: 7px 14px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid transparent;
+}
+
+.live-poll-status-pill.status-0 {
+    background: var(--admin-pill-bg);
+    color: var(--admin-pill-text);
+    border-color: var(--admin-card-border);
+}
+
+.live-poll-status-pill.status-1 {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.live-poll-status-pill.status-2 {
+    background: var(--pill-winner-bg);
+    color: var(--pill-winner-text);
+    border-color: var(--pill-winner-border);
+}
+
+.live-poll-status-pill.status-3 {
+    background: var(--pill-subtle-bg);
+    color: var(--pill-subtle-text);
+    border-color: var(--border);
+}
+
+.live-poll-status-pill.status-4 {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border-color: var(--danger-border);
+}
+
+.live-poll-status-pill.status-5 {
+    background: var(--pill-tie-bg);
+    color: var(--pill-tie-text);
+    border-color: var(--pill-tie-border);
+}
+
+.live-poll-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.live-poll-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.live-poll-meta-label {
     margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.live-poll-meta-value {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.live-poll-actions {
+    margin-top: 2px;
 }
 
 .entries.poll-list > .entry-card > .actions {
@@ -804,29 +893,6 @@ button.ghost {
 
 .entry-breakdown-summary {
     margin-top: 10px;
-}
-
-.pill.status {
-    padding: 4px 12px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    font-weight: 800;
-    border: 1px solid var(--selected-border);
-    background: var(--selected-bg);
-    color: var(--text-secondary);
-    box-shadow: var(--shadow-soft);
-}
-
-.pill.status.live {
-    background: var(--accent-strong);
-    border-color: var(--accent-strong);
-    color: var(--accent-contrast);
-    box-shadow: var(--shadow-accent);
-}
-
-.pill.status.admin {
-    border-color: var(--admin-card-border);
-    box-shadow: var(--shadow-soft);
 }
 
 .entry-title {

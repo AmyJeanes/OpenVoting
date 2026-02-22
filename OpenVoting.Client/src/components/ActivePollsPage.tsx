@@ -131,28 +131,34 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
         {loading && <p className="muted">Loading live polls…</p>}
         {!loading && activePolls.length === 0 && !pollError && <p className="muted">No active polls right now</p>}
         {!loading && activePolls.length > 0 && (
-          <ul className="entries poll-list">
+          <ul className="entries poll-list live-poll-list">
             {activePolls.map((p) => {
-              const statusPillClass = p.status === 0 ? 'pill status admin' : 'pill status live';
               const entryClass = p.status === 0 ? 'entry-card draft' : 'entry-card';
+              const statusLabel = pollStatusLabel(p.status);
               return (
-                <li key={p.id} className={entryClass}>
-                  <div className="entry-head">
+                <li key={p.id} className={`${entryClass} live-poll-card`}>
+                  <div className="entry-head live-poll-card-head">
                     <div className="entry-head-main">
                       <p className="entry-title live-title">{p.title}</p>
+                      {p.description && <p className="muted multiline live-poll-description">{p.description}</p>}
                     </div>
                     <div className="badges entry-badges">
-                      <span className={statusPillClass}>{pollStatusLabel(p.status)}</span>
+                      <span className={`pill live-poll-status-pill status-${p.status}`}>{statusLabel}</span>
                     </div>
                   </div>
-                  <div className="live-poll-details">
-                    {p.description && <p className="muted multiline">{p.description}</p>}
-                    <p className="muted">Submissions: {formatWindow(p.submissionOpensAt, p.submissionClosesAt)}</p>
+                  <div className="live-poll-meta-grid" aria-label={`Poll windows for ${p.title}`}>
+                    <div className="live-poll-meta-item">
+                      <p className="live-poll-meta-label">Submissions</p>
+                      <p className="live-poll-meta-value">{formatWindow(p.submissionOpensAt, p.submissionClosesAt)}</p>
+                    </div>
                     {(p.status === 2 || p.status === 3 || p.status === 4) && (
-                      <p className="muted">Voting: {formatWindow(p.votingOpensAt, p.votingClosesAt)}</p>
+                      <div className="live-poll-meta-item">
+                        <p className="live-poll-meta-label">Voting</p>
+                        <p className="live-poll-meta-value">{formatWindow(p.votingOpensAt, p.votingClosesAt)}</p>
+                      </div>
                     )}
                   </div>
-                  <div className="actions">
+                  <div className="actions live-poll-actions">
                     <Link className="primary" to={`/polls/${p.id}`}>View poll</Link>
                   </div>
                 </li>
