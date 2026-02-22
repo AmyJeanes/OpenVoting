@@ -36,6 +36,7 @@
   --surface-inner: #edf3f6;
   --surface-alt: #e3edf2;
   --surface-muted: #d8e4e9;
+  --entry-card-bg: var(--surface);
   --border: #bccdd5;
   --border-shell: #acbec7;
   --border-strong: #91a8b2;
@@ -49,12 +50,14 @@
   --shadow-entry-strong: 0 14px 36px rgba(12, 25, 50, 0.24);
   --shadow-entry-rest: 0 12px 30px rgba(12, 25, 50, 0.18);
   --link: var(--accent);
-  --ghost-bg: #e8f1f3;
-  --ghost-bg-hover: #e1ebed;
+  --ghost-bg: #dde9ee;
+  --ghost-bg-hover: #d2e1e7;
+  --ghost-border: var(--border-strong);
   --nav-active-bg: var(--accent-strong);
   --nav-active-text: var(--accent-contrast);
   --pill-subtle-bg: #e6eef2;
   --pill-subtle-text: #24333b;
+  --live-poll-status-open-text: var(--text-primary);
   --pill-winner-bg: #e6fbf1;
   --pill-winner-border: #86e0af;
   --pill-winner-text: #0c3b28;
@@ -125,6 +128,7 @@
     --surface-inner: #112029;
     --surface-alt: #12252f;
     --surface-muted: #0c161d;
+    --entry-card-bg: var(--surface-inner);
     --border: #1a2a33;
     --border-shell: #1e303a;
     --border-strong: #27404c;
@@ -140,10 +144,12 @@
     --link: var(--accent);
     --ghost-bg: #142029;
     --ghost-bg-hover: #192a33;
+    --ghost-border: var(--border);
     --nav-active-bg: var(--accent-strong);
     --nav-active-text: #04131a;
     --pill-subtle-bg: #15252d;
     --pill-subtle-text: #d6eaee;
+    --live-poll-status-open-text: var(--danger-contrast);
     --pill-winner-bg: #0d3626;
     --pill-winner-border: #1d6e46;
     --pill-winner-text: #c2fbe0;
