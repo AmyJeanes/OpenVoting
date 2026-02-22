@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type VotingMethodOption = {
   id: number;
@@ -41,6 +41,7 @@ export function votingMethodSummary(id: number) {
 
 export function VotingMethodInfo({ method }: { method: number }) {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLSpanElement | null>(null);
   const option = optionById(method);
 
   useEffect(() => {
@@ -53,8 +54,23 @@ export function VotingMethodInfo({ method }: { method: number }) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (!rootRef.current?.contains(target)) {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
+  }, [open]);
+
   return (
-    <span className="method-info" onMouseLeave={() => setOpen(false)}>
+    <span ref={rootRef} className="method-info" onMouseLeave={() => setOpen(false)}>
       <button
         className="info-chip"
         type="button"

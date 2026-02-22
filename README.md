@@ -4,7 +4,6 @@ An open-source fair voting system built for communities
 This app is heavily work-in-progress. Please check back later!
 
 TODO:
-- Mobile support / responsive design
 - Show if you've voted yet clearly incl on list page
 - Show voting instructions more clearly (select up to X entries etc)
 - Voting details could all be under a dropdown to reduce clutter

@@ -13,14 +13,14 @@ export function PollHeaderSection({ poll, onRefreshPoll }: PollHeaderSectionProp
 
   return (
     <section className="card">
-      <div className="section-head">
+      <div className="section-head poll-header-head">
         <div>
           <p className="eyebrow">Poll</p>
           <h2>{poll ? poll.title : 'No active competition'}</h2>
           {poll && <span className={`pill ${poll.status === 0 ? 'admin' : 'subtle'}`}>Stage: {pollStatusLabel(poll.status)}</span>}
           {poll && poll.description && <p className="muted multiline">{poll.description}</p>}
         </div>
-        <div className="actions">
+        <div className="actions poll-header-actions">
           <Link className="ghost" to="/polls/live">Back to live polls</Link>
           <button className="ghost" onClick={onRefreshPoll}>Refresh</button>
         </div>

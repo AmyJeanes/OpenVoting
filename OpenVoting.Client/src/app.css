@@ -230,6 +230,10 @@
     margin-bottom: 8px;
 }
 
+.poll-header-head {
+    align-items: flex-start;
+}
+
 .section-head > .muted {
     margin: 0;
 }
@@ -569,14 +573,14 @@ button.ghost {
 }
 
 .history-preview-grid.is-tie .history-thumb {
-    width: 190px;
-    flex: 0 1 190px;
+    width: min(190px, 100%);
+    flex: 1 1 190px;
+    max-width: 190px;
 }
 
 .history-preview-grid.is-tie .history-thumb img,
 .history-preview-grid.is-tie .history-thumb-fallback {
-    width: 190px;
-    height: 190px;
+    width: 100%;
 }
 
 .history-preview-grid.is-tie .history-thumb--remaining {
@@ -606,13 +610,13 @@ button.ghost {
     gap: 12px;
     text-decoration: none;
     color: inherit;
-    width: 220px;
+    width: min(220px, 100%);
 }
 
 .history-thumb img,
 .history-thumb-fallback {
-    width: 220px;
-    height: 220px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
     border-radius: 12px;
     border: 1px solid var(--border-strong);
     object-fit: cover;
@@ -884,7 +888,8 @@ button.ghost {
 }
 
 .form-row .auto {
-    flex: 0 0 auto;
+    flex: 1 1 220px;
+    min-width: 0;
 }
 
 label {
@@ -904,6 +909,12 @@ textarea {
     background: var(--input-bg);
     font: inherit;
     resize: vertical;
+}
+
+input[type="file"] {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .input-invalid {
@@ -1141,6 +1152,17 @@ textarea {
 
 .modal-card.wide {
     max-width: 720px;
+}
+
+.confirm-dialog-card {
+    padding: 16px;
+    gap: 8px;
+}
+
+.confirm-dialog-card .eyebrow,
+.confirm-dialog-card h3,
+.confirm-dialog-card .muted {
+    margin: 0;
 }
 
 .ranking-modal-card {
@@ -1558,6 +1580,21 @@ textarea {
     text-align: left;
 }
 
+@media (max-width: 540px) {
+    .method-popover {
+        position: fixed;
+        min-width: 0;
+        width: auto;
+        max-width: none;
+        left: 12px;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        max-height: min(70vh, 70dvh);
+        overflow-y: auto;
+    }
+}
+
 .submission-limit-warning {
     color: var(--danger-text);
     font-weight: 700;
@@ -1662,6 +1699,25 @@ textarea {
         row-gap: 8px;
         padding: 10px 12px;
         border-radius: 14px;
+    }
+
+    .poll-header-head {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .poll-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        margin-top: 0;
+    }
+
+    .poll-header-actions .ghost,
+    .poll-header-actions button.ghost {
+        flex: 0 0 auto;
+        display: inline-flex;
+        justify-content: center;
     }
 
     .user-shell {

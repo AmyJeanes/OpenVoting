@@ -33,7 +33,7 @@ export function ConfirmDialog({ config, onConfirm, onCancel }: ConfirmDialogProp
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && onCancel()}>
-      <div className="modal-card">
+      <div className="modal-card confirm-dialog-card">
         <p className="eyebrow">Confirm</p>
         <h3>{config.title}</h3>
         {config.body && <p className="muted">{config.body}</p>}
