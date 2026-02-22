@@ -211,7 +211,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
                   </div>
                   {asset?.url && <img src={asset.url} alt={e.displayName} className="entry-img" />}
                   <p className="muted">{e.description}</p>
-                  <div className="actions">
+                  <div className="actions entry-breakdown-summary">
                     <span className="pill subtle">{detail.votingMethod === 2 ? `${e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0} first-choice` : `${e.approvalVotes} approvals`}</span>
                   </div>
                   {detail.votingMethod === 2 && e.rankCounts.length > 0 && (

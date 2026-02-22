@@ -101,19 +101,21 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                   <div className="entry-head">
                     <div className="entry-head-main">
                       <p className="entry-title">{entryTitle(poll, e)}</p>
-                      {e.description && <p className="muted">{e.description}</p>}
-                      {showByline && (
-                        <p className="byline">
-                          <span className="byline-label">By:</span>
-                          <span className="byline-name">{e.submittedByDisplayName}</span>
-                        </p>
-                      )}
-                      <p className="muted">Created {createdAtText}</p>
                     </div>
-                    <div className="badges">
+                    <div className="badges admin-entry-badges">
                       <span className="pill subtle">{positionLabel}</span>
                       {isProjectedWinner && <span className="pill winner">Projected winner</span>}
                     </div>
+                  </div>
+                  <div className="admin-entry-details">
+                    {e.description && <p className="muted">{e.description}</p>}
+                    {showByline && (
+                      <p className="byline">
+                        <span className="byline-label">By:</span>
+                        <span className="byline-name">{e.submittedByDisplayName}</span>
+                      </p>
+                    )}
+                    <p className="muted">Created {createdAtText}</p>
                   </div>
                   {previewUrl && (
                     <button
@@ -129,18 +131,15 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                     <div className="disqualification-details">
                       <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>
                       {(e.disqualifiedByDisplayName || e.disqualifiedAt) && (
-                        <p className="muted">
-                          <span className="byline">
-                            <span className="byline-label">By:</span>
-                            <span className="byline-name">{e.disqualifiedByDisplayName ?? 'unknown admin'}</span>
-                          </span>
+                        <p className="disqualification-meta">
+                          Disqualified by {e.disqualifiedByDisplayName ?? 'unknown admin'}
                           {e.disqualifiedAt ? ` on ${new Date(e.disqualifiedAt).toLocaleString()}` : ''}
                         </p>
                       )}
                     </div>
                   )}
                   {showAdminBreakdown && !votingBreakdownError && (
-                    <div>
+                    <div className="admin-entry-breakdown">
                       {breakdown ? (
                         <>
                           <div className="actions">
@@ -177,9 +176,9 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                   )}
 
                   {poll.isAdmin && (
-                    <div className="actions">
+                    <div className="actions admin-entry-actions">
                       {e.isDisqualified ? (
-                        <button type="button" className="ghost" onClick={() => onRequalify(e.id)}>Requalify</button>
+                        <button type="button" className="ghost requalify" onClick={() => onRequalify(e.id)}>Requalify</button>
                       ) : (
                         <button type="button" className="ghost danger" onClick={() => onAskDisqualify(e.id)}>Disqualify</button>
                       )}

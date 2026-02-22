@@ -768,7 +768,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
                       </button>
                     )}
                     {e.description && <p className="muted">{e.description}</p>}
-                    <div className="actions">
+                    <div className="actions entry-breakdown-summary">
                       {pollDetail.votingMethod === 2 ? (
                         <span className="pill subtle">{firstChoice} people ranked this #1</span>
                       ) : (

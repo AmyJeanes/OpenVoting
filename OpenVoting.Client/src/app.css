@@ -722,6 +722,39 @@ button.ghost {
     height: 100%;
 }
 
+.admin-entry-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-entry-details p {
+    margin: 0;
+}
+
+.admin-entry-badges {
+    margin-top: 2px;
+}
+
+.admin-entry-breakdown {
+    margin-top: 12px;
+}
+
+.admin-entry-actions {
+    margin-top: 12px;
+}
+
+.ghost.requalify {
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
+    color: var(--text-primary);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--selected-border) 55%, transparent);
+}
+
+.ghost.requalify:hover {
+    background: color-mix(in srgb, var(--selected-bg) 88%, var(--ghost-bg-hover));
+}
+
 .admin-card .entry-card .actions {
     margin-top: auto;
 }
@@ -755,6 +788,10 @@ button.ghost {
 
 .entry-badges {
     gap: 10px;
+}
+
+.entry-breakdown-summary {
+    margin-top: 10px;
 }
 
 .pill.status {
@@ -795,6 +832,12 @@ button.ghost {
 
 .disqualification-details .muted {
     margin-top: 2px;
+}
+
+.disqualification-meta {
+    margin-top: 4px;
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 .entry-img-button {
@@ -1098,6 +1141,20 @@ textarea {
 
 .modal-card.wide {
     max-width: 720px;
+}
+
+.ranking-modal-card {
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+}
+
+.ranking-modal-scroll {
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 2px;
 }
 
 .ranking-modal-head {

@@ -96,7 +96,7 @@ describe('RankingModal', () => {
     expect(onSubmitRanks).toHaveBeenCalledTimes(1);
   });
 
-  it('shows fallback title text when entry display name is empty', () => {
+  it('shows fallback title text when entry display name is empty and hides submitter identity', () => {
     const noTitleEntry = createEntryResponse({
       id: 'entry-blank',
       displayName: '',
@@ -128,7 +128,7 @@ describe('RankingModal', () => {
     );
 
     expect(screen.getByText('#1')).toBeInTheDocument();
-    expect(screen.getByText('By:')).toBeInTheDocument();
-    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.queryByText('By:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Alice')).not.toBeInTheDocument();
   });
 });
