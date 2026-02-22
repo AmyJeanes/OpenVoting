@@ -27,7 +27,7 @@ export function DiscordOAuthCallbackPage() {
       return 'Missing Discord authorization code';
     }
 
-    return 'Complete sign in to continue to OpenVoting';
+    return 'Complete sign in to continue';
   }, [canContinue, oauthError, oauthErrorDescription]);
 
   const handleCancel = () => {

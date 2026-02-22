@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using OpenVoting.Data;
 using OpenVoting.Data.Enums;
@@ -73,10 +74,26 @@ public class AuthController : ControllerBase
 
 	[AllowAnonymous]
 	[HttpGet("discord")]
-	public ActionResult ExchangeDiscordCodeGet()
+	public async Task<ActionResult> ExchangeDiscordCodeGet([FromQuery] string? code, [FromQuery] string? error, [FromQuery(Name = "error_description")] string? errorDescription, CancellationToken cancellationToken)
 	{
-		var query = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
-		return Redirect($"/auth/discord-callback{query}");
+		if (!string.IsNullOrWhiteSpace(error))
+		{
+			var description = string.IsNullOrWhiteSpace(errorDescription) ? error : errorDescription;
+			return Redirect(BuildClientRedirectUri(flash: description));
+		}
+
+		var result = await ExchangeDiscordCodeInternal(code ?? string.Empty, BuildDiscordRedirectUri(), cancellationToken);
+		if (result.Result is OkObjectResult ok && ok.Value is AuthResponse payload)
+		{
+			return Redirect(BuildClientRedirectUri(token: payload.Token));
+		}
+
+		if (result.Result is ObjectResult failed && failed.Value is string message)
+		{
+			return Redirect(BuildClientRedirectUri(flash: message));
+		}
+
+		return Redirect(BuildClientRedirectUri(flash: "Unable to complete sign in"));
 	}
 
 	private async Task<ActionResult<AuthResponse>> ExchangeDiscordCodeInternal(string code, string? redirectUri, CancellationToken cancellationToken)
@@ -224,7 +241,31 @@ public class AuthController : ControllerBase
 			return string.Empty;
 		}
 
-		return UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/auth/discord-callback");
+		return UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/api/auth/discord");
+	}
+
+	private string BuildClientRedirectUri(string? token = null, string? flash = null)
+	{
+		if (Request.Host == default)
+		{
+			return "/";
+		}
+
+		var baseUri = UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/");
+		var query = new Dictionary<string, string?>();
+		if (!string.IsNullOrWhiteSpace(token))
+		{
+			query["token"] = token;
+		}
+
+		if (!string.IsNullOrWhiteSpace(flash))
+		{
+			query["flash"] = flash;
+		}
+
+		return query.Count > 0
+			? QueryHelpers.AddQueryString(baseUri, query)
+			: baseUri;
 	}
 }
 

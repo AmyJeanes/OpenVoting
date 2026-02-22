@@ -92,6 +92,25 @@ export function useVotingApp() {
       localStorage.removeItem('ov_flash');
     }
 
+    const query = new URLSearchParams(window.location.search);
+    const tokenFromQuery = query.get('token')?.trim();
+    const flashFromQuery = query.get('flash')?.trim();
+    if (tokenFromQuery) {
+      localStorage.setItem(tokenKey, tokenFromQuery);
+    }
+
+    if (flashFromQuery) {
+      setFlash(flashFromQuery);
+    }
+
+    if (tokenFromQuery || flashFromQuery) {
+      query.delete('token');
+      query.delete('flash');
+      const nextSearch = query.toString();
+      const nextPath = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+      window.history.replaceState({}, document.title, nextPath);
+    }
+
     fetchConfig();
     const saved = localStorage.getItem(tokenKey);
     if (saved) {

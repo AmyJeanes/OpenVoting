@@ -63,7 +63,7 @@ public sealed class ConfigController : ControllerBase
 			return string.Empty;
 		}
 
-		return UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/auth/discord-callback");
+		return UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/api/auth/discord");
 	}
 }
 

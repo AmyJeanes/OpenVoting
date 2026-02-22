@@ -11,6 +11,8 @@ namespace OpenVoting.Server.Tests;
 
 public class OneTimeLoginLinkServiceTests
 {
+	private const string GenericInvalidLinkMessage = "This login link is invalid, expired, or already used";
+
 	[Test]
 	public async Task IssueAndConsume_SucceedsOnce_ThenRejectsReplay()
 	{
@@ -35,7 +37,7 @@ public class OneTimeLoginLinkServiceTests
 		Assert.Multiple(() =>
 		{
 			Assert.That(replay.IsSuccess, Is.False);
-			Assert.That(replay.Error, Is.EqualTo("Login link has already been used"));
+			Assert.That(replay.Error, Is.EqualTo(GenericInvalidLinkMessage));
 		});
 	}
 
@@ -66,7 +68,7 @@ public class OneTimeLoginLinkServiceTests
 	}
 
 	[Test]
-	public async Task Consume_ExpiredLink_ReturnsExpiredError()
+	public async Task Consume_ExpiredLink_ReturnsGenericError()
 	{
 		using var db = TestDbContextFactory.CreateContext(useSqlite: true);
 		var service = CreateService(db);
@@ -85,12 +87,12 @@ public class OneTimeLoginLinkServiceTests
 		Assert.Multiple(() =>
 		{
 			Assert.That(consume.IsSuccess, Is.False);
-			Assert.That(consume.Error, Is.EqualTo("Login link has expired"));
+			Assert.That(consume.Error, Is.EqualTo(GenericInvalidLinkMessage));
 		});
 	}
 
 	[Test]
-	public async Task Consume_BannedMember_ReturnsForbiddenError()
+	public async Task Consume_BannedMember_ReturnsGenericError()
 	{
 		using var db = TestDbContextFactory.CreateContext(useSqlite: true);
 		var service = CreateService(db);
@@ -108,12 +110,12 @@ public class OneTimeLoginLinkServiceTests
 		Assert.Multiple(() =>
 		{
 			Assert.That(consume.IsSuccess, Is.False);
-			Assert.That(consume.Error, Is.EqualTo("Member is banned"));
+			Assert.That(consume.Error, Is.EqualTo(GenericInvalidLinkMessage));
 		});
 	}
 
 	[Test]
-	public async Task GetStatusAsync_UsedToken_ReturnsUsed()
+	public async Task GetStatusAsync_UsedToken_ReturnsGenericInvalid()
 	{
 		using var db = TestDbContextFactory.CreateContext(useSqlite: true);
 		var service = CreateService(db);
@@ -129,8 +131,9 @@ public class OneTimeLoginLinkServiceTests
 		var status = await service.GetStatusAsync(token, CancellationToken.None);
 		Assert.Multiple(() =>
 		{
-			Assert.That(status.Status, Is.EqualTo(OneTimeLoginLinkStatus.Used));
-			Assert.That(status.DisplayName, Is.EqualTo("User Five"));
+			Assert.That(status.Status, Is.EqualTo(OneTimeLoginLinkStatus.Invalid));
+			Assert.That(status.DisplayName, Is.Null);
+			Assert.That(status.Message, Is.EqualTo(GenericInvalidLinkMessage));
 		});
 	}
 

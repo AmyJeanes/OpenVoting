@@ -19,6 +19,8 @@ public interface IOneTimeLoginLinkService
 
 public sealed class OneTimeLoginLinkService : IOneTimeLoginLinkService
 {
+	private const string GenericInvalidLinkMessage = "This login link is invalid, expired, or already used";
+
 	private readonly ApplicationDbContext _db;
 	private readonly TokenService _tokenService;
 	private readonly DiscordSettings _discordSettings;
@@ -117,7 +119,7 @@ public sealed class OneTimeLoginLinkService : IOneTimeLoginLinkService
 	{
 		if (string.IsNullOrWhiteSpace(rawToken))
 		{
-			return OneTimeLoginConsumeResult.Invalid("Missing login token");
+			return OneTimeLoginConsumeResult.Invalid(GenericInvalidLinkMessage);
 		}
 
 		var utcNow = DateTimeOffset.UtcNow;
@@ -126,19 +128,19 @@ public sealed class OneTimeLoginLinkService : IOneTimeLoginLinkService
 		var tokenLookup = await FindTokenAsync(rawToken, cancellationToken);
 		if (!tokenLookup.Exists || tokenLookup.Token is null)
 		{
-			return OneTimeLoginConsumeResult.Invalid("Login link is invalid");
+			return OneTimeLoginConsumeResult.Invalid(GenericInvalidLinkMessage);
 		}
 
 		var token = tokenLookup.Token;
 
 		if (token.UsedAt.HasValue || token.RevokedAt.HasValue)
 		{
-			return OneTimeLoginConsumeResult.Invalid("Login link has already been used");
+			return OneTimeLoginConsumeResult.Invalid(GenericInvalidLinkMessage);
 		}
 
 		if (token.ExpiresAt <= utcNow)
 		{
-			return OneTimeLoginConsumeResult.Invalid("Login link has expired");
+			return OneTimeLoginConsumeResult.Invalid(GenericInvalidLinkMessage);
 		}
 
 		token.UsedAt = utcNow;
@@ -151,7 +153,7 @@ public sealed class OneTimeLoginLinkService : IOneTimeLoginLinkService
 		if (token.CommunityMember.IsBanned)
 		{
 			_logger.LogInformation("Blocked one-time login for banned member {MemberId}", token.CommunityMember.Id);
-			return OneTimeLoginConsumeResult.Invalid("Member is banned");
+			return OneTimeLoginConsumeResult.Invalid(GenericInvalidLinkMessage);
 		}
 
 		return OneTimeLoginConsumeResult.Success(new OneTimeLoginAuthPayload(jwt));
@@ -161,7 +163,7 @@ public sealed class OneTimeLoginLinkService : IOneTimeLoginLinkService
 	{
 		if (string.IsNullOrWhiteSpace(rawToken))
 		{
-			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Invalid, null, "Missing login token");
+			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Invalid, null, GenericInvalidLinkMessage);
 		}
 
 		var utcNow = DateTimeOffset.UtcNow;
@@ -170,28 +172,28 @@ public sealed class OneTimeLoginLinkService : IOneTimeLoginLinkService
 		var tokenLookup = await FindTokenAsync(rawToken, cancellationToken);
 		if (!tokenLookup.Exists || tokenLookup.Token is null)
 		{
-			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Invalid, null, "Login link is invalid");
+			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Invalid, null, GenericInvalidLinkMessage);
 		}
 
 		var token = tokenLookup.Token;
 		if (token.UsedAt.HasValue)
 		{
-			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Used, token.CommunityMember.DisplayName, "This login link has already been used");
+			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Invalid, null, GenericInvalidLinkMessage);
 		}
 
 		if (token.RevokedAt.HasValue)
 		{
-			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Revoked, token.CommunityMember.DisplayName, "This login link has been revoked");
+			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Invalid, null, GenericInvalidLinkMessage);
 		}
 
 		if (token.ExpiresAt <= utcNow)
 		{
-			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Expired, token.CommunityMember.DisplayName, "This login link has expired");
+			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Invalid, null, GenericInvalidLinkMessage);
 		}
 
 		if (token.CommunityMember.IsBanned)
 		{
-			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Banned, token.CommunityMember.DisplayName, "This member is banned");
+			return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Invalid, null, GenericInvalidLinkMessage);
 		}
 
 		return new OneTimeLoginLinkStatusResult(OneTimeLoginLinkStatus.Valid, token.CommunityMember.DisplayName, null);

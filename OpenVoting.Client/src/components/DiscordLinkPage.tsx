@@ -71,15 +71,11 @@ export function DiscordLinkPage() {
   }, [hasToken, statusLoading, status]);
 
   const warningMessage = useMemo<FlashMessage | null>(() => {
-    if (status?.status === 'used') {
+    if (status && status.status !== 'valid') {
       return {
-        text: `${status.message ?? 'This login link has already been used'}. Run this in the Discord server for a new link:`,
+        text: `${status.message ?? 'This login link is invalid, expired, or already used'}. Run this in the Discord server for a new link:`,
         code: '/voting'
       };
-    }
-
-    if (status && status.status !== 'valid' && status.message) {
-      return status.message;
     }
 
     return null;
