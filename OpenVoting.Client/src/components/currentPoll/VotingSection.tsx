@@ -63,7 +63,7 @@ export function VotingSection(props: VotingSectionProps) {
         </p>
       </div>
       {hasSubmittedVote && (
-        <div className="banner vote-status-banner" role="status" aria-live="polite">
+        <div className="banner vote-status-banner personal-card" role="status" aria-live="polite">
           <div className="vote-status-head">
             <p className="vote-status-title">You've already voted</p>
             <span className="pill winner">Saved</span>

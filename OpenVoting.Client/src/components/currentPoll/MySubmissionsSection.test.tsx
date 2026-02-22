@@ -58,6 +58,23 @@ describe('MySubmissionsSection', () => {
     expect(screen.getByText('My Entry').closest('.entry-card')).toHaveClass('with-bottom-actions');
   });
 
+  it('renders your submissions section with personal styling', () => {
+    const poll = createPollResponse();
+    const entry = createEntryResponse({ id: 'entry-1', displayName: 'My Entry' });
+
+    const { container } = render(
+      <MySubmissionsSection
+        poll={poll}
+        entries={[entry]}
+        assetCache={{}}
+        entryAssetId={() => ''}
+        onAskDelete={vi.fn()}
+      />
+    );
+
+    expect(container.querySelector('section.card.personal-card')).toBeInTheDocument();
+  });
+
   it('does not render By line in your submissions', () => {
     const poll = createPollResponse();
     const entry = createEntryResponse({ id: 'entry-1', displayName: 'My Entry', submittedByDisplayName: 'Divided' });

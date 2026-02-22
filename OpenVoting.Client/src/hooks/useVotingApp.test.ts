@@ -225,6 +225,91 @@ describe('useVotingApp', () => {
     expect(result.current.entryFileInvalid).toBe(true);
     expect(showToastMock).toHaveBeenCalledWith('Images must be 10MB or smaller', { tone: 'error' });
   });
+
+  it('stores current path before redirecting to Discord login', async () => {
+    window.history.replaceState({}, '', '/polls/live/abc?view=grid#details');
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/api/config')) {
+        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test/oauth' });
+      }
+      return new Response('', { status: 404 });
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const { result } = renderHook(() => useVotingApp());
+
+    await waitFor(() => {
+      expect(result.current.config?.discordAuthorizeUrl).toBe('https://discord.test/oauth');
+    });
+
+    act(() => {
+      try {
+        result.current.handleLogin();
+      } catch {
+        // jsdom does not implement full-page navigation.
+      }
+    });
+
+    expect(localStorage.getItem('ov_post_login_return_to')).toBe('/polls/live/abc?view=grid#details');
+  });
+
+  it('restores saved return path after token callback', async () => {
+    window.history.replaceState({}, '', '/?token=jwt-token');
+    localStorage.setItem('ov_post_login_return_to', '/polls/live/next?tab=vote#entry-1');
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/api/config')) {
+        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test/oauth' });
+      }
+      if (url.endsWith('/api/auth/me')) {
+        return new Response('unauthorized', { status: 401 });
+      }
+      return new Response('', { status: 404 });
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const { result } = renderHook(() => useVotingApp());
+
+    await waitFor(() => {
+      expect(result.current.sessionState).toBe('anonymous');
+    });
+
+    expect(window.location.pathname).toBe('/polls/live/next');
+    expect(window.location.search).toBe('?tab=vote');
+    expect(window.location.hash).toBe('#entry-1');
+    expect(localStorage.getItem('ov_post_login_return_to')).toBeNull();
+  });
+
+  it('uses returnTo query from callback redirect and clears saved fallback path', async () => {
+    window.history.replaceState({}, '', '/?token=jwt-token&returnTo=%2Fpolls%2Fhistory%3Fq%3Ddone%23top');
+    localStorage.setItem('ov_post_login_return_to', '/polls/live/next?tab=vote#entry-1');
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/api/config')) {
+        return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test/oauth' });
+      }
+      if (url.endsWith('/api/auth/me')) {
+        return new Response('unauthorized', { status: 401 });
+      }
+      return new Response('', { status: 404 });
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const { result } = renderHook(() => useVotingApp());
+
+    await waitFor(() => {
+      expect(result.current.sessionState).toBe('anonymous');
+    });
+
+    expect(window.location.pathname).toBe('/polls/history');
+    expect(window.location.search).toBe('?q=done');
+    expect(window.location.hash).toBe('#top');
+    expect(localStorage.getItem('ov_post_login_return_to')).toBeNull();
+  });
 });
 
 vi.mock('../components', () => ({

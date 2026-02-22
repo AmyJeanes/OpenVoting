@@ -8,6 +8,7 @@ let previousBodyTop = '';
 let previousBodyLeft = '';
 let previousBodyRight = '';
 let previousBodyWidth = '';
+let previousBodyPaddingRight = '';
 
 function lockBodyScroll() {
   if (typeof document === 'undefined') return;
@@ -23,6 +24,13 @@ function lockBodyScroll() {
     previousBodyLeft = body.style.left;
     previousBodyRight = body.style.right;
     previousBodyWidth = body.style.width;
+    previousBodyPaddingRight = body.style.paddingRight;
+
+    const scrollbarWidth = window.innerWidth - html.clientWidth;
+    if (scrollbarWidth > 0) {
+      const computedPaddingRight = Number.parseFloat(window.getComputedStyle(body).paddingRight) || 0;
+      body.style.paddingRight = `${computedPaddingRight + scrollbarWidth}px`;
+    }
 
     html.style.overflow = 'hidden';
     body.style.position = 'fixed';
@@ -52,6 +60,7 @@ function unlockBodyScroll() {
   body.style.left = previousBodyLeft;
   body.style.right = previousBodyRight;
   body.style.width = previousBodyWidth;
+  body.style.paddingRight = previousBodyPaddingRight;
 
   if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
     return;

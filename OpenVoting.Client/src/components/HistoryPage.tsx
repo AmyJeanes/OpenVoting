@@ -102,7 +102,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                 const isTie = p.winners.length > 1 && p.winners.every((w) => w.votes === p.winners[0].votes);
                 const stackVoteCount = isTie && p.winners.length > 2;
                 const tiePreviewStyle = isTie
-                  ? ({ ['--tie-count' as '--tie-count']: Math.max(p.winners.length, 1) } as CSSProperties)
+                  ? ({ ['--tie-count' as const]: Math.max(p.winners.length, 1) } as CSSProperties)
                   : undefined;
 
                 const renderThumb = (winner: PollHistoryResponse['winners'][number]) => {

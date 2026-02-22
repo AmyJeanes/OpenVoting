@@ -8,7 +8,7 @@
 .page {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 24px;
     min-height: calc(100vh - 44px);
 }
 
@@ -174,13 +174,28 @@
 }
 
 .footer {
-    margin-top: 12px;
+    margin-top: 32px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 48px;
     justify-content: center;
     color: var(--text-muted);
     font-size: 0.95rem;
+}
+
+.footer-jump-top {
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+
+.footer-jump-top.ghost {
+    background: var(--footer-jump-bg);
+    border-color: var(--footer-jump-border);
+}
+
+.footer-jump-top.ghost:hover {
+    background: var(--footer-jump-bg-hover);
 }
 
 .footer a {
@@ -1885,6 +1900,12 @@ textarea {
     background: var(--admin-card-bg);
     border-color: var(--admin-card-border);
     transition: padding 260ms ease-in-out;
+}
+
+.personal-card {
+    border-color: var(--personal-card-border);
+    border-width: 2px;
+    border-style: dashed;
 }
 
 .admin-card.collapsed {

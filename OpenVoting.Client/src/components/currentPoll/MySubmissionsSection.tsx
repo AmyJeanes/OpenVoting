@@ -21,7 +21,7 @@ function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
 export function MySubmissionsSection({ poll, entries, assetCache, entryAssetId, onAskDelete }: MySubmissionsSectionProps) {
   const [lightboxImage, setLightboxImage] = useState<ImageLightboxData | null>(null);
   return (
-    <section className="card">
+    <section className="card personal-card">
       <div className="section-head">
         <h3>Your submissions</h3>
         <p className="muted">Only visible to you</p>

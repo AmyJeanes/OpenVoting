@@ -66,6 +66,7 @@
   --admin-card-bg: #fff7e9;
   --admin-card-border: #f0c07d;
   --admin-accent: #c9851a;
+  --personal-card-border: #b56b17;
   --draft-card-bg: #fff4e8;
   --draft-card-border: #eebc76;
   --winner-bg: #e8fbf3;
@@ -87,6 +88,9 @@
   --banner-warning-bg: #fffbeb;
   --banner-warning-border: #f4c54f;
   --banner-warning-text: #8c3c07;
+  --footer-jump-bg: #d9e2e8;
+  --footer-jump-bg-hover: #cdd8df;
+  --footer-jump-border: #b9c8d1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -151,6 +155,7 @@
     --admin-card-bg: #21170e;
     --admin-card-border: #4b321d;
     --admin-accent: #f2b166;
+    --personal-card-border: #b56b17;
     --draft-card-bg: #1c1208;
     --draft-card-border: #5e3c16;
     --winner-bg: #0b2f1f;
@@ -172,6 +177,9 @@
     --banner-warning-bg: #2b1f0c;
     --banner-warning-border: #f59e0b;
     --banner-warning-text: #fcd34d;
+    --footer-jump-bg: #354149;
+    --footer-jump-bg-hover: #3f4d56;
+    --footer-jump-border: #4f5f6a;
   }
 }
 

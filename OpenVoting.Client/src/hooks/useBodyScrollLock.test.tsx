@@ -14,6 +14,7 @@ describe('useBodyScrollLock', () => {
     document.body.style.left = '';
     document.body.style.right = '';
     document.body.style.width = '';
+    document.body.style.paddingRight = '';
   });
 
   afterEach(() => {
@@ -23,6 +24,7 @@ describe('useBodyScrollLock', () => {
     document.body.style.left = '';
     document.body.style.right = '';
     document.body.style.width = '';
+    document.body.style.paddingRight = '';
   });
 
   it('locks and unlocks scroll when active toggles', () => {
@@ -48,5 +50,43 @@ describe('useBodyScrollLock', () => {
 
     second.unmount();
     expect(document.documentElement.style.overflow).toBe('');
+  });
+
+  it('compensates for scrollbar width to prevent layout shift', () => {
+    const originalInnerWidth = window.innerWidth;
+    const originalClientWidthDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'clientWidth');
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1200,
+    });
+
+    Object.defineProperty(Element.prototype, 'clientWidth', {
+      configurable: true,
+      get() {
+        if (this === document.documentElement) {
+          return 1184;
+        }
+
+        return 0;
+      },
+    });
+
+    try {
+      const { rerender } = render(<ScrollLockProbe active />);
+      expect(document.body.style.paddingRight).toBe('16px');
+
+      rerender(<ScrollLockProbe active={false} />);
+      expect(document.body.style.paddingRight).toBe('');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: originalInnerWidth,
+      });
+
+      if (originalClientWidthDescriptor) {
+        Object.defineProperty(Element.prototype, 'clientWidth', originalClientWidthDescriptor);
+      }
+    }
   });
 });

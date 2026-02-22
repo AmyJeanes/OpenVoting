@@ -18,6 +18,7 @@ import type {
 import { useToast } from '../components';
 
 const tokenKey = 'ov_token';
+const postLoginReturnToKey = 'ov_post_login_return_to';
 const refreshLeadTimeMs = 5 * 60 * 1000;
 const minRefreshDelayMs = 15 * 1000;
 
@@ -55,6 +56,34 @@ const defaultEntryForm = {
 };
 
 const defaultMaxUploadFileSizeMB = 10;
+
+const getCurrentAppPath = () => `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+const parseSafeReturnTo = (value: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('/')) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(trimmed, window.location.origin);
+    if (parsed.origin !== window.location.origin) {
+      return null;
+    }
+
+    if (parsed.pathname.startsWith('/auth/')) {
+      return null;
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
+};
 
 type ConfirmResolver = (result: boolean) => void;
 
@@ -133,6 +162,7 @@ export function useVotingApp() {
     const query = new URLSearchParams(window.location.search);
     const tokenFromQuery = query.get('token')?.trim();
     const flashFromQuery = query.get('flash')?.trim();
+    const returnToFromQuery = parseSafeReturnTo(query.get('returnTo'));
     if (tokenFromQuery) {
       localStorage.setItem(tokenKey, tokenFromQuery);
     }
@@ -141,11 +171,16 @@ export function useVotingApp() {
       setFlash(flashFromQuery);
     }
 
-    if (tokenFromQuery || flashFromQuery) {
+    if (tokenFromQuery || flashFromQuery || returnToFromQuery) {
       query.delete('token');
       query.delete('flash');
+      query.delete('returnTo');
       const nextSearch = query.toString();
-      const nextPath = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+      const cleanedPath = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+      const storedReturnTo = parseSafeReturnTo(localStorage.getItem(postLoginReturnToKey));
+      const returnTo = returnToFromQuery ?? storedReturnTo;
+      localStorage.removeItem(postLoginReturnToKey);
+      const nextPath = returnTo ?? cleanedPath;
       window.history.replaceState({}, document.title, nextPath);
     }
 
@@ -1290,7 +1325,24 @@ export function useVotingApp() {
 
   const handleLogin = () => {
     if (config?.discordAuthorizeUrl) {
-      window.location.href = config.discordAuthorizeUrl;
+      const returnTo = parseSafeReturnTo(getCurrentAppPath());
+      if (returnTo) {
+        localStorage.setItem(postLoginReturnToKey, returnTo);
+      } else {
+        localStorage.removeItem(postLoginReturnToKey);
+      }
+
+      try {
+        const authorizeUri = new URL(config.discordAuthorizeUrl);
+        if (returnTo) {
+          authorizeUri.searchParams.set('state', returnTo);
+        } else {
+          authorizeUri.searchParams.delete('state');
+        }
+        window.location.href = authorizeUri.toString();
+      } catch {
+        window.location.href = config.discordAuthorizeUrl;
+      }
     }
   };
 

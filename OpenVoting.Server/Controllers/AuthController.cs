@@ -74,26 +74,28 @@ public class AuthController : ControllerBase
 
 	[AllowAnonymous]
 	[HttpGet("discord")]
-	public async Task<ActionResult> ExchangeDiscordCodeGet([FromQuery] string? code, [FromQuery] string? error, [FromQuery(Name = "error_description")] string? errorDescription, CancellationToken cancellationToken)
+	public async Task<ActionResult> ExchangeDiscordCodeGet([FromQuery] string? code, [FromQuery] string? error, [FromQuery(Name = "error_description")] string? errorDescription, [FromQuery] string? state, CancellationToken cancellationToken)
 	{
+		var returnTo = NormalizeReturnTo(state);
+
 		if (!string.IsNullOrWhiteSpace(error))
 		{
 			var description = string.IsNullOrWhiteSpace(errorDescription) ? error : errorDescription;
-			return Redirect(BuildClientRedirectUri(flash: description));
+			return Redirect(BuildClientRedirectUri(flash: description, returnTo: returnTo));
 		}
 
 		var result = await ExchangeDiscordCodeInternal(code ?? string.Empty, BuildDiscordRedirectUri(), cancellationToken);
 		if (result.Result is OkObjectResult ok && ok.Value is AuthResponse payload)
 		{
-			return Redirect(BuildClientRedirectUri(token: payload.Token));
+			return Redirect(BuildClientRedirectUri(token: payload.Token, returnTo: returnTo));
 		}
 
 		if (result.Result is ObjectResult failed && failed.Value is string message)
 		{
-			return Redirect(BuildClientRedirectUri(flash: message));
+			return Redirect(BuildClientRedirectUri(flash: message, returnTo: returnTo));
 		}
 
-		return Redirect(BuildClientRedirectUri(flash: "Unable to complete sign in"));
+		return Redirect(BuildClientRedirectUri(flash: "Unable to complete sign in", returnTo: returnTo));
 	}
 
 	private async Task<ActionResult<AuthResponse>> ExchangeDiscordCodeInternal(string code, string? redirectUri, CancellationToken cancellationToken)
@@ -276,14 +278,48 @@ public class AuthController : ControllerBase
 		return UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/api/auth/discord");
 	}
 
-	private string BuildClientRedirectUri(string? token = null, string? flash = null)
+	private static string? NormalizeReturnTo(string? value)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+		{
+			return null;
+		}
+
+		var trimmed = value.Trim();
+		if (!trimmed.StartsWith('/'))
+		{
+			return null;
+		}
+
+		if (trimmed.StartsWith("//", StringComparison.Ordinal))
+		{
+			return null;
+		}
+
+		if (trimmed.StartsWith("/auth/", StringComparison.OrdinalIgnoreCase))
+		{
+			return null;
+		}
+
+		return trimmed;
+	}
+
+	private string BuildClientRedirectUri(string? token = null, string? flash = null, string? returnTo = null)
 	{
 		if (Request.Host == default)
 		{
 			return "/";
 		}
 
-		var baseUri = UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/");
+		var appBaseUri = UriHelper.BuildAbsolute(Request.Scheme, Request.Host, Request.PathBase, "/");
+		var normalizedReturnTo = NormalizeReturnTo(returnTo);
+		var targetUri = appBaseUri;
+		if (!string.IsNullOrWhiteSpace(normalizedReturnTo))
+		{
+			var appBase = new Uri(appBaseUri, UriKind.Absolute);
+			targetUri = new Uri(appBase, normalizedReturnTo.TrimStart('/')).ToString();
+		}
+
 		var query = new Dictionary<string, string?>();
 		if (!string.IsNullOrWhiteSpace(token))
 		{
@@ -296,8 +332,8 @@ public class AuthController : ControllerBase
 		}
 
 		return query.Count > 0
-			? QueryHelpers.AddQueryString(baseUri, query)
-			: baseUri;
+			? QueryHelpers.AddQueryString(targetUri, query)
+			: targetUri;
 	}
 }
 

@@ -236,5 +236,6 @@ describe('VotingSection', () => {
     expect(screen.getByText('Saved')).toBeInTheDocument();
     expect(screen.getByText(/Last submitted:/)).toBeInTheDocument();
     expect(screen.getByText('You can still change your selection and submit again before voting closes')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveClass('personal-card');
   });
 });
