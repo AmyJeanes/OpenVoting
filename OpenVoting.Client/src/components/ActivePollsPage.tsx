@@ -140,15 +140,17 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                   <div className="entry-head">
                     <div className="entry-head-main">
                       <p className="entry-title live-title">{p.title}</p>
-                      {p.description && <p className="muted multiline">{p.description}</p>}
-                      <p className="muted">Submissions: {formatWindow(p.submissionOpensAt, p.submissionClosesAt)}</p>
-                      {(p.status === 2 || p.status === 3 || p.status === 4) && (
-                        <p className="muted">Voting: {formatWindow(p.votingOpensAt, p.votingClosesAt)}</p>
-                      )}
                     </div>
                     <div className="badges entry-badges">
                       <span className={statusPillClass}>{pollStatusLabel(p.status)}</span>
                     </div>
+                  </div>
+                  <div className="live-poll-details">
+                    {p.description && <p className="muted multiline">{p.description}</p>}
+                    <p className="muted">Submissions: {formatWindow(p.submissionOpensAt, p.submissionClosesAt)}</p>
+                    {(p.status === 2 || p.status === 3 || p.status === 4) && (
+                      <p className="muted">Voting: {formatWindow(p.votingOpensAt, p.votingClosesAt)}</p>
+                    )}
                   </div>
                   <div className="actions">
                     <Link className="primary" to={`/polls/${p.id}`}>View poll</Link>

@@ -497,6 +497,20 @@ button.ghost {
     padding: 6px 0 10px;
 }
 
+.live-poll-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.live-poll-details p {
+    margin: 0;
+}
+
+.entries.poll-list > .entry-card > .actions {
+    margin-top: 10px;
+}
+
 .history-title a {
     color: var(--text-primary);
     text-decoration: none;
@@ -784,10 +798,12 @@ button.ghost {
 }
 
 .entry-img-button {
+    display: block;
     background: transparent;
     border: none;
     padding: 0;
-    margin: 0;
+    margin: 10px 0 0;
+    line-height: 0;
     width: 100%;
     text-align: inherit;
     cursor: zoom-in;
@@ -799,7 +815,7 @@ button.ghost {
 }
 
 .entry-img {
-    margin-top: 10px;
+    display: block;
     width: 100%;
     aspect-ratio: 1 / 1;
     object-fit: cover;
@@ -1574,10 +1590,31 @@ textarea {
     }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 540px) {
+    .entries.entry-grid,
+    .vote-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .topbar {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "brand"
+            "user"
+            "nav";
+        row-gap: 8px;
         padding: 10px 12px;
         border-radius: 14px;
+    }
+
+    .user-shell {
+        justify-self: stretch;
+        width: 100%;
+    }
+
+    .user-block {
+        width: 100%;
+        justify-content: space-between;
     }
 
     .brand-link {
