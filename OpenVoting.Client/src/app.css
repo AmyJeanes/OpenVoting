@@ -25,6 +25,10 @@
     box-shadow: var(--shadow-soft);
 }
 
+.topbar.no-user-shell {
+    grid-template-columns: auto 1fr auto;
+}
+
 .brand {
     display: flex;
     align-items: center;
@@ -2286,6 +2290,13 @@ textarea {
         padding: 12px 14px;
     }
 
+    .topbar.no-user-shell {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "brand theme"
+            "nav nav";
+    }
+
     .theme-shell {
         grid-area: theme;
         justify-self: end;
@@ -2355,6 +2366,12 @@ textarea {
         row-gap: 8px;
         padding: 10px 12px;
         border-radius: 14px;
+    }
+
+    .topbar.no-user-shell {
+        grid-template-areas:
+            "brand theme"
+            "nav nav";
     }
 
     .poll-header-head {

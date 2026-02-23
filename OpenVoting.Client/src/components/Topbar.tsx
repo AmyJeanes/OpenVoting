@@ -59,8 +59,13 @@ export function Topbar({ sessionState, me, config, hasLivePolls, onLogout }: Top
     setThemeTooltipVisible(true);
   };
 
+  const shouldRenderUserShell =
+    (sessionState === 'authenticated' && me !== null)
+    || sessionState === 'loading'
+    || sessionState === 'idle';
+
   return (
-    <header className="topbar">
+    <header className={`topbar${shouldRenderUserShell ? '' : ' no-user-shell'}`}>
       <div className="brand">
         <Link to="/polls/live" className="brand-link">
           <div className={serverIconUrl ? 'brand-mark brand-mark-image' : 'brand-mark'}>
@@ -106,21 +111,23 @@ export function Topbar({ sessionState, me, config, hasLivePolls, onLogout }: Top
           {themeTooltipText}
         </div>
       </div>
-      <div className="user-shell">
-        {sessionState === 'authenticated' && me ? (
-          <div className="user-block">
-            <div className="user-meta">
-              <span className="user-name">{me.displayName}</span>
-              {me.isAdmin && <span className="pill admin">Admin</span>}
+      {shouldRenderUserShell && (
+        <div className="user-shell">
+          {sessionState === 'authenticated' && me ? (
+            <div className="user-block">
+              <div className="user-meta">
+                <span className="user-name">{me.displayName}</span>
+                {me.isAdmin && <span className="pill admin">Admin</span>}
+              </div>
+              <button className="ghost" onClick={() => onLogout('Signed out')}>Logout</button>
             </div>
-            <button className="ghost" onClick={() => onLogout('Signed out')}>Logout</button>
-          </div>
-        ) : sessionState === 'loading' || sessionState === 'idle' ? (
-          <div className="user-block">
-            <span className="pill subtle">Loading session…</span>
-          </div>
-        ) : null}
-      </div>
+          ) : (
+            <div className="user-block">
+              <span className="user-name" role="status" aria-live="polite">Loading…</span>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }

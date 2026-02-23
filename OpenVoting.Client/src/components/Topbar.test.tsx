@@ -95,7 +95,7 @@ describe('Topbar', () => {
   });
 
   it('does not render login CTA when anonymous to avoid double sign-in', () => {
-    render(
+    const { container } = render(
       <MemoryRouter>
         <Topbar
           sessionState="anonymous"
@@ -111,5 +111,24 @@ describe('Topbar', () => {
 
     expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
     expect(screen.getByRole('button', { name: 'Theme: System' })).toBeInTheDocument();
+    expect(container.querySelector('.user-shell')).toBeNull();
+  });
+
+  it('shows loading text while session is loading', () => {
+    render(
+      <MemoryRouter>
+        <Topbar
+          sessionState="loading"
+          me={null}
+          config={createConfigResponse()}
+          loginCta="Sign in"
+          hasLivePolls={false}
+          onLogin={vi.fn()}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
   });
 });
