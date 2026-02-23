@@ -4,6 +4,10 @@ on:
     branches:
     - main
     - renovate/*
+    paths-ignore:
+      - README.md
+      - AGENTS.md
+      - img/**
   pull_request:
     branches: [ main ]
   workflow_dispatch:
