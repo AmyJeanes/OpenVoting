@@ -96,8 +96,7 @@
   --footer-jump-border: #b9c8d1;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+:root[data-theme='dark'] {
     color-scheme: dark;
     --bg-body: radial-gradient(circle at 20% 12%, rgba(88, 196, 214, 0.12), transparent 44%),
       radial-gradient(circle at 86% 10%, rgba(67, 186, 171, 0.1), transparent 44%),
@@ -186,7 +185,6 @@
     --footer-jump-bg: #354149;
     --footer-jump-bg-hover: #3f4d56;
     --footer-jump-border: #4f5f6a;
-  }
 }
 
 * {
@@ -200,6 +198,17 @@ body {
   background-attachment: fixed;
   background-repeat: no-repeat;
   color: var(--text-primary);
+}
+
+:root.theme-transition,
+:root.theme-transition *,
+:root.theme-transition *::before,
+:root.theme-transition *::after {
+  transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, box-shadow 220ms ease, fill 220ms ease, stroke 220ms ease;
+}
+
+:root.theme-transition body {
+  transition: background 220ms ease, color 220ms ease;
 }
 
 a {
