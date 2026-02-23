@@ -260,7 +260,7 @@ export default function App() {
       )}
       {openVotingModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && handleCancelOpenVoting()}>
-          <div className="modal-card">
+          <div className="modal-card open-voting-modal-card">
             <p className="eyebrow">Voting</p>
             <h3>Open voting</h3>
             <p className="muted">Choose the voting method to use. This cannot be changed after voting starts</p>
