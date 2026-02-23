@@ -7,7 +7,7 @@ on:
     paths-ignore:
       - README.md
       - AGENTS.md
-      - img/**
+      - docs/**
   pull_request:
     branches: [ main ]
   workflow_dispatch:
