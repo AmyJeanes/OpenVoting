@@ -149,7 +149,7 @@ Configure your Discord application with:
 - OAuth2 client id/secret
 - Redirect URI(s) pointing to your deployment and/or local callback:
   - `https://<host>/api/auth/discord`
-  - local dev: `https://localhost:7191/api/auth/discord` (if using default profile)
+  - local dev: `https://localhost:54196/api/auth/discord` (if using default profile)
 - Bot token
 - Interaction endpoint URL (for slash commands): `https://<host>/api/discord/interactions`
 
