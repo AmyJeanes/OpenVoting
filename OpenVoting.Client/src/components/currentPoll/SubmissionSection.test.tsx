@@ -233,7 +233,8 @@ describe('SubmissionSection', () => {
 
     expect(onSubmitEntry).not.toHaveBeenCalled();
     expect(screen.getByText('Please correct the validation errors')).toBeInTheDocument();
-    expect(screen.getAllByText('Required').length).toBe(2);
+    expect(screen.getByText('Required')).toBeInTheDocument();
+    expect(screen.getByText('Required · Markdown supported')).toBeInTheDocument();
   });
 
   it('shows image required error under upload after submit attempt', () => {
