@@ -3,6 +3,7 @@ import { useLocation, useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { ConfirmDialog, type ConfirmDialogConfig } from './ConfirmDialog';
 import { ImageLightbox, type ImageLightboxData } from './ImageLightbox';
+import { MarkdownText } from './MarkdownText';
 import { useToast } from './useToast';
 import { PollHeaderSection } from './currentPoll/PollHeaderSection';
 import { AdminPanel } from './currentPoll/AdminPanel';
@@ -788,7 +789,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
                         )}
                       </div>
                     )}
-                    {e.description && <p className="muted entry-description">{e.description}</p>}
+                    {e.description && <MarkdownText content={e.description} className="muted entry-description" />}
                     <div className="actions entry-breakdown-summary">
                       {pollDetail.votingMethod === 2 ? (
                         <span className="pill subtle">{firstChoice} people ranked this #1</span>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type React from 'react';
 import { ImageLightbox, type ImageLightboxData } from '../ImageLightbox';
+import { MarkdownText } from '../MarkdownText';
 import type { AssetUploadResponse, PollEntryResponse, PollResponse } from '../../types';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
@@ -119,7 +120,7 @@ export function RankingModal(props: RankingModalProps) {
                     </div>
                     <div className="rank-body">
                       <div className="rank-title">{titleText}</div>
-                      {e.description && <p className="muted rank-description">{e.description}</p>}
+                      {e.description && <MarkdownText content={e.description} className="muted rank-description" />}
                     </div>
                     {previewUrl && (
                       <button

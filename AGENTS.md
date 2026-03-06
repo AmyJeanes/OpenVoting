@@ -25,3 +25,5 @@ OpenVoting.Client:
 - Always run build and unit tests after changing frontend code to test
 - TypeScript is used with strict type checking enabled, do not use the `any` type unless absolutely necessary
 - Use shared CSS variables where possible for consistency, e.g. colors, spacing, etc
+- Use the browser tool where available to view and test the frontend changes
+- When needed you can edit the code to help use Playwright, such as adding attributes to elements to make them easier to select

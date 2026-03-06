@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
+import { MarkdownText } from './MarkdownText';
 import type { AssetUploadResponse, PollDetailResponse, PollWinnerResponse, SessionState } from '../types';
 import { formatWindow, pollStatusLabel, votingMethodLabel } from '../utils/format';
 
@@ -105,7 +106,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
           <div>
             <p className="eyebrow">Poll details</p>
             <h2>{detail.title}</h2>
-            {detail.description && <p className="muted">{detail.description}</p>}
+            {detail.description && <MarkdownText content={detail.description} className="muted poll-header-description" />}
           </div>
           <div className="actions">
             <span className="pill subtle">{votingMethodLabel(detail.votingMethod)}</span>
@@ -218,7 +219,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
                       )}
                     </div>
                   )}
-                  <p className="muted entry-description">{e.description}</p>
+                  {e.description && <MarkdownText content={e.description} className="muted entry-description" />}
                   <div className="actions entry-breakdown-summary">
                     <span className="pill subtle">{detail.votingMethod === 2 ? `${e.rankCounts.find((r) => r.rank === 1)?.votes ?? 0} first-choice` : `${e.approvalVotes} approvals`}</span>
                   </div>

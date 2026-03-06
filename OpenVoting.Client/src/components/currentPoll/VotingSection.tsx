@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ImageLightbox, type ImageLightboxData } from '../ImageLightbox';
+import { MarkdownText } from '../MarkdownText';
 import type { AssetUploadResponse, PollEntryResponse, PollResponse, VoteResponse } from '../../types';
 
 export type VotingSectionProps = {
@@ -135,7 +136,7 @@ export function VotingSection(props: VotingSectionProps) {
                   <img src={previewUrl} alt={e.displayName} className="entry-img" />
                 </button>
               )}
-              {e.description && <p className="muted entry-description">{e.description}</p>}
+              {e.description && <MarkdownText content={e.description} className="muted entry-description" />}
               {e.isDisqualified && <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>}
             </div>
           );

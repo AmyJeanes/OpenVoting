@@ -182,7 +182,6 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                   <div className="entry-head live-poll-card-head">
                     <div className="entry-head-main">
                       <p className="entry-title live-title">{p.title}</p>
-                      {p.description && <p className="muted multiline live-poll-description">{p.description}</p>}
                     </div>
                     <div className="badges entry-badges">
                       <span className={`pill live-poll-status-pill status-${p.status}`}>{statusLabel}</span>

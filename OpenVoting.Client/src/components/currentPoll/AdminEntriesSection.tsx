@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ImageLightbox, type ImageLightboxData } from '../ImageLightbox';
+import { MarkdownText } from '../MarkdownText';
 import type { AssetUploadResponse, PollEntryResponse, PollResponse, VotingBreakdownEntry } from '../../types';
 
 export type AdminEntriesSectionProps = {
@@ -129,7 +130,7 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                       <img src={previewUrl} alt={e.displayName || 'Entry image'} className="entry-img" />
                     </button>
                   )}
-                  {e.description && <p className="muted entry-description admin-entry-description">{e.description}</p>}
+                  {e.description && <MarkdownText content={e.description} className="muted entry-description admin-entry-description" />}
                   {e.isDisqualified && (
                     <div className="disqualification-details">
                       <p className="error">Disqualified: {e.disqualificationReason ?? 'No reason provided'}</p>

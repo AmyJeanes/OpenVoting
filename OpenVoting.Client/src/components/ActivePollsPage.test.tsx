@@ -130,4 +130,22 @@ describe('ActivePollsPage', () => {
     expect(screen.getByText('Spring Contest')).toBeInTheDocument();
     expect(screen.queryByText('Summer Clash')).not.toBeInTheDocument();
   });
+
+  it('keeps live poll descriptions out of the list while still searching them', async () => {
+    const poll = createPollResponse({ id: 'poll-1', title: 'Spring Contest', description: 'Season opener', status: 2 });
+
+    renderWithProviders({
+      sessionState: 'authenticated',
+      activePolls: [poll]
+    });
+
+    expect(screen.getByText('Spring Contest')).toBeInTheDocument();
+    expect(screen.queryByText('Season opener')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open search' }));
+    const searchInput = screen.getByRole('textbox', { name: 'Search live polls' });
+
+    await userEvent.type(searchInput, 'opener');
+    expect(screen.getByText('Spring Contest')).toBeInTheDocument();
+  });
 });

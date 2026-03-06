@@ -408,8 +408,28 @@ button.theme-toggle svg {
 }
 
 .poll-header-head {
-    align-items: flex-start;
+    display: block;
     margin-bottom: 24px;
+}
+
+.poll-header-main {
+    min-width: 0;
+}
+
+.poll-header-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.poll-header-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.poll-header-description {
+    margin: 8px 0 0;
 }
 
 .section-head > .muted {
@@ -684,6 +704,67 @@ button.ghost {
     white-space: pre-line;
 }
 
+.markdown-content {
+    color: inherit;
+}
+
+.markdown-content > :first-child {
+    margin-top: 0;
+}
+
+.markdown-content > :last-child {
+    margin-bottom: 0;
+}
+
+.markdown-content p,
+.markdown-content ul,
+.markdown-content ol,
+.markdown-content pre,
+.markdown-content blockquote {
+    margin: 0 0 0.7em;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+    padding-left: 1.3rem;
+}
+
+.markdown-content li + li {
+    margin-top: 0.2rem;
+}
+
+.markdown-content a {
+    color: var(--link);
+}
+
+.markdown-content code {
+    font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.95em;
+    padding: 0.08em 0.32em;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--surface-subtle) 88%, transparent);
+    color: var(--text-primary);
+}
+
+.markdown-content pre {
+    overflow-x: auto;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-subtle);
+}
+
+.markdown-content pre code {
+    padding: 0;
+    background: transparent;
+}
+
+.markdown-content blockquote {
+    padding-left: 0.9rem;
+    border-left: 3px solid var(--border-shell);
+    color: var(--text-muted);
+}
+
 .card h1,
 .card h2,
 .card h3 {
@@ -749,10 +830,6 @@ button.ghost {
 
 .live-poll-card-head {
     gap: 12px;
-}
-
-.live-poll-description {
-    margin: 8px 0 0;
 }
 
 .live-poll-status-pill {
@@ -1170,6 +1247,11 @@ button.ghost {
 .entry-card .entry-description {
     margin: 6px 0 0;
     line-height: 1.35;
+}
+
+.entry-card .entry-description ul,
+.entry-card .entry-description ol {
+    margin-top: 0.45rem;
 }
 
 .disqualification-details {
@@ -1935,6 +2017,17 @@ textarea {
     margin: 0;
 }
 
+.rank-description p,
+.rank-description ul,
+.rank-description ol {
+    margin-bottom: 0.45rem;
+}
+
+.rank-description ul,
+.rank-description ol {
+    padding-left: 1.1rem;
+}
+
 .rank-subtitle {
     margin: 0;
 }
@@ -2374,7 +2467,7 @@ textarea {
             "nav nav";
     }
 
-    .poll-header-head {
+    .poll-header-title-row {
         flex-direction: column-reverse;
         align-items: stretch;
         gap: 10px;

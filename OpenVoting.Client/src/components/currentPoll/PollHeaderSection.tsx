@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { PollResponse } from '../../types';
 import { formatWindow, isMaxTimestamp, pollStatusLabel, votingMethodLabel } from '../../utils/format';
 import { VotingMethodInfo } from '../VotingMethodInfo';
+import { MarkdownText } from '../MarkdownText';
 
 export type PollHeaderSectionProps = {
   poll: PollResponse | null;
@@ -14,14 +15,18 @@ export function PollHeaderSection({ poll, onRefreshPoll }: PollHeaderSectionProp
   return (
     <section className="card">
       <div className="section-head poll-header-head">
-        <div>
-          <p className="eyebrow">Poll</p>
-          <h2>{poll ? poll.title : 'No active competition'}</h2>
-          {poll && poll.description && <p className="muted multiline">{poll.description}</p>}
-        </div>
-        <div className="actions poll-header-actions">
-          <Link className="ghost" to="/polls/live">Back to live polls</Link>
-          <button className="ghost" onClick={onRefreshPoll}>Refresh</button>
+        <div className="poll-header-main">
+          <div className="poll-header-title-row">
+            <div className="poll-header-copy">
+              <p className="eyebrow">Poll</p>
+              <h2>{poll ? poll.title : 'No active competition'}</h2>
+            </div>
+            <div className="actions poll-header-actions">
+              <Link className="ghost" to="/polls/live">Back to live polls</Link>
+              <button className="ghost" onClick={onRefreshPoll}>Refresh</button>
+            </div>
+          </div>
+          {poll && poll.description && <MarkdownText content={poll.description} className="muted poll-header-description" />}
         </div>
       </div>
       {!poll && <p className="muted">No data for this poll. It may have closed or been removed</p>}

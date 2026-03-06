@@ -1,4 +1,5 @@
 import { Blurhash } from 'react-blurhash';
+import { MarkdownText } from '../MarkdownText';
 import type { PollEntryResponse, PollResponse } from '../../types';
 
 export type PreviewSectionProps = {
@@ -42,7 +43,7 @@ export function PreviewSection({ poll, entries }: PreviewSectionProps) {
               ) : (
                 <div className="entry-img blurhash-preview-fallback" aria-hidden="true" />
               )}
-              {e.description && <p className="muted entry-description">{e.description}</p>}
+              {e.description && <MarkdownText content={e.description} className="muted entry-description" />}
             </li>
           );
         })}
