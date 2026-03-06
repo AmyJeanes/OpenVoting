@@ -160,7 +160,7 @@ export function AdminPanel(props: AdminPanelProps) {
                 </label>
                 <label className="full-row">Description
                   <textarea rows={3} value={metaForm.description} onChange={(e) => onMetaChange({ ...metaForm, description: e.target.value })} data-testid="admin-description-input" />
-                  <span className="field-hint">Optional</span>
+                  <span className="field-hint">Optional · Markdown supported</span>
                 </label>
                 <div className="full-row">
                   <span className={showSubmissionFieldsInvalid ? 'field-error' : 'field-hint'}>At least one submission field (title, description, or image) must be enabled</span>

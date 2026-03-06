@@ -62,6 +62,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
   const showDescriptionInvalid = isDescriptionMissing && (descriptionTouched || submitAttempted);
   const showImageMissingInvalid = isImageMissing && (imageTouched || submitAttempted);
   const imageRequirementsLabel = `${poll.imageRequirement === 2 ? 'Required' : 'Optional'} · Max ${maxUploadFileSizeMB}MB · Square · At least 512×512`;
+  const descriptionHelperText = `${poll.descriptionRequirement === 2 ? 'Required' : 'Optional'} · Markdown supported`;
   const imageHelperText = imageRequirementsLabel;
   const hasValidationErrors = showTitleInvalid || showDescriptionInvalid || showImageMissingInvalid || entryFileInvalid;
   const showValidationBanner = submitAttempted && hasValidationErrors;
@@ -146,7 +147,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
               onChange={(e) => onEntryFormChange({ ...entryForm, description: e.target.value })}
               data-testid="submission-description-input"
             />
-            <span className={showDescriptionInvalid ? 'field-error' : 'field-hint'}>{poll.descriptionRequirement === 2 ? 'Required' : 'Optional'}</span>
+            <span className={showDescriptionInvalid ? 'field-error' : 'field-hint'}>{descriptionHelperText}</span>
           </label>
         )}
       </div>

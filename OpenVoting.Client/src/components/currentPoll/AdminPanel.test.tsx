@@ -66,4 +66,10 @@ describe('AdminPanel', () => {
     expect(baseProps.onSave).not.toHaveBeenCalled();
     expect(screen.getByText('At least one submission field (title, description, or image) must be enabled')).toBeInTheDocument();
   });
+
+  it('shows a markdown helper for the description field', () => {
+    render(<AdminPanel {...baseProps} />);
+
+    expect(screen.getByText('Optional · Markdown supported')).toBeInTheDocument();
+  });
 });

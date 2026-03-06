@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { MarkdownText } from './MarkdownText';
 import type { AssetUploadResponse, PollDetailResponse, PollWinnerResponse, SessionState } from '../types';
-import { formatWindow, pollStatusLabel, votingMethodLabel } from '../utils/format';
+import { formatWindow, pollStatusLabel, shouldShowVotingMethod, votingMethodLabel } from '../utils/format';
 
 export type PollDetailPageProps = {
   sessionState: SessionState;
@@ -78,6 +78,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
   }
 
   const isTie = detail.winners.length > 1 && detail.winners.every((w) => w.votes === detail.winners[0].votes);
+  const showVotingMethod = shouldShowVotingMethod(detail.status, detail.votingMethod);
 
   const winnerTitle = (winner: PollWinnerResponse) => {
     const winnerDisplayName = (winner.displayName || '').trim();
@@ -109,7 +110,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
             {detail.description && <MarkdownText content={detail.description} className="muted poll-header-description" />}
           </div>
           <div className="actions">
-            <span className="pill subtle">{votingMethodLabel(detail.votingMethod)}</span>
+            {showVotingMethod && <span className="pill subtle">{votingMethodLabel(detail.votingMethod)}</span>}
             <span className="pill">{pollStatusLabel(detail.status)}</span>
           </div>
         </div>

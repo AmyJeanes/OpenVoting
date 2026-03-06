@@ -73,6 +73,7 @@ describe('ActivePollsPage', () => {
     expect(screen.getByTestId('create-poll-panel-toggle')).toBeInTheDocument();
     const [titleInput] = screen.getAllByRole('textbox');
     expect(screen.getByTestId('create-poll-title-input')).toBe(titleInput);
+    expect(screen.getByText('Optional · Markdown supported')).toBeInTheDocument();
     await userEvent.type(titleInput, 'My Poll');
     await userEvent.click(screen.getByRole('button', { name: 'Create poll' }));
     expect(onCreate).toHaveBeenCalledTimes(1);

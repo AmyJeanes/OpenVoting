@@ -28,6 +28,12 @@ export function votingMethodLabel(method: number) {
   }
 }
 
+export function shouldShowVotingMethod(status: number, method: number) {
+  const votingHasStarted = status === 2 || status === 3 || status === 4;
+  const hasConfiguredMethod = method === 1 || method === 2;
+  return votingHasStarted && hasConfiguredMethod;
+}
+
 export function toLocal(iso: string) {
   const d = new Date(iso);
   const offsetMs = d.getTimezoneOffset() * 60 * 1000;

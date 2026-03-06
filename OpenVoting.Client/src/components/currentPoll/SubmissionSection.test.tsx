@@ -125,7 +125,7 @@ describe('SubmissionSection', () => {
     expect(screen.getByText('Title')).toBeInTheDocument();
     expect(screen.getByText('Description')).toBeInTheDocument();
     expect(screen.getByText('Required')).toBeInTheDocument();
-    expect(screen.getByText('Optional', { selector: '.field-hint' })).toBeInTheDocument();
+    expect(screen.getByText('Optional · Markdown supported')).toBeInTheDocument();
     expect(screen.getByText('Optional · Max 10MB · Square · At least 512×512')).toBeInTheDocument();
   });
 

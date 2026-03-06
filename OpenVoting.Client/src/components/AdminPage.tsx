@@ -72,7 +72,7 @@ export function AdminPage({ sessionState, me, createForm, setCreateForm, creatin
               value={createForm.description}
               onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
             />
-            <span className="field-hint">Optional</span>
+            <span className="field-hint">Optional · Markdown supported</span>
           </label>
         </div>
         {submitAttempted && hasValidationErrors && (

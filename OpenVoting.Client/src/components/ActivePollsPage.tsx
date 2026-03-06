@@ -112,7 +112,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                       onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                       data-testid="create-poll-description-input"
                     />
-                    <span className="field-hint">Optional</span>
+                    <span className="field-hint">Optional · Markdown supported</span>
                   </label>
                 </div>
                 {submitAttempted && hasValidationErrors && (
