@@ -6,6 +6,7 @@
 - Node.js 20.x + npm
 - PostgreSQL
 - (Optional) Azurite for local blob emulation
+- Docker, for the Playwright smoke/full test runner
 
 ## 1) Restore dependencies
 
@@ -42,3 +43,18 @@ dotnet run --project OpenVoting.Server/OpenVoting.Server.csproj --launch-profile
 The site starts by default on: https://localhost:54196
 
 The Vite dev server proxies `/api/*` requests to the backend.
+
+## 5) Run Playwright smoke or full tests
+
+From repo root:
+
+```powershell
+./scripts/Run-PlaywrightTests.ps1 -TestType Smoke
+./scripts/Run-PlaywrightTests.ps1 -TestType Full
+```
+
+Both modes use a disposable Dockerized PostgreSQL instance and shared seeded Playwright data from `scripts/test-seed.cs`.
+
+`Smoke` is the fast regression pass used in CI.
+
+`Full` runs the broader end-to-end lifecycle scenarios and is better suited to larger frontend or workflow changes.

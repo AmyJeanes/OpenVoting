@@ -18,6 +18,7 @@ Tech stack:
 - Vite
 - React Router
 - Vitest + Testing Library
+- Playwright for seeded end-to-end smoke/full coverage
 
 Primary responsibilities:
 
@@ -33,6 +34,7 @@ Primary responsibilities:
 OpenVoting.Server/         ASP.NET Core backend API
 OpenVoting.Server.Tests/   NUnit tests for backend
 OpenVoting.Client/         React + TypeScript frontend
+scripts/                   Shared local automation, including Playwright orchestration and test seeding
 charts/openvoting/         Helm chart for Kubernetes deployment
 terraform/                 OpenTofu infrastructure definitions
 ```
