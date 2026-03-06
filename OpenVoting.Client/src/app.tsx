@@ -259,14 +259,14 @@ export default function App() {
       </Routes>
       )}
       {openVotingModal && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && handleCancelOpenVoting()}>
+        <div className="modal-backdrop" role="dialog" aria-modal="true" data-testid="open-voting-modal" onClick={(e) => e.target === e.currentTarget && handleCancelOpenVoting()}>
           <div className="modal-card open-voting-modal-card">
             <p className="eyebrow">Voting</p>
             <h3>Open voting</h3>
             <p className="muted">Choose the voting method to use. This cannot be changed after voting starts</p>
             <div className="method-cards">
               {votingMethodOptions.map((opt) => (
-                <label key={opt.id} className={`radio-card ${openVotingModal.selectedMethod === opt.id ? 'selected' : ''}`}>
+                <label key={opt.id} className={`radio-card ${openVotingModal.selectedMethod === opt.id ? 'selected' : ''}`} data-testid={`open-voting-method-card-${opt.id}`}>
                   <div className="radio-head">
                     <input
                       type="radio"
@@ -274,6 +274,7 @@ export default function App() {
                       value={opt.id}
                       checked={openVotingModal.selectedMethod === opt.id}
                       onChange={() => setOpenVotingModal((prev) => (prev ? { ...prev, selectedMethod: opt.id } : prev))}
+                      data-testid={`open-voting-method-${opt.id}`}
                     />
                     <div>
                       <strong>{opt.name}</strong>
@@ -289,8 +290,8 @@ export default function App() {
               ))}
             </div>
             <div className="modal-actions">
-              <button className="ghost" onClick={handleCancelOpenVoting} disabled={openVotingModal.submitting}>Cancel</button>
-              <button className="primary" onClick={handleConfirmOpenVoting} disabled={openVotingModal.submitting}>
+              <button className="ghost" onClick={handleCancelOpenVoting} disabled={openVotingModal.submitting} data-testid="open-voting-cancel-button">Cancel</button>
+              <button className="primary" onClick={handleConfirmOpenVoting} disabled={openVotingModal.submitting} data-testid="open-voting-confirm-button">
                 {openVotingModal.submitting ? 'Opening…' : 'Open voting'}
               </button>
             </div>

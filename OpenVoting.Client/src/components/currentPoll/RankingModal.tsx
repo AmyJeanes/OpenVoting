@@ -65,7 +65,7 @@ export function RankingModal(props: RankingModalProps) {
   if (!open) return null;
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && onBackToSelection()}>
+    <div className="modal-backdrop" role="dialog" aria-modal="true" data-testid="ranking-modal" onClick={(e) => e.target === e.currentTarget && onBackToSelection()}>
       <div className="modal-card wide ranking-modal-card">
         <div className="ranking-modal-head">
           <p className="eyebrow">Vote: Step 2</p>
@@ -77,7 +77,7 @@ export function RankingModal(props: RankingModalProps) {
         <div className="ranking-modal-scroll">
           {rankedEntries.length === 0 && <p className="muted">No selections yet</p>}
           {rankedEntries.length > 0 && (
-            <ul className="rank-list">
+            <ul className="rank-list" data-testid="ranking-list">
               {rankedEntries.map((e, idx) => {
                 const titleText = rankingEntryTitle(poll, e);
                 const assetId = entryAssetId(e);
@@ -92,6 +92,7 @@ export function RankingModal(props: RankingModalProps) {
                     className={`rank-item${draggingId === e.id ? ' dragging' : ''}${dragOverId === e.id ? ' drop-target' : ''}${dragOverId === e.id && dragOverAfter ? ' drop-after' : ''}`}
                     ref={(node) => setItemRef(e.id, node)}
                     draggable
+                    data-testid={`ranking-item-${e.id}`}
                     onDragStart={() => onDragStart(e.id)}
                     onDragOver={(ev) => onDragOverItem(ev, e.id)}
                     onDrop={() => onDropOnItem(e.id)}
@@ -149,8 +150,8 @@ export function RankingModal(props: RankingModalProps) {
           )}
         </div>
         <div className="modal-actions">
-          <button className="ghost" onClick={onBackToSelection} disabled={voteSubmitting}>Back to selection</button>
-          <button className="primary" onClick={onSubmitRanks} disabled={voteSubmitting || (poll.requireRanking && !hasRankChanges)}>
+          <button className="ghost" onClick={onBackToSelection} disabled={voteSubmitting} data-testid="ranking-back-button">Back to selection</button>
+          <button className="primary" onClick={onSubmitRanks} disabled={voteSubmitting || (poll.requireRanking && !hasRankChanges)} data-testid="ranking-submit-button">
             {voteSubmitting ? 'Submitting…' : hasExistingVote ? 'Update vote' : 'Submit vote'}
           </button>
         </div>

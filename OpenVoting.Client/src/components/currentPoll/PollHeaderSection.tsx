@@ -13,7 +13,7 @@ export function PollHeaderSection({ poll, onRefreshPoll }: PollHeaderSectionProp
   const showVotingWindow = !!poll && (poll.status === 2 || poll.status === 3 || poll.status === 4 || poll.status === 5) && !isMaxTimestamp(poll.votingOpensAt);
 
   return (
-    <section className="card">
+    <section className="card" data-testid="current-poll-header">
       <div className="section-head poll-header-head">
         <div className="poll-header-main">
           <div className="poll-header-title-row">
@@ -22,8 +22,8 @@ export function PollHeaderSection({ poll, onRefreshPoll }: PollHeaderSectionProp
               <h2>{poll ? poll.title : 'No active competition'}</h2>
             </div>
             <div className="actions poll-header-actions">
-              <Link className="ghost" to="/polls/live">Back to live polls</Link>
-              <button className="ghost" onClick={onRefreshPoll}>Refresh</button>
+              <Link className="ghost" to="/polls/live" data-testid="current-poll-back-link">Back to live polls</Link>
+              <button className="ghost" onClick={onRefreshPoll} data-testid="current-poll-refresh-button">Refresh</button>
             </div>
           </div>
           {poll && poll.description && <MarkdownText content={poll.description} className="muted poll-header-description" />}

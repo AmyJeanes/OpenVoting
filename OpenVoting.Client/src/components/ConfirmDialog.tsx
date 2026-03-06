@@ -35,7 +35,7 @@ export function ConfirmDialog({ config, onConfirm, onCancel }: ConfirmDialogProp
   if (!config) return null;
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && onCancel()}>
+    <div className="modal-backdrop" role="dialog" aria-modal="true" data-testid="confirm-dialog" onClick={(e) => e.target === e.currentTarget && onCancel()}>
       <div className="modal-card confirm-dialog-card">
         <p className="eyebrow">Confirm</p>
         <h3>{config.title}</h3>
@@ -43,8 +43,8 @@ export function ConfirmDialog({ config, onConfirm, onCancel }: ConfirmDialogProp
         {config.content}
         {config.note && <p className="muted">{config.note}</p>}
         <div className="modal-actions">
-          <button className="ghost" onClick={onCancel}>{config.cancelLabel ?? 'Cancel'}</button>
-          <button className={config.tone === 'danger' ? 'primary danger' : 'primary'} onClick={onConfirm} disabled={config.confirmDisabled}>
+          <button className="ghost" onClick={onCancel} data-testid="confirm-dialog-cancel">{config.cancelLabel ?? 'Cancel'}</button>
+          <button className={config.tone === 'danger' ? 'primary danger' : 'primary'} onClick={onConfirm} disabled={config.confirmDisabled} data-testid="confirm-dialog-confirm">
             {config.confirmLabel ?? 'Continue'}
           </button>
         </div>

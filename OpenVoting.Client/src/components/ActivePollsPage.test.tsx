@@ -60,13 +60,19 @@ describe('ActivePollsPage', () => {
       onCreatePoll: onCreate
     });
 
+    expect(screen.getByTestId('active-polls-page')).toBeInTheDocument();
+    expect(screen.getByTestId('active-poll-list')).toBeInTheDocument();
+    expect(screen.getByTestId('active-poll-poll-123')).toBeInTheDocument();
     expect(screen.getByText('Spring Contest')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View poll' })).toHaveAttribute('href', '/polls/poll-123');
+    expect(screen.getByTestId('active-poll-view-poll-123')).toHaveAttribute('href', '/polls/poll-123');
     expect(screen.getByText('Total votes')).toBeInTheDocument();
     expect(screen.getByText('14')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Toggle create poll panel' }));
+    expect(screen.getByTestId('create-poll-panel-toggle')).toBeInTheDocument();
     const [titleInput] = screen.getAllByRole('textbox');
+    expect(screen.getByTestId('create-poll-title-input')).toBe(titleInput);
     await userEvent.type(titleInput, 'My Poll');
     await userEvent.click(screen.getByRole('button', { name: 'Create poll' }));
     expect(onCreate).toHaveBeenCalledTimes(1);
@@ -120,6 +126,8 @@ describe('ActivePollsPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Open search' }));
     const searchInput = screen.getByRole('textbox', { name: 'Search live polls' });
+    expect(screen.getByTestId('active-poll-search-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('active-poll-search-input')).toBe(searchInput);
 
     await userEvent.type(searchInput, 'beach');
     expect(screen.getByText('Summer Clash')).toBeInTheDocument();

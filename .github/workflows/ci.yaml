@@ -57,6 +57,12 @@ jobs:
         run: npm run test
         working-directory: OpenVoting.Client
 
+      - name: Smoke test application
+        run: ./scripts/Run-PlaywrightTests.ps1 -TestType Smoke -InstallBrowsers
+        shell: pwsh
+        env:
+          CI: true
+
       - name: Build Docker images
         run: |
           app="openvoting"

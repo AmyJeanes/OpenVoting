@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using OpenVoting.Data;
 using OpenVoting.Server;
@@ -97,6 +98,13 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
+if (app.Environment.IsEnvironment("SmokeTest"))
+{
+	await using var scope = app.Services.CreateAsyncScope();
+	var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+	await db.Database.MigrateAsync();
+}
+
 app.UseForwardedHeaders();
 
 app.UseDefaultFiles();
@@ -104,7 +112,10 @@ app.MapStaticAssets();
 
 app.UseHealthChecks(new PathString("/healthz"));
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsEnvironment("SmokeTest"))
+{
+	app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

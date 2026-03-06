@@ -50,7 +50,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
   const winnerUser = (winner: PollHistoryResponse['winners'][number]) => winner.submittedByDisplayName || winner.displayName || 'Anonymous';
 
   return (
-    <section className="card">
+    <section className="card" data-testid="history-page">
       <div className="section-head">
         <div>
           <p className="eyebrow">Archive</p>
@@ -69,6 +69,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                 aria-label="Search past polls"
                 aria-hidden={!searchExpanded}
                 disabled={!searchExpanded}
+                data-testid="history-search-input"
               />
             </div>
             <button
@@ -81,6 +82,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
               }}
               aria-expanded={searchExpanded}
               aria-label={searchExpanded ? 'Close search' : 'Open search'}
+              data-testid="history-search-toggle"
             >
               <svg className="poll-search-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
                 <circle cx="7" cy="7" r="4" />
@@ -88,15 +90,15 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
               </svg>
             </button>
           </div>
-          <button className="ghost" onClick={onRefresh}>Refresh</button>
+          <button className="ghost" onClick={onRefresh} data-testid="history-refresh-button">Refresh</button>
         </div>
       </div>
       {history.length === 0 && !historyError && <p className="muted">No closed polls yet</p>}
       {history.length > 0 && filteredHistory.length === 0 && <p className="muted">No polls match your search</p>}
       {filteredHistory.length > 0 && (
-        <ul className="entries poll-list">
+        <ul className="entries poll-list" data-testid="history-poll-list">
           {filteredHistory.map((p) => (
-            <li key={p.id} className="entry-card history-item">
+            <li key={p.id} className="entry-card history-item" data-testid={`history-poll-${p.id}`}>
               {(() => {
                 const closedText = `Closed ${new Date(p.votingClosesAt).toLocaleString()}`;
                 const isTie = p.winners.length > 1 && p.winners.every((w) => w.votes === p.winners[0].votes);
@@ -143,7 +145,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                   <>
                     <div className="history-top">
                       <div>
-                        <p className="history-title"><Link to={`/polls/${p.id}`}>{p.title}</Link></p>
+                        <p className="history-title"><Link to={`/polls/${p.id}`} data-testid={`history-poll-link-${p.id}`}>{p.title}</Link></p>
                         <div className="history-subtitle" />
                       </div>
                     </div>
@@ -182,7 +184,7 @@ export function HistoryPage({ sessionState, history, historyError, assetCache, o
                     )}
 
                     <div className="history-actions">
-                      <Link className="primary" to={`/polls/${p.id}`}>View poll</Link>
+                      <Link className="primary" to={`/polls/${p.id}`} data-testid={`history-view-poll-${p.id}`}>View poll</Link>
                     </div>
                   </>
                 );

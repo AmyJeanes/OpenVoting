@@ -95,7 +95,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
   }, [entrySubmitSuccessCount]);
 
   return (
-    <section className="card submission-card">
+    <section className="card submission-card" data-testid="submission-section">
       <div className="section-head">
         <h3>Submit an entry</h3>
       </div>
@@ -109,6 +109,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
                         aria-invalid={showTitleInvalid}
                 onBlur={() => setTitleTouched(true)}
                 onChange={(e) => onEntryFormChange({ ...entryForm, displayName: e.target.value })}
+                data-testid="submission-title-input"
               />
                       <span className={showTitleInvalid ? 'field-error' : 'field-hint'}>{poll.titleRequirement === 2 ? 'Required' : 'Optional'}</span>
             </label>
@@ -128,6 +129,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
                   setImageTouched(true);
                   onEntryFilesChange({ ...entryFiles, original: e.target.files?.[0] ?? undefined });
                 }}
+                data-testid="submission-image-input"
               />
               <span className={(showImageMissingInvalid || entryFileInvalid) ? 'field-error' : 'field-hint'}>{imageHelperText}</span>
             </label>
@@ -142,6 +144,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
               aria-invalid={showDescriptionInvalid}
               onBlur={() => setDescriptionTouched(true)}
               onChange={(e) => onEntryFormChange({ ...entryForm, description: e.target.value })}
+              data-testid="submission-description-input"
             />
             <span className={showDescriptionInvalid ? 'field-error' : 'field-hint'}>{poll.descriptionRequirement === 2 ? 'Required' : 'Optional'}</span>
           </label>
@@ -164,7 +167,7 @@ export function SubmissionSection(props: SubmissionSectionProps) {
       )}
       {!!entrySubmitError && !imageValidationMessages.has(entrySubmitError) && entrySubmitError !== 'Title is required' && entrySubmitError !== 'Description is required' && entrySubmitError !== 'Upload an image to submit' && <div className="banner error">{entrySubmitError}</div>}
       <div className="actions form-actions spacious">
-        <button className="primary" onClick={handleSubmit} disabled={disableSubmit}>
+        <button className="primary" onClick={handleSubmit} disabled={disableSubmit} data-testid="submission-submit-button">
           {entrySubmitting ? 'Submitting…' : 'Submit entry'}
         </button>
       </div>

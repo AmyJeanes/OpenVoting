@@ -54,7 +54,7 @@ export function VotingSection(props: VotingSectionProps) {
   const submittedAtLabel = voteInfo?.submittedAt ? new Date(voteInfo.submittedAt).toLocaleString() : 'Pending';
 
   return (
-    <section className="card">
+    <section className="card" data-testid="voting-section">
       <div className="section-head">
         <h3>{isRankedMethod ? 'Vote: Step 1' : 'Vote'}</h3>
         <p className="muted">
@@ -64,7 +64,7 @@ export function VotingSection(props: VotingSectionProps) {
         </p>
       </div>
       {hasSubmittedVote && (
-        <div className="banner vote-status-banner personal-card" role="status" aria-live="polite">
+        <div className="banner vote-status-banner personal-card" role="status" aria-live="polite" data-testid="vote-status-banner">
           <div className="vote-status-head">
             <p className="vote-status-title">You've already voted</p>
             <span className="pill winner">Saved</span>
@@ -96,6 +96,7 @@ export function VotingSection(props: VotingSectionProps) {
               className={`entry-card vote-card ${isSelected ? 'selected' : ''} ${isUnavailable ? 'unavailable' : ''}`}
               role="button"
               tabIndex={0}
+              data-testid={`vote-entry-${e.id}`}
               onClick={() => tryToggle(!isSelected)}
               onKeyDown={(ev) => {
                 if (ev.key === ' ' || ev.key === 'Enter') {
@@ -119,6 +120,7 @@ export function VotingSection(props: VotingSectionProps) {
                     title={isUnavailable ? 'Unavailable' : undefined}
                     onClick={(ev) => ev.stopPropagation()}
                     onChange={(ev) => tryToggle(ev.target.checked)}
+                    data-testid={`vote-checkbox-${e.id}`}
                   />
                   <span className="entry-title">{entryTitle(poll, e)}</span>
                 </label>
@@ -128,6 +130,7 @@ export function VotingSection(props: VotingSectionProps) {
                   type="button"
                   className="entry-img-button"
                   title="View full image"
+                  data-testid={`vote-entry-image-${e.id}`}
                   onClick={(ev) => {
                     ev.stopPropagation();
                     setLightboxImage({ imageUrl: fullImageUrl ?? previewUrl, originalUrl, alt: e.displayName });
@@ -148,10 +151,10 @@ export function VotingSection(props: VotingSectionProps) {
             <button className="primary" onClick={onProceedToRanking} disabled={voteSubmitting}>
               Continue to ranking
             </button>
-            <button className="ghost" onClick={onClearSelection} disabled={voteSubmitting}>Clear selection</button>
+            <button className="ghost" onClick={onClearSelection} disabled={voteSubmitting} data-testid="vote-clear-selection-button">Clear selection</button>
           </>
         ) : (
-          <button className="primary" onClick={onSubmitVote} disabled={voteSubmitting}>
+          <button className="primary" onClick={onSubmitVote} disabled={voteSubmitting} data-testid="vote-submit-button">
             {voteSubmitting ? 'Submitting…' : 'Submit vote'}
           </button>
         )}

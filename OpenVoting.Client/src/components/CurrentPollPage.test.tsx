@@ -92,6 +92,12 @@ describe('CurrentPollPage', () => {
   it('closes ranking modal after updating an existing vote', async () => {
     renderPage();
 
+    expect(screen.getByTestId('current-poll-page')).toBeInTheDocument();
+    expect(screen.getByTestId('current-poll-header')).toBeInTheDocument();
+    expect(screen.getByTestId('voting-section')).toBeInTheDocument();
+    expect(screen.getByTestId('vote-entry-entry-1')).toBeInTheDocument();
+    expect(screen.getByTestId('vote-checkbox-entry-1')).toBeInTheDocument();
+
     await userEvent.click(screen.getByRole('button', { name: 'Continue to ranking' }));
     expect(await screen.findByText('Order your selections')).toBeInTheDocument();
 

@@ -65,9 +65,9 @@ export function Topbar({ sessionState, me, config, hasLivePolls, onLogout }: Top
     || sessionState === 'idle';
 
   return (
-    <header className={`topbar${shouldRenderUserShell ? '' : ' no-user-shell'}`}>
+    <header className={`topbar${shouldRenderUserShell ? '' : ' no-user-shell'}`} data-testid="topbar">
       <div className="brand">
-        <Link to="/polls/live" className="brand-link">
+        <Link to="/polls/live" className="brand-link" data-testid="topbar-brand-link">
           <div className={serverIconUrl ? 'brand-mark brand-mark-image' : 'brand-mark'}>
             {serverIconUrl ? <img src={serverIconUrl} alt={`${serverName} logo`} loading="lazy" /> : serverInitials}
           </div>
@@ -81,7 +81,7 @@ export function Topbar({ sessionState, me, config, hasLivePolls, onLogout }: Top
           </div>
         </Link>
       </div>
-      <nav className="nav">
+      <nav className="nav" data-testid="topbar-nav">
         <NavLink to="/polls/live" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
           Live polls
         </NavLink>
@@ -100,6 +100,7 @@ export function Topbar({ sessionState, me, config, hasLivePolls, onLogout }: Top
           onBlur={() => setThemeTooltipVisible(false)}
           aria-label={`Theme: ${themeLabel}`}
           aria-describedby={themeTooltipVisible ? 'theme-toggle-tooltip' : undefined}
+          data-testid="topbar-theme-toggle"
         >
           <ThemeModeIcon mode={themeMode} systemTheme={systemTheme} />
         </button>
@@ -112,14 +113,14 @@ export function Topbar({ sessionState, me, config, hasLivePolls, onLogout }: Top
         </div>
       </div>
       {shouldRenderUserShell && (
-        <div className="user-shell">
+        <div className="user-shell" data-testid="topbar-user-shell">
           {sessionState === 'authenticated' && me ? (
             <div className="user-block">
               <div className="user-meta">
                 <span className="user-name">{me.displayName}</span>
                 {me.isAdmin && <span className="pill admin">Admin</span>}
               </div>
-              <button className="ghost" onClick={() => onLogout('Signed out')}>Logout</button>
+              <button className="ghost" onClick={() => onLogout('Signed out')} data-testid="topbar-logout-button">Logout</button>
             </div>
           ) : (
             <div className="user-block">

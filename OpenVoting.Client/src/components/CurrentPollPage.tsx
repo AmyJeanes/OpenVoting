@@ -557,7 +557,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
   if (shouldShowLoading) {
     return (
-      <section className="card splash">
+      <section className="card splash" data-testid="current-poll-loading">
         <p className="eyebrow">Loading</p>
         <h2>Please wait…</h2>
       </section>
@@ -565,7 +565,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
   }
 
   return (
-    <div className="stack">
+    <div className="stack" data-testid="current-poll-page">
       <PollHeaderSection poll={poll} onRefreshPoll={onRefreshPoll} />
 
       {poll?.isAdmin && (
@@ -719,7 +719,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
       )}
 
       {isClosed && pollDetail && (
-        <section className="card">
+        <section className="card" data-testid="closed-poll-breakdown">
           <div className="section-head">
             <div>
               <p className="eyebrow">Entries</p>

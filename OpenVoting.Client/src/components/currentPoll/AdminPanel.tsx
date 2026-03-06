@@ -74,12 +74,13 @@ export function AdminPanel(props: AdminPanelProps) {
   };
 
   return (
-    <section className={`card admin-card${expanded ? '' : ' collapsed'}`}>
+    <section className={`card admin-card${expanded ? '' : ' collapsed'}`} data-testid="admin-panel">
       <button
         type="button"
         className="section-head admin-toggle"
         onClick={handleToggle}
         aria-expanded={expanded}
+        data-testid="admin-panel-toggle"
       >
         <div>
           <p className="eyebrow">Admin</p>
@@ -92,10 +93,10 @@ export function AdminPanel(props: AdminPanelProps) {
       <div className="admin-collapse">
         <div className="admin-collapse-inner">
           <div className="actions admin-actions">
-            {poll.status === 0 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'open-submissions'); }}>Open submissions</button>}
-            {poll.status === 1 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'start-review'); }}>Start review</button>}
-            {poll.status === 5 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'open-voting'); }}>Open voting</button>}
-            {poll.status === 2 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'close'); }}>Close poll</button>}
+            {poll.status === 0 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'open-submissions'); }} data-testid="admin-open-submissions-button">Open submissions</button>}
+            {poll.status === 1 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'start-review'); }} data-testid="admin-start-review-button">Start review</button>}
+            {poll.status === 5 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'open-voting'); }} data-testid="admin-open-voting-button">Open voting</button>}
+            {poll.status === 2 && <button type="button" className="primary" onClick={(e) => { e.stopPropagation(); onTransition(poll.id, 'close'); }} data-testid="admin-close-poll-button">Close poll</button>}
             <button
               type="button"
               className="ghost danger"
@@ -103,6 +104,7 @@ export function AdminPanel(props: AdminPanelProps) {
                 e.stopPropagation();
                 onDeletePoll(poll.id);
               }}
+              data-testid="admin-delete-poll-button"
             >
               Delete poll
             </button>
@@ -119,11 +121,12 @@ export function AdminPanel(props: AdminPanelProps) {
                     aria-invalid={showTitleInvalid}
                     onBlur={() => setTitleTouched(true)}
                     onChange={(e) => onMetaChange({ ...metaForm, title: e.target.value })}
+                    data-testid="admin-title-input"
                   />
                   <span className={showTitleInvalid ? 'field-error' : 'field-hint'}>Required</span>
                 </label>
                 <label>Title field
-                  <select value={metaForm.titleRequirement} onChange={(e) => onMetaChange({ ...metaForm, titleRequirement: Number(e.target.value) as FieldRequirement })}>
+                  <select value={metaForm.titleRequirement} onChange={(e) => onMetaChange({ ...metaForm, titleRequirement: Number(e.target.value) as FieldRequirement })} data-testid="admin-title-requirement-select">
                     {requirementOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
@@ -135,6 +138,7 @@ export function AdminPanel(props: AdminPanelProps) {
                     aria-invalid={showSubmissionFieldsInvalid}
                     value={metaForm.descriptionRequirement}
                     onChange={(e) => onMetaChange({ ...metaForm, descriptionRequirement: Number(e.target.value) as FieldRequirement })}
+                    data-testid="admin-description-requirement-select"
                   >
                     {requirementOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -147,6 +151,7 @@ export function AdminPanel(props: AdminPanelProps) {
                     aria-invalid={showSubmissionFieldsInvalid}
                     value={metaForm.imageRequirement}
                     onChange={(e) => onMetaChange({ ...metaForm, imageRequirement: Number(e.target.value) as FieldRequirement })}
+                    data-testid="admin-image-requirement-select"
                   >
                     {requirementOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -154,7 +159,7 @@ export function AdminPanel(props: AdminPanelProps) {
                   </select>
                 </label>
                 <label className="full-row">Description
-                  <textarea rows={3} value={metaForm.description} onChange={(e) => onMetaChange({ ...metaForm, description: e.target.value })} />
+                  <textarea rows={3} value={metaForm.description} onChange={(e) => onMetaChange({ ...metaForm, description: e.target.value })} data-testid="admin-description-input" />
                   <span className="field-hint">Optional</span>
                 </label>
                 <div className="full-row">
@@ -173,6 +178,7 @@ export function AdminPanel(props: AdminPanelProps) {
                       min={1}
                       value={submissionForm.maxSubmissionsPerMember}
                       onChange={(e) => onSubmissionChange({ ...submissionForm, maxSubmissionsPerMember: Math.max(1, Number(e.target.value)) })}
+                      data-testid="admin-max-submissions-input"
                     />
                   </label>
                   <label>Auto-close submissions (optional)
@@ -180,6 +186,7 @@ export function AdminPanel(props: AdminPanelProps) {
                       type="datetime-local"
                       value={submissionForm.submissionClosesAt}
                       onChange={(e) => onSubmissionChange({ ...submissionForm, submissionClosesAt: e.target.value })}
+                      data-testid="admin-submission-closes-input"
                     />
                   </label>
                 </div>
@@ -201,6 +208,7 @@ export function AdminPanel(props: AdminPanelProps) {
                       min={1}
                       value={votingForm.maxSelections}
                       onChange={(e) => onVotingChange({ ...votingForm, maxSelections: Math.max(1, Number(e.target.value)) })}
+                      data-testid="admin-max-selections-input"
                     />
                   </label>
                   <label>Auto-close voting (optional)
@@ -208,6 +216,7 @@ export function AdminPanel(props: AdminPanelProps) {
                       type="datetime-local"
                       value={votingForm.votingClosesAt}
                       onChange={(e) => onVotingChange({ ...votingForm, votingClosesAt: e.target.value })}
+                      data-testid="admin-voting-closes-input"
                     />
                   </label>
                 </div>
@@ -220,7 +229,7 @@ export function AdminPanel(props: AdminPanelProps) {
             )}
 
             <div className="actions form-actions spacious">
-              <button className="ghost" onClick={handleSave} disabled={settingsSaving}>
+              <button className="ghost" onClick={handleSave} disabled={settingsSaving} data-testid="admin-save-settings-button">
                 {settingsSaving ? 'Saving…' : 'Save poll settings'}
               </button>
             </div>

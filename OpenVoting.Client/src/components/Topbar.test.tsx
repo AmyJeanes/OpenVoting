@@ -59,9 +59,13 @@ describe('Topbar', () => {
     expect(screen.getByText('Admin User')).toBeInTheDocument();
     expect(screen.getAllByText('Admin').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Theme: System' })).toBeInTheDocument();
+    expect(screen.getByTestId('topbar')).toBeInTheDocument();
+    expect(screen.getByTestId('topbar-brand-link')).toHaveAttribute('href', '/polls/live');
+    expect(screen.getByTestId('topbar-theme-toggle')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Logout'));
     expect(onLogout).toHaveBeenCalledWith('Signed out');
+    expect(screen.getByTestId('topbar-logout-button')).toBeInTheDocument();
   });
 
   it('cycles theme mode system → light → dark → system', async () => {
@@ -112,6 +116,7 @@ describe('Topbar', () => {
     expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
     expect(screen.getByRole('button', { name: 'Theme: System' })).toBeInTheDocument();
     expect(container.querySelector('.user-shell')).toBeNull();
+    expect(screen.getByTestId('topbar-nav')).toBeInTheDocument();
   });
 
   it('shows loading text while session is loading', () => {

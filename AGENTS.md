@@ -22,8 +22,10 @@ OpenVoting.Client:
 - Use `npm run build` to compile
 - Use `npm run test` to run unit tests
 - Use `npm run lint` to run the linter and discover issues
+- Use `scripts/Run-PlaywrightTests.ps1 -TestType Smoke/Full` to run the Playwright tests after making big changes
 - Always run build and unit tests after changing frontend code to test
 - TypeScript is used with strict type checking enabled, do not use the `any` type unless absolutely necessary
 - Use shared CSS variables where possible for consistency, e.g. colors, spacing, etc
 - Use the browser tool where available to view and test the frontend changes
 - When needed you can edit the code to help use Playwright, such as adding attributes to elements to make them easier to select
+- Add playwright smoke / full tests for any significant changes to the frontend, especially if they affect user flows, e.g. voting, creating polls, etc

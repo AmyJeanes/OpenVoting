@@ -52,8 +52,13 @@ describe('HistoryPage', () => {
 
     renderHistory({ history: [springPoll, summerPoll] });
 
+    expect(screen.getByTestId('history-page')).toBeInTheDocument();
+    expect(screen.getByTestId('history-poll-list')).toBeInTheDocument();
+
     await userEvent.click(screen.getByRole('button', { name: 'Open search' }));
     const searchInput = screen.getByRole('textbox', { name: 'Search past polls' });
+    expect(screen.getByTestId('history-search-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('history-search-input')).toBe(searchInput);
 
     await userEvent.type(searchInput, 'beach');
     expect(screen.getByText('Summer Clash')).toBeInTheDocument();
@@ -90,6 +95,9 @@ describe('HistoryPage', () => {
     });
 
     renderHistory({ history: [tiePoll] });
+
+    expect(screen.getByTestId('history-poll-poll-1')).toBeInTheDocument();
+    expect(screen.getByTestId('history-view-poll-poll-1')).toHaveAttribute('href', '/polls/poll-1');
 
     expect(screen.getByTitle('Winner One')).toBeInTheDocument();
     expect(screen.getByTitle('Winner Two')).toBeInTheDocument();

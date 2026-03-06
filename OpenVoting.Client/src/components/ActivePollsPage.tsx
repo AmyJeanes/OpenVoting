@@ -71,15 +71,16 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
   }
 
   return (
-    <div className="stack">
+    <div className="stack" data-testid="active-polls-page">
       {me?.isAdmin && (
-        <section className={`card admin-card${adminExpanded ? '' : ' collapsed'}`}>
+        <section className={`card admin-card${adminExpanded ? '' : ' collapsed'}`} data-testid="create-poll-panel">
           <button
             type="button"
             className="section-head admin-toggle"
             onClick={() => setAdminExpanded((v) => !v)}
             aria-expanded={adminExpanded}
             aria-label="Toggle create poll panel"
+            data-testid="create-poll-panel-toggle"
           >
             <div>
               <p className="eyebrow">Admin</p>
@@ -100,6 +101,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                       aria-invalid={showTitleInvalid}
                       onBlur={() => setTitleTouched(true)}
                       onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
+                      data-testid="create-poll-title-input"
                     />
                     <span className={showTitleInvalid ? 'field-error' : 'field-hint'}>Required</span>
                   </label>
@@ -108,6 +110,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                       rows={3}
                       value={createForm.description}
                       onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                      data-testid="create-poll-description-input"
                     />
                     <span className="field-hint">Optional</span>
                   </label>
@@ -117,7 +120,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                 )}
                 {createError && <div className="banner error form-validation-banner">{createError}</div>}
                 <div className="actions form-actions spacious">
-                  <button className="primary" onClick={handleCreate} disabled={creating}>{creating ? 'Creating…' : 'Create poll'}</button>
+                  <button className="primary" onClick={handleCreate} disabled={creating} data-testid="create-poll-submit-button">{creating ? 'Creating…' : 'Create poll'}</button>
                 </div>
               </div>
             </div>
@@ -125,7 +128,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
         </section>
       )}
 
-      <section className="card">
+      <section className="card" data-testid="active-poll-list-section">
         <div className="section-head">
           <div>
             <p className="eyebrow">Live polls</p>
@@ -144,6 +147,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                   aria-label="Search live polls"
                   aria-hidden={!searchExpanded}
                   disabled={!searchExpanded}
+                  data-testid="active-poll-search-input"
                 />
               </div>
               <button
@@ -156,6 +160,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                 }}
                 aria-expanded={searchExpanded}
                 aria-label={searchExpanded ? 'Close search' : 'Open search'}
+                data-testid="active-poll-search-toggle"
               >
                 <svg className="poll-search-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
                   <circle cx="7" cy="7" r="4" />
@@ -163,7 +168,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                 </svg>
               </button>
             </div>
-            <button className="ghost" onClick={onRefresh} disabled={loading}>
+            <button className="ghost" onClick={onRefresh} disabled={loading} data-testid="active-poll-refresh-button">
               {loading ? 'Refreshing…' : 'Refresh'}
             </button>
           </div>
@@ -172,13 +177,13 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
         {!loading && activePolls.length === 0 && !pollError && <p className="muted">No active polls right now</p>}
         {!loading && activePolls.length > 0 && filteredActivePolls.length === 0 && <p className="muted">No polls match your search</p>}
         {!loading && filteredActivePolls.length > 0 && (
-          <ul className="entries poll-list live-poll-list">
+          <ul className="entries poll-list live-poll-list" data-testid="active-poll-list">
             {filteredActivePolls.map((p) => {
               const entryClass = p.status === 0 ? 'entry-card draft' : 'entry-card';
               const statusLabel = pollStatusLabel(p.status);
               const canHaveVotes = p.status === 2 || p.status === 3 || p.status === 4;
               return (
-                <li key={p.id} className={`${entryClass} live-poll-card`}>
+                <li key={p.id} className={`${entryClass} live-poll-card`} data-testid={`active-poll-${p.id}`}>
                   <div className="entry-head live-poll-card-head">
                     <div className="entry-head-main">
                       <p className="entry-title live-title">{p.title}</p>
@@ -200,7 +205,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
                     )}
                   </div>
                   <div className="actions live-poll-actions">
-                    <Link className="primary" to={`/polls/${p.id}`}>View poll</Link>
+                    <Link className="primary" to={`/polls/${p.id}`} data-testid={`active-poll-view-${p.id}`}>View poll</Link>
                     {canHaveVotes && (
                       <div className="live-poll-votes-tail" aria-label={`Total votes for ${p.title}`}>
                         <span className="live-poll-votes-tail-label">Total votes</span>

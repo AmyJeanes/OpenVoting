@@ -63,12 +63,13 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
   }, [breakdownByEntryId, entries, poll.votingMethod]);
 
   return (
-    <section className={`card admin-card${expanded ? '' : ' collapsed'}`}>
+    <section className={`card admin-card${expanded ? '' : ' collapsed'}`} data-testid="admin-entries-section">
       <button
         type="button"
         className="section-head admin-toggle"
         aria-expanded={expanded}
         onClick={handleToggle}
+        data-testid="admin-entries-toggle"
       >
         <div>
           <p className="eyebrow">Entries</p>
@@ -101,7 +102,7 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
               const topScore = leaderboard[0]?.score ?? 0;
               const isProjectedWinner = showAdminBreakdown && topScore > 0 && score === topScore;
               return (
-                <li key={e.id} className={`entry-card with-bottom-actions ${e.isDisqualified ? 'unavailable' : ''}`}>
+                <li key={e.id} className={`entry-card with-bottom-actions ${e.isDisqualified ? 'unavailable' : ''}`} data-testid={`admin-entry-${e.id}`}>
                   <div className="entry-head">
                     <div className="entry-head-main">
                       <p className="entry-title">{entryTitle(poll, e)}</p>
@@ -182,11 +183,11 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                   {poll.isAdmin && (
                     <div className="actions admin-entry-actions">
                       {e.isDisqualified ? (
-                        <button type="button" className="ghost requalify" onClick={() => onRequalify(e.id)}>Requalify</button>
+                        <button type="button" className="ghost requalify" onClick={() => onRequalify(e.id)} data-testid={`admin-entry-requalify-${e.id}`}>Requalify</button>
                       ) : (
-                        <button type="button" className="ghost danger" onClick={() => onAskDisqualify(e.id)}>Disqualify</button>
+                        <button type="button" className="ghost danger" onClick={() => onAskDisqualify(e.id)} data-testid={`admin-entry-disqualify-${e.id}`}>Disqualify</button>
                       )}
-                      <button type="button" className="ghost danger" onClick={() => onAskDelete(e.id)}>Delete</button>
+                      <button type="button" className="ghost danger" onClick={() => onAskDelete(e.id)} data-testid={`admin-entry-delete-${e.id}`}>Delete</button>
                     </div>
                   )}
                 </li>
