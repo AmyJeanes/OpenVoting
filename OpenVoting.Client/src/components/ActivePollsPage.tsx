@@ -5,7 +5,7 @@ import { AuthPrompt } from './AuthPrompt';
 import { useToast } from './useToast';
 import type { Dispatch, SetStateAction } from 'react';
 import type { CreatePollForm, PollResponse, SessionState } from '../types';
-import { formatWindow, pollStatusLabel } from '../utils/format';
+import { formatWindow, pollStatusLabel, shouldShowTotalVotes } from '../utils/format';
 
 export type ActivePollsPageProps = {
   sessionState: SessionState;
@@ -181,7 +181,7 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
             {filteredActivePolls.map((p) => {
               const entryClass = p.status === 0 ? 'entry-card draft' : 'entry-card';
               const statusLabel = pollStatusLabel(p.status);
-              const canHaveVotes = p.status === 2 || p.status === 3 || p.status === 4;
+              const canHaveVotes = shouldShowTotalVotes(p.status);
               return (
                 <li key={p.id} className={`${entryClass} live-poll-card`} data-testid={`active-poll-${p.id}`}>
                   <div className="entry-head live-poll-card-head">

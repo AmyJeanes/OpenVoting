@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { AuthPrompt } from './AuthPrompt';
 import { MarkdownText } from './MarkdownText';
 import type { AssetUploadResponse, PollDetailResponse, PollWinnerResponse, SessionState } from '../types';
-import { formatWindow, pollStatusLabel, shouldShowVotingMethod, votingMethodLabel } from '../utils/format';
+import { formatWindow, pollStatusLabel, shouldShowTotalVotes, shouldShowVotingMethod, votingMethodLabel } from '../utils/format';
 
 export type PollDetailPageProps = {
   sessionState: SessionState;
@@ -78,6 +78,7 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
   }
 
   const isTie = detail.winners.length > 1 && detail.winners.every((w) => w.votes === detail.winners[0].votes);
+  const showTotalVotes = shouldShowTotalVotes(detail.status);
   const showVotingMethod = shouldShowVotingMethod(detail.status, detail.votingMethod);
 
   const winnerTitle = (winner: PollWinnerResponse) => {
@@ -127,10 +128,12 @@ export function PollDetailPage({ sessionState, fetchDetail, assetCache }: PollDe
             <p className="muted">Selections</p>
             <p className="metric">Up to {detail.maxSelections}</p>
           </div>
-          <div>
-            <p className="muted">Total votes</p>
-            <p className="metric">{detail.totalVotes}</p>
-          </div>
+          {showTotalVotes && (
+            <div>
+              <p className="muted">Total votes</p>
+              <p className="metric">{detail.totalVotes}</p>
+            </div>
+          )}
           <div>
             <p className="muted">Visibility</p>
             <p className="metric">{detail.hideEntriesUntilVoting ? 'Hidden until voting' : 'Entries visible'}</p>

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { PollResponse } from '../../types';
-import { formatWindow, isMaxTimestamp, pollStatusLabel, shouldShowVotingMethod, votingMethodLabel } from '../../utils/format';
+import { formatWindow, isMaxTimestamp, pollStatusLabel, shouldShowTotalVotes, shouldShowVotingMethod, votingMethodLabel } from '../../utils/format';
 import { VotingMethodInfo } from '../VotingMethodInfo';
 import { MarkdownText } from '../MarkdownText';
 
@@ -11,6 +11,7 @@ export type PollHeaderSectionProps = {
 
 export function PollHeaderSection({ poll, onRefreshPoll }: PollHeaderSectionProps) {
   const showVotingWindow = !!poll && (poll.status === 2 || poll.status === 3 || poll.status === 4 || poll.status === 5) && !isMaxTimestamp(poll.votingOpensAt);
+  const showTotalVotes = !!poll && shouldShowTotalVotes(poll.status);
   const showVotingMethod = !!poll && shouldShowVotingMethod(poll.status, poll.votingMethod);
 
   return (
@@ -37,10 +38,12 @@ export function PollHeaderSection({ poll, onRefreshPoll }: PollHeaderSectionProp
             <p className="muted">Status</p>
             <p className="metric poll-header-detail-value">{pollStatusLabel(poll.status)}</p>
           </div>
-          <div>
-            <p className="muted">Total votes</p>
-            <p className="metric poll-header-detail-value">{poll.totalVotes}</p>
-          </div>
+          {showTotalVotes && (
+            <div>
+              <p className="muted">Total votes</p>
+              <p className="metric poll-header-detail-value">{poll.totalVotes}</p>
+            </div>
+          )}
           {showVotingMethod && (
             <div>
               <p className="muted">Voting method</p>

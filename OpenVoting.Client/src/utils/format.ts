@@ -28,8 +28,12 @@ export function votingMethodLabel(method: number) {
   }
 }
 
+export function shouldShowTotalVotes(status: number) {
+  return status === 2 || status === 3 || status === 4;
+}
+
 export function shouldShowVotingMethod(status: number, method: number) {
-  const votingHasStarted = status === 2 || status === 3 || status === 4;
+  const votingHasStarted = shouldShowTotalVotes(status);
   const hasConfiguredMethod = method === 1 || method === 2;
   return votingHasStarted && hasConfiguredMethod;
 }
