@@ -66,7 +66,7 @@ export function VotingSection(props: VotingSectionProps) {
       {hasSubmittedVote && (
         <div className="banner vote-status-banner personal-card" role="status" aria-live="polite" data-testid="vote-status-banner">
           <div className="vote-status-head">
-            <p className="vote-status-title">You've already voted</p>
+            <p className="vote-status-title">You have voted</p>
             <span className="pill winner">Saved</span>
           </div>
           <p className="vote-status-meta">Last submitted: {submittedAtLabel}</p>
