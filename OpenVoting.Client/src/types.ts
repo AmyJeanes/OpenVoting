@@ -36,7 +36,9 @@ export type PollResponse = {
   descriptionRequirement: FieldRequirement;
   imageRequirement: FieldRequirement;
   canSubmit: boolean;
+  ineligibleToSubmitReason?: string;
   canVote: boolean;
+  ineligibleToVoteReason?: string;
   isAdmin: boolean;
   totalVotes: number;
 };

@@ -52,6 +52,7 @@ export function VotingSection(props: VotingSectionProps) {
   const [lightboxImage, setLightboxImage] = useState<ImageLightboxData | null>(null);
   const hasSubmittedVote = !!voteInfo;
   const submittedAtLabel = voteInfo?.submittedAt ? new Date(voteInfo.submittedAt).toLocaleString() : 'Pending';
+  const ineligibleReason = poll.ineligibleToVoteReason;
 
   return (
     <section className="card" data-testid="voting-section">
@@ -63,6 +64,11 @@ export function VotingSection(props: VotingSectionProps) {
             : `Select up to ${poll.maxSelections} entries`}
         </p>
       </div>
+      {ineligibleReason && (
+        <div className="banner error ineligible-notice" role="status" data-testid="vote-ineligible-banner">
+          Not eligible to vote: {ineligibleReason}
+        </div>
+      )}
       {hasSubmittedVote && (
         <div className="banner vote-status-banner personal-card" role="status" aria-live="polite" data-testid="vote-status-banner">
           <div className="vote-status-head">
@@ -82,9 +88,10 @@ export function VotingSection(props: VotingSectionProps) {
           const previewUrl = asset?.url;
           const fullImageUrl = previewUrl ? (originalUrl ?? previewUrl) : null;
           const isSelected = current.selected;
-          const isUnavailable = e.isDisqualified;
+          const isUnavailable = e.isDisqualified || !!ineligibleReason;
           const tryToggle = (selected: boolean) => {
-            if (!isSelected && selected && isUnavailable) {
+            if (ineligibleReason) return;
+            if (!isSelected && selected && e.isDisqualified) {
               onDisqualifiedSelectAttempt(e);
               return;
             }
@@ -94,11 +101,11 @@ export function VotingSection(props: VotingSectionProps) {
             <div
               key={e.id}
               className={`entry-card vote-card ${isSelected ? 'selected' : ''} ${isUnavailable ? 'unavailable' : ''}`}
-              role="button"
-              tabIndex={0}
+              role={ineligibleReason ? undefined : 'button'}
+              tabIndex={ineligibleReason ? undefined : 0}
               data-testid={`vote-entry-${e.id}`}
-              onClick={() => tryToggle(!isSelected)}
-              onKeyDown={(ev) => {
+              onClick={ineligibleReason ? undefined : () => tryToggle(!isSelected)}
+              onKeyDown={ineligibleReason ? undefined : (ev) => {
                 if (ev.key === ' ' || ev.key === 'Enter') {
                   ev.preventDefault();
                   tryToggle(!isSelected);
@@ -148,13 +155,13 @@ export function VotingSection(props: VotingSectionProps) {
       <div className="actions">
         {isRankedMethod ? (
           <>
-            <button className="primary" onClick={onProceedToRanking} disabled={voteSubmitting}>
+            <button className="primary" onClick={onProceedToRanking} disabled={voteSubmitting || !!ineligibleReason}>
               Continue to ranking
             </button>
-            <button className="ghost" onClick={onClearSelection} disabled={voteSubmitting} data-testid="vote-clear-selection-button">Clear selection</button>
+            <button className="ghost" onClick={onClearSelection} disabled={voteSubmitting || !!ineligibleReason} data-testid="vote-clear-selection-button">Clear selection</button>
           </>
         ) : (
-          <button className="primary" onClick={onSubmitVote} disabled={voteSubmitting} data-testid="vote-submit-button">
+          <button className="primary" onClick={onSubmitVote} disabled={voteSubmitting || !!ineligibleReason} data-testid="vote-submit-button">
             {voteSubmitting ? 'Submitting…' : 'Submit vote'}
           </button>
         )}

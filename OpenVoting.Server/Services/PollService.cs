@@ -530,6 +530,17 @@ public sealed class PollService : IPollService
 			hasChanges = true;
 		}
 
+		if (request.MustHaveJoinedBefore.HasValue)
+		{
+			poll.MustHaveJoinedBefore = request.MustHaveJoinedBefore.Value;
+			hasChanges = true;
+		}
+		else if (request.ClearMustHaveJoinedBefore)
+		{
+			poll.MustHaveJoinedBefore = null;
+			hasChanges = true;
+		}
+
 		if (!hasChanges)
 		{
 			return PollResult<PollResponse>.BadRequest("No changes provided");
@@ -595,6 +606,17 @@ public sealed class PollService : IPollService
 		else if (request.ClearVotingClosesAt)
 		{
 			poll.VotingClosesAt = DateTimeOffset.MaxValue;
+			hasChanges = true;
+		}
+
+		if (request.MustHaveJoinedBefore.HasValue)
+		{
+			poll.MustHaveJoinedBefore = request.MustHaveJoinedBefore.Value;
+			hasChanges = true;
+		}
+		else if (request.ClearMustHaveJoinedBefore)
+		{
+			poll.MustHaveJoinedBefore = null;
 			hasChanges = true;
 		}
 
@@ -827,6 +849,22 @@ public sealed class PollService : IPollService
 		var canSubmit = submissionWindowOpen && meetsRole && meetsJoin && notBanned;
 		var canVote = votingWindowOpen && meetsRole && meetsJoin && notBanned;
 
+		string? ineligibleToSubmitReason = null;
+		if (submissionWindowOpen && !canSubmit)
+		{
+			if (!notBanned) ineligibleToSubmitReason = "Member is banned";
+			else if (!meetsRole) ineligibleToSubmitReason = "Missing required roles for this poll";
+			else if (!meetsJoin) ineligibleToSubmitReason = "Join date is after the allowed cutoff";
+		}
+
+		string? ineligibleToVoteReason = null;
+		if (votingWindowOpen && !canVote)
+		{
+			if (!notBanned) ineligibleToVoteReason = "Member is banned";
+			else if (!meetsRole) ineligibleToVoteReason = "Missing required roles for this poll";
+			else if (!meetsJoin) ineligibleToVoteReason = "Join date is after the allowed cutoff";
+		}
+
 		return new PollResponse
 		{
 			Id = poll.Id,
@@ -848,7 +886,9 @@ public sealed class PollService : IPollService
 			MustHaveJoinedBefore = poll.MustHaveJoinedBefore,
 			RequiredRoleIds = requiredRoles,
 			CanSubmit = canSubmit,
+			IneligibleToSubmitReason = ineligibleToSubmitReason,
 			CanVote = canVote,
+			IneligibleToVoteReason = ineligibleToVoteReason,
 			IsAdmin = isAdmin,
 			TotalVotes = totalVotes
 		};

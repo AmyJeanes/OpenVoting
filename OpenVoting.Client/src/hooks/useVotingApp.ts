@@ -1229,11 +1229,13 @@ export function useVotingApp() {
     }
   };
 
-  const updateSubmissionSettings = async (pollId: string, updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null }) => {
+  const updateSubmissionSettings = async (pollId: string, updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null; mustHaveJoinedBefore?: string | null }) => {
     const payload: Record<string, unknown> = {};
     if (updates.maxSubmissionsPerMember !== undefined) payload.maxSubmissionsPerMember = updates.maxSubmissionsPerMember;
     if (updates.submissionClosesAt === null) payload.clearSubmissionClosesAt = true;
     else if (updates.submissionClosesAt !== undefined) payload.submissionClosesAt = updates.submissionClosesAt;
+    if (updates.mustHaveJoinedBefore === null) payload.clearMustHaveJoinedBefore = true;
+    else if (updates.mustHaveJoinedBefore !== undefined) payload.mustHaveJoinedBefore = updates.mustHaveJoinedBefore;
 
     try {
       const res = await authedFetch(`/api/polls/${pollId}/submission-settings`, {
@@ -1257,11 +1259,13 @@ export function useVotingApp() {
     }
   };
 
-  const updateVotingSettings = async (pollId: string, updates: { maxSelections?: number; votingClosesAt?: string | null }) => {
+  const updateVotingSettings = async (pollId: string, updates: { maxSelections?: number; votingClosesAt?: string | null; mustHaveJoinedBefore?: string | null }) => {
     const payload: Record<string, unknown> = {};
     if (updates.maxSelections !== undefined) payload.maxSelections = updates.maxSelections;
     if (updates.votingClosesAt === null) payload.clearVotingClosesAt = true;
     else if (updates.votingClosesAt !== undefined) payload.votingClosesAt = updates.votingClosesAt;
+    if (updates.mustHaveJoinedBefore === null) payload.clearMustHaveJoinedBefore = true;
+    else if (updates.mustHaveJoinedBefore !== undefined) payload.mustHaveJoinedBefore = updates.mustHaveJoinedBefore;
 
     try {
       const res = await authedFetch(`/api/polls/${pollId}/voting-settings`, {

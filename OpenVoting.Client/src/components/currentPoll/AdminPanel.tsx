@@ -15,8 +15,8 @@ export type AdminPanelProps = {
     descriptionRequirement: FieldRequirement;
     imageRequirement: FieldRequirement;
   };
-  submissionForm: { maxSubmissionsPerMember: number; submissionClosesAt: string };
-  votingForm: { maxSelections: number; votingClosesAt: string };
+  submissionForm: { maxSubmissionsPerMember: number; submissionClosesAt: string; mustHaveJoinedBefore: string };
+  votingForm: { maxSelections: number; votingClosesAt: string; mustHaveJoinedBefore: string };
   requirementOptions: Array<{ value: FieldRequirement; label: string }>;
   settingsSaving: boolean;
   saveSuccessCount?: number;
@@ -189,8 +189,16 @@ export function AdminPanel(props: AdminPanelProps) {
                       data-testid="admin-submission-closes-input"
                     />
                   </label>
+                  <label>Join cutoff (optional)
+                    <input
+                      type="datetime-local"
+                      value={submissionForm.mustHaveJoinedBefore}
+                      onChange={(e) => onSubmissionChange({ ...submissionForm, mustHaveJoinedBefore: e.target.value })}
+                      data-testid="admin-submission-must-have-joined-before-input"
+                    />
+                  </label>
                 </div>
-                <p className="muted">Leave blank to close manually</p>
+                <p className="muted">Leave blank to close manually or allow any join date</p>
               </div>
             )}
 
@@ -219,8 +227,16 @@ export function AdminPanel(props: AdminPanelProps) {
                       data-testid="admin-voting-closes-input"
                     />
                   </label>
+                  <label>Join cutoff (optional)
+                    <input
+                      type="datetime-local"
+                      value={votingForm.mustHaveJoinedBefore}
+                      onChange={(e) => onVotingChange({ ...votingForm, mustHaveJoinedBefore: e.target.value })}
+                      data-testid="admin-must-have-joined-before-input"
+                    />
+                  </label>
                 </div>
-                <p className="muted">Leave blank to close manually</p>
+                <p className="muted">Leave blank to close manually or allow any join date</p>
               </div>
             )}
 

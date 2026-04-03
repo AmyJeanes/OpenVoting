@@ -15,8 +15,8 @@ describe('AdminPanel', () => {
       descriptionRequirement: 1 as const,
       imageRequirement: 1 as const
     },
-    submissionForm: { maxSubmissionsPerMember: 2, submissionClosesAt: '' },
-    votingForm: { maxSelections: 1, votingClosesAt: '' },
+    submissionForm: { maxSubmissionsPerMember: 2, submissionClosesAt: '', mustHaveJoinedBefore: '' },
+    votingForm: { maxSelections: 1, votingClosesAt: '', mustHaveJoinedBefore: '' },
     requirementOptions: [
       { value: 0 as const, label: 'Off' },
       { value: 1 as const, label: 'Optional' },

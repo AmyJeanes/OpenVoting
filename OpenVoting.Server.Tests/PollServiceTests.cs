@@ -811,4 +811,297 @@ public class PollServiceTests
 			return hash.ToHashCode();
 		}
 	}
+
+	[Test]
+	public async Task GetPoll_WhenVotingOpenAndJoinedAfterCutoff_ReturnsIneligibleToVoteReason()
+	{
+		await using var db = TestDbContextFactory.CreateContext(useSqlite: true);
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		db.Communities.Add(new Community { Id = communityId, Platform = Platform.Discord, ExternalCommunityId = "guild", Name = "Guild" });
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "RecentJoiner",
+			JoinedAt = DateTimeOffset.UtcNow.AddDays(-1)
+		});
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.VotingOpen,
+			MustHaveJoinedBefore = DateTimeOffset.UtcNow.AddMonths(-6),
+			VotingMethod = VotingMethod.Approval,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddDays(-3),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(-1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddHours(-1),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddDays(1)
+		};
+
+		db.Polls.Add(poll);
+		await db.SaveChangesAsync();
+
+		var service = new PollService(db, NullLogger<PollService>.Instance, new FakeAssetStorage());
+		var result = await service.GetSummaryAsync(
+			TestAuthHelper.CreatePrincipal(memberId, communityId),
+			poll.Id,
+			CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollOutcome.Ok));
+		var response = result.Response!;
+		Assert.Multiple(() =>
+		{
+			Assert.That(response.CanVote, Is.False);
+			Assert.That(response.IneligibleToVoteReason, Is.EqualTo("Join date is after the allowed cutoff"));
+		});
+	}
+
+	[Test]
+	public async Task GetPoll_WhenSubmissionsOpenAndJoinedAfterCutoff_ReturnsIneligibleToSubmitReason()
+	{
+		await using var db = TestDbContextFactory.CreateContext(useSqlite: true);
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		db.Communities.Add(new Community { Id = communityId, Platform = Platform.Discord, ExternalCommunityId = "guild", Name = "Guild" });
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "RecentJoiner",
+			JoinedAt = DateTimeOffset.UtcNow.AddDays(-1)
+		});
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.SubmissionOpen,
+			MustHaveJoinedBefore = DateTimeOffset.UtcNow.AddMonths(-6),
+			VotingMethod = VotingMethod.Approval,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddHours(-1),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddDays(2),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddDays(3)
+		};
+
+		db.Polls.Add(poll);
+		await db.SaveChangesAsync();
+
+		var service = new PollService(db, NullLogger<PollService>.Instance, new FakeAssetStorage());
+		var result = await service.GetSummaryAsync(
+			TestAuthHelper.CreatePrincipal(memberId, communityId),
+			poll.Id,
+			CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollOutcome.Ok));
+		var response = result.Response!;
+		Assert.Multiple(() =>
+		{
+			Assert.That(response.CanSubmit, Is.False);
+			Assert.That(response.IneligibleToSubmitReason, Is.EqualTo("Join date is after the allowed cutoff"));
+		});
+	}
+
+	[Test]
+	public async Task GetPoll_WhenJoinedBeforeCutoff_ReturnsEligible()
+	{
+		await using var db = TestDbContextFactory.CreateContext(useSqlite: true);
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		db.Communities.Add(new Community { Id = communityId, Platform = Platform.Discord, ExternalCommunityId = "guild", Name = "Guild" });
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "OldMember",
+			JoinedAt = DateTimeOffset.UtcNow.AddMonths(-6)
+		});
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.VotingOpen,
+			MustHaveJoinedBefore = DateTimeOffset.UtcNow,
+			VotingMethod = VotingMethod.Approval,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddDays(-3),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(-1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddHours(-1),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddDays(1)
+		};
+
+		db.Polls.Add(poll);
+		await db.SaveChangesAsync();
+
+		var service = new PollService(db, NullLogger<PollService>.Instance, new FakeAssetStorage());
+		var result = await service.GetSummaryAsync(
+			TestAuthHelper.CreatePrincipal(memberId, communityId),
+			poll.Id,
+			CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollOutcome.Ok));
+		var response = result.Response!;
+		Assert.Multiple(() =>
+		{
+			Assert.That(response.CanVote, Is.True);
+			Assert.That(response.IneligibleToVoteReason, Is.Null);
+		});
+	}
+
+	[Test]
+	public async Task UpdateVotingSettings_SetsMustHaveJoinedBefore()
+	{
+		await using var db = TestDbContextFactory.CreateContext(useSqlite: true);
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		db.Communities.Add(new Community { Id = communityId, Platform = Platform.Discord, ExternalCommunityId = "guild", Name = "Guild" });
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "Admin",
+			JoinedAt = DateTimeOffset.UtcNow.AddMonths(-1)
+		});
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.VotingOpen,
+			VotingMethod = VotingMethod.Approval,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddDays(-3),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(-1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddHours(-1),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddDays(1)
+		};
+
+		db.Polls.Add(poll);
+		await db.SaveChangesAsync();
+
+		var cutoff = DateTimeOffset.UtcNow.AddMonths(-3);
+		var service = new PollService(db, NullLogger<PollService>.Instance, new FakeAssetStorage());
+		var result = await service.UpdateVotingSettingsAsync(
+			TestAuthHelper.CreatePrincipal(memberId, communityId, isAdmin: true),
+			poll.Id,
+			new UpdateVotingSettingsRequest { MustHaveJoinedBefore = cutoff },
+			CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollOutcome.Ok));
+		Assert.That(result.Response!.MustHaveJoinedBefore, Is.Not.Null);
+
+		var updated = await db.Polls.FirstAsync(p => p.Id == poll.Id);
+		Assert.That(updated.MustHaveJoinedBefore, Is.Not.Null);
+		Assert.That(updated.MustHaveJoinedBefore!.Value, Is.EqualTo(cutoff).Within(TimeSpan.FromSeconds(1)));
+	}
+
+	[Test]
+	public async Task UpdateVotingSettings_ClearsMustHaveJoinedBefore()
+	{
+		await using var db = TestDbContextFactory.CreateContext(useSqlite: true);
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		db.Communities.Add(new Community { Id = communityId, Platform = Platform.Discord, ExternalCommunityId = "guild", Name = "Guild" });
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "Admin",
+			JoinedAt = DateTimeOffset.UtcNow.AddMonths(-1)
+		});
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.VotingOpen,
+			MustHaveJoinedBefore = DateTimeOffset.UtcNow.AddMonths(-3),
+			VotingMethod = VotingMethod.Approval,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddDays(-3),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(-1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddHours(-1),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddDays(1)
+		};
+
+		db.Polls.Add(poll);
+		await db.SaveChangesAsync();
+
+		var service = new PollService(db, NullLogger<PollService>.Instance, new FakeAssetStorage());
+		var result = await service.UpdateVotingSettingsAsync(
+			TestAuthHelper.CreatePrincipal(memberId, communityId, isAdmin: true),
+			poll.Id,
+			new UpdateVotingSettingsRequest { ClearMustHaveJoinedBefore = true },
+			CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollOutcome.Ok));
+		Assert.That(result.Response!.MustHaveJoinedBefore, Is.Null);
+
+		var updated = await db.Polls.FirstAsync(p => p.Id == poll.Id);
+		Assert.That(updated.MustHaveJoinedBefore, Is.Null);
+	}
+
+	[Test]
+	public async Task UpdateSubmissionSettings_SetsMustHaveJoinedBefore()
+	{
+		await using var db = TestDbContextFactory.CreateContext(useSqlite: true);
+		var communityId = Guid.NewGuid();
+		var memberId = Guid.NewGuid();
+
+		db.Communities.Add(new Community { Id = communityId, Platform = Platform.Discord, ExternalCommunityId = "guild", Name = "Guild" });
+		db.CommunityMembers.Add(new CommunityMember
+		{
+			Id = memberId,
+			CommunityId = communityId,
+			Platform = Platform.Discord,
+			ExternalUserId = "user",
+			DisplayName = "Admin",
+			JoinedAt = DateTimeOffset.UtcNow.AddMonths(-1)
+		});
+
+		var poll = new Poll
+		{
+			Id = Guid.NewGuid(),
+			CommunityId = communityId,
+			Status = PollStatus.SubmissionOpen,
+			VotingMethod = VotingMethod.Approval,
+			SubmissionOpensAt = DateTimeOffset.UtcNow.AddHours(-1),
+			SubmissionClosesAt = DateTimeOffset.UtcNow.AddDays(1),
+			VotingOpensAt = DateTimeOffset.UtcNow.AddDays(2),
+			VotingClosesAt = DateTimeOffset.UtcNow.AddDays(3)
+		};
+
+		db.Polls.Add(poll);
+		await db.SaveChangesAsync();
+
+		var cutoff = DateTimeOffset.UtcNow.AddMonths(-3);
+		var service = new PollService(db, NullLogger<PollService>.Instance, new FakeAssetStorage());
+		var result = await service.UpdateSubmissionSettingsAsync(
+			TestAuthHelper.CreatePrincipal(memberId, communityId, isAdmin: true),
+			poll.Id,
+			new UpdateSubmissionSettingsRequest { MustHaveJoinedBefore = cutoff },
+			CancellationToken.None);
+
+		Assert.That(result.Outcome, Is.EqualTo(PollOutcome.Ok));
+		Assert.That(result.Response!.MustHaveJoinedBefore, Is.Not.Null);
+
+		var updated = await db.Polls.FirstAsync(p => p.Id == poll.Id);
+		Assert.That(updated.MustHaveJoinedBefore, Is.Not.Null);
+		Assert.That(updated.MustHaveJoinedBefore!.Value, Is.EqualTo(cutoff).Within(TimeSpan.FromSeconds(1)));
+	}
 }

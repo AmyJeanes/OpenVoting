@@ -238,4 +238,61 @@ describe('VotingSection', () => {
     expect(screen.getByText('You can still change your selection and submit again before voting closes')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveClass('personal-card');
   });
+
+  it('shows ineligibility banner and disables interactions when user cannot vote', async () => {
+    const onToggleSelection = vi.fn();
+    const poll = createPollResponse({ maxSelections: 3, canVote: false, ineligibleToVoteReason: 'Join date is after the allowed cutoff' });
+    const entry = createEntryResponse({ id: 'entry-1', displayName: 'Choice A' });
+
+    render(
+      <VotingSection
+        poll={poll}
+        entries={[entry]}
+        voteState={{}}
+        voteSubmitting={false}
+        voteInfo={null}
+        assetCache={{}}
+        isRankedMethod={false}
+        entryAssetId={() => ''}
+        onToggleSelection={onToggleSelection}
+        onDisqualifiedSelectAttempt={vi.fn()}
+        onProceedToRanking={vi.fn()}
+        onSubmitVote={vi.fn()}
+        onClearSelection={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('vote-ineligible-banner')).toBeInTheDocument();
+    expect(screen.getByText(/Not eligible to vote/)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Submit vote' })).toBeDisabled();
+
+    await userEvent.click(screen.getByText('Choice A'));
+    expect(onToggleSelection).not.toHaveBeenCalled();
+  });
+
+  it('does not show ineligibility banner when user can vote', () => {
+    const poll = createPollResponse({ maxSelections: 3, canVote: true });
+    const entry = createEntryResponse({ id: 'entry-1', displayName: 'Choice A' });
+
+    render(
+      <VotingSection
+        poll={poll}
+        entries={[entry]}
+        voteState={{}}
+        voteSubmitting={false}
+        voteInfo={null}
+        assetCache={{}}
+        isRankedMethod={false}
+        entryAssetId={() => ''}
+        onToggleSelection={vi.fn()}
+        onDisqualifiedSelectAttempt={vi.fn()}
+        onProceedToRanking={vi.fn()}
+        onSubmitVote={vi.fn()}
+        onClearSelection={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId('vote-ineligible-banner')).toBeNull();
+  });
 });

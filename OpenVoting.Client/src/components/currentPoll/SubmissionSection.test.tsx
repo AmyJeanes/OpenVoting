@@ -292,4 +292,57 @@ describe('SubmissionSection', () => {
 
     expect(titleInput).toHaveAttribute('aria-invalid', 'true');
   });
+
+  it('shows ineligibility banner and disables submit when user cannot submit', () => {
+    const poll = createPollResponse({ canSubmit: false, ineligibleToSubmitReason: 'Join date is after the allowed cutoff', titleRequirement: 2, imageRequirement: 0 });
+
+    render(
+      <SubmissionSection
+        poll={poll}
+        entryForm={{ displayName: '', description: '' }}
+        entrySubmitting={false}
+        entryFiles={{}}
+        entryFileValidationPending={false}
+        entryFileInvalid={false}
+        entrySubmitError={null}
+        submissionLimitReached={false}
+        submissionsRemaining={2}
+        showEntryTitleField
+        showEntryDescriptionField={false}
+        onEntryFormChange={vi.fn()}
+        onEntryFilesChange={vi.fn()}
+        onSubmitEntry={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('submission-ineligible-banner')).toBeInTheDocument();
+    expect(screen.getByText(/Not eligible to submit/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Submit entry' })).toBeDisabled();
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+  });
+
+  it('does not show ineligibility banner when user can submit', () => {
+    const poll = createPollResponse({ canSubmit: true, titleRequirement: 2, imageRequirement: 0 });
+
+    render(
+      <SubmissionSection
+        poll={poll}
+        entryForm={{ displayName: '', description: '' }}
+        entrySubmitting={false}
+        entryFiles={{}}
+        entryFileValidationPending={false}
+        entryFileInvalid={false}
+        entrySubmitError={null}
+        submissionLimitReached={false}
+        submissionsRemaining={2}
+        showEntryTitleField
+        showEntryDescriptionField={false}
+        onEntryFormChange={vi.fn()}
+        onEntryFilesChange={vi.fn()}
+        onSubmitEntry={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId('submission-ineligible-banner')).toBeNull();
+  });
 });

@@ -30,7 +30,9 @@ export function createPollResponse(overrides: Partial<PollResponse> = {}): PollR
     descriptionRequirement: 1,
     imageRequirement: 1,
     canSubmit: true,
+    ineligibleToSubmitReason: undefined,
     canVote: true,
+    ineligibleToVoteReason: undefined,
     isAdmin: false,
     totalVotes: 0,
     ...overrides

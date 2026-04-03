@@ -1523,6 +1523,11 @@ textarea {
     align-items: center;
 }
 
+.banner.ineligible-notice {
+    padding: 8px 12px;
+    margin: 0 0 12px;
+}
+
 .vote-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);

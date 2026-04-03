@@ -66,8 +66,8 @@ export type CurrentPollProps = {
   onTransition: (pollId: string, path: string) => void;
   onDeletePoll: (pollId: string) => void;
   onUpdateMetadata: (pollId: string, updates: { title?: string; description?: string; titleRequirement?: FieldRequirement; descriptionRequirement?: FieldRequirement; imageRequirement?: FieldRequirement }) => Promise<unknown>;
-  onUpdateSubmissionSettings: (pollId: string, updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null }) => Promise<unknown>;
-  onUpdateVotingSettings: (pollId: string, updates: { maxSelections?: number; votingClosesAt?: string | null }) => Promise<unknown>;
+  onUpdateSubmissionSettings: (pollId: string, updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null; mustHaveJoinedBefore?: string | null }) => Promise<unknown>;
+  onUpdateVotingSettings: (pollId: string, updates: { maxSelections?: number; votingClosesAt?: string | null; mustHaveJoinedBefore?: string | null }) => Promise<unknown>;
   uploadMaxFileSizeMB: number;
   onLogin: () => void;
   loginCta: string;
@@ -235,8 +235,8 @@ export function CurrentPollPage(props: CurrentPollProps) {
     descriptionRequirement: 1 as FieldRequirement,
     imageRequirement: 2 as FieldRequirement
   });
-  const [submissionForm, setSubmissionForm] = useState({ maxSubmissionsPerMember: 1, submissionClosesAt: '' });
-  const [votingForm, setVotingForm] = useState({ maxSelections: 1, votingClosesAt: '' });
+  const [submissionForm, setSubmissionForm] = useState({ maxSubmissionsPerMember: 1, submissionClosesAt: '', mustHaveJoinedBefore: '' });
+  const [votingForm, setVotingForm] = useState({ maxSelections: 1, votingClosesAt: '', mustHaveJoinedBefore: '' });
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsSaveSuccessCount, setSettingsSaveSuccessCount] = useState(0);
 
@@ -336,26 +336,34 @@ export function CurrentPollPage(props: CurrentPollProps) {
 
   const buildSubmissionUpdates = () => {
     if (!poll || !showSubmissionSettings) return null;
-    const updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null } = {};
+    const updates: { maxSubmissionsPerMember?: number; submissionClosesAt?: string | null; mustHaveJoinedBefore?: string | null } = {};
     const currentClose = isMaxTimestamp(poll.submissionClosesAt) ? '' : toLocal(poll.submissionClosesAt);
+    const currentJoinCutoff = poll.mustHaveJoinedBefore ? toLocal(poll.mustHaveJoinedBefore) : '';
     if (submissionForm.maxSubmissionsPerMember !== poll.maxSubmissionsPerMember) {
       updates.maxSubmissionsPerMember = submissionForm.maxSubmissionsPerMember;
     }
     if (submissionForm.submissionClosesAt !== currentClose) {
       updates.submissionClosesAt = submissionForm.submissionClosesAt === '' ? null : fromLocal(submissionForm.submissionClosesAt);
     }
+    if (submissionForm.mustHaveJoinedBefore !== currentJoinCutoff) {
+      updates.mustHaveJoinedBefore = submissionForm.mustHaveJoinedBefore === '' ? null : fromLocal(submissionForm.mustHaveJoinedBefore);
+    }
     return Object.keys(updates).length > 0 ? updates : null;
   };
 
   const buildVotingUpdates = () => {
     if (!poll || !showVotingSettings) return null;
-    const updates: { maxSelections?: number; votingClosesAt?: string | null } = {};
+    const updates: { maxSelections?: number; votingClosesAt?: string | null; mustHaveJoinedBefore?: string | null } = {};
     const currentClose = isMaxTimestamp(poll.votingClosesAt) ? '' : toLocal(poll.votingClosesAt);
+    const currentJoinCutoff = poll.mustHaveJoinedBefore ? toLocal(poll.mustHaveJoinedBefore) : '';
     if (votingForm.maxSelections !== poll.maxSelections) {
       updates.maxSelections = votingForm.maxSelections;
     }
     if (votingForm.votingClosesAt !== currentClose) {
       updates.votingClosesAt = votingForm.votingClosesAt === '' ? null : fromLocal(votingForm.votingClosesAt);
+    }
+    if (votingForm.mustHaveJoinedBefore !== currentJoinCutoff) {
+      updates.mustHaveJoinedBefore = votingForm.mustHaveJoinedBefore === '' ? null : fromLocal(votingForm.mustHaveJoinedBefore);
     }
     return Object.keys(updates).length > 0 ? updates : null;
   };
@@ -520,11 +528,13 @@ export function CurrentPollPage(props: CurrentPollProps) {
     });
     setSubmissionForm({
       maxSubmissionsPerMember: poll.maxSubmissionsPerMember,
-      submissionClosesAt: isMaxTimestamp(poll.submissionClosesAt) ? '' : toLocal(poll.submissionClosesAt)
+      submissionClosesAt: isMaxTimestamp(poll.submissionClosesAt) ? '' : toLocal(poll.submissionClosesAt),
+      mustHaveJoinedBefore: poll.mustHaveJoinedBefore ? toLocal(poll.mustHaveJoinedBefore) : ''
     });
     setVotingForm({
       maxSelections: poll.maxSelections,
-      votingClosesAt: isMaxTimestamp(poll.votingClosesAt) ? '' : toLocal(poll.votingClosesAt)
+      votingClosesAt: isMaxTimestamp(poll.votingClosesAt) ? '' : toLocal(poll.votingClosesAt),
+      mustHaveJoinedBefore: poll.mustHaveJoinedBefore ? toLocal(poll.mustHaveJoinedBefore) : ''
     });
   }, [poll]);
 
@@ -625,7 +635,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
         />
       )}
 
-      {poll && !isClosed && poll.canSubmit && (
+      {poll && !isClosed && (poll.canSubmit || !!poll.ineligibleToSubmitReason) && (
         <SubmissionSection
           poll={poll}
           entryForm={entryForm}
@@ -670,7 +680,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
         <PreviewSection poll={poll} entries={entries} />
       )}
 
-      {poll?.canVote && !isClosed && entries.length > 0 && (
+      {(poll?.canVote || !!poll?.ineligibleToVoteReason) && !isClosed && entries.length > 0 && (
         <VotingSection
           poll={poll}
           entries={entries}
@@ -690,7 +700,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
         />
       )}
 
-      {poll?.canVote && !isClosed && poll.requireRanking && (
+      {poll?.canVote && !isClosed && poll.requireRanking && !poll.ineligibleToVoteReason && (
         <RankingModal
           open={irvStage === 'rank'}
           poll={poll}

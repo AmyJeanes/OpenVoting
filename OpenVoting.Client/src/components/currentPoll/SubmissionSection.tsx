@@ -95,11 +95,18 @@ export function SubmissionSection(props: SubmissionSectionProps) {
     }
   }, [entrySubmitSuccessCount]);
 
+  const ineligibleReason = poll.ineligibleToSubmitReason;
+
   return (
     <section className="card submission-card" data-testid="submission-section">
       <div className="section-head">
         <h3>Submit an entry</h3>
       </div>
+      {ineligibleReason && (
+        <div className="banner error ineligible-notice" role="status" data-testid="submission-ineligible-banner">
+          Not eligible to submit: {ineligibleReason}
+        </div>
+      )}
       <div className="form-grid">
         <div className="form-row full-row">
           {showEntryTitleField && (

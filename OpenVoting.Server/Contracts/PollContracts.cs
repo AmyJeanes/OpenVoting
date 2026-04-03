@@ -23,7 +23,9 @@ public sealed class PollResponse
 	public DateTimeOffset? MustHaveJoinedBefore { get; init; }
 	public IReadOnlyList<string> RequiredRoleIds { get; init; } = Array.Empty<string>();
 	public bool CanSubmit { get; init; }
+	public string? IneligibleToSubmitReason { get; init; }
 	public bool CanVote { get; init; }
+	public string? IneligibleToVoteReason { get; init; }
 	public bool IsAdmin { get; init; }
 	public int TotalVotes { get; init; }
 }
@@ -50,6 +52,8 @@ public sealed class UpdateSubmissionSettingsRequest
 	public int? MaxSubmissionsPerMember { get; init; }
 	public DateTimeOffset? SubmissionClosesAt { get; init; }
 	public bool ClearSubmissionClosesAt { get; init; }
+	public DateTimeOffset? MustHaveJoinedBefore { get; init; }
+	public bool ClearMustHaveJoinedBefore { get; init; }
 }
 
 public sealed class UpdateVotingSettingsRequest
@@ -57,6 +61,8 @@ public sealed class UpdateVotingSettingsRequest
 	public int? MaxSelections { get; init; }
 	public DateTimeOffset? VotingClosesAt { get; init; }
 	public bool ClearVotingClosesAt { get; init; }
+	public DateTimeOffset? MustHaveJoinedBefore { get; init; }
+	public bool ClearMustHaveJoinedBefore { get; init; }
 }
 
 public sealed class PollHistoryResponse
