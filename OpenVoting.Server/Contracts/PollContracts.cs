@@ -126,6 +126,7 @@ public sealed class PollDetailEntryResponse
 	public IReadOnlyList<PollDetailRankCountResponse> RankCounts { get; init; } = Array.Empty<PollDetailRankCountResponse>();
 	public bool IsWinner { get; init; }
 	public int? Position { get; init; }
+	public int? IrvFinalVotes { get; init; }
 	public string SubmittedByDisplayName { get; init; } = string.Empty;
 }
 

@@ -201,7 +201,8 @@ public sealed class PollService : IPollService
 
 		var isAdmin = authUser.IsAdmin;
 		var isClosed = poll.Status == PollStatus.Closed;
-		var winners = isClosed || isAdmin ? ComputeWinners(poll).ToList() : new List<PollWinnerResponse>();
+		var (computedWinners, irvVotesPerEntry) = isClosed || isAdmin ? ComputeWinners(poll) : ([], []);
+		var winners = computedWinners.ToList();
 		var entryVotes = poll.Votes.SelectMany(v => v.Choices).ToList();
 
 		var hideTitles = poll.TitleRequirement == FieldRequirement.Off;
@@ -239,6 +240,7 @@ public sealed class PollService : IPollService
 					shouldExposeTallies ? approvals : 0,
 					shouldExposeTallies ? rankGroups : new List<PollDetailRankCountResponse>(),
 					shouldExposeTallies && winners.Any(w => w.EntryId == e.Id),
+					shouldExposeTallies && irvVotesPerEntry.TryGetValue(e.Id, out var irvVotes) ? irvVotes : null,
 					shouldShowAuthor ? e.SubmittedByMember.DisplayName : string.Empty
 				);
 			})
@@ -818,7 +820,7 @@ public sealed class PollService : IPollService
 
 	private PollHistoryResponse BuildHistoryResponse(Poll poll)
 	{
-		var winners = ComputeWinners(poll);
+		var (winners, _) = ComputeWinners(poll);
 
 		return new PollHistoryResponse
 		{
@@ -926,7 +928,9 @@ public sealed class PollService : IPollService
 		}
 	}
 
-	private List<PollWinnerResponse> ComputeWinners(Poll poll)
+	private sealed record IrvResults(List<PollWinnerResponse> Winners, Dictionary<Guid, int> FinalVotesPerEntry);
+
+	private (List<PollWinnerResponse> Winners, Dictionary<Guid, int> IrvVotesPerEntry) ComputeWinners(Poll poll)
 	{
 		var hideTitles = poll.TitleRequirement == FieldRequirement.Off;
 		var eligibleEntries = poll.Entries
@@ -942,14 +946,16 @@ public sealed class PollService : IPollService
 
 		if (eligibleEntries.Count == 0)
 		{
-			return [];
+			return ([], []);
 		}
 
-		return poll.VotingMethod switch
+		if (poll.VotingMethod == VotingMethod.IRV)
 		{
-			VotingMethod.IRV => ComputeIrvWinners(eligibleEntries, poll.Votes),
-			_ => ComputeApprovalWinners(eligibleEntries, poll.Votes)
-		};
+			var irv = ComputeIrvWinners(eligibleEntries, poll.Votes);
+			return (irv.Winners, irv.FinalVotesPerEntry);
+		}
+
+		return (ComputeApprovalWinners(eligibleEntries, poll.Votes), []);
 	}
 
 	private static List<PollWinnerResponse> ComputeApprovalWinners(Dictionary<Guid, EntryInfo> entries, IEnumerable<Vote> votes)
@@ -971,9 +977,10 @@ public sealed class PollService : IPollService
 			.ToList();
 	}
 
-	private static List<PollWinnerResponse> ComputeIrvWinners(Dictionary<Guid, EntryInfo> entries, IEnumerable<Vote> votes)
+	private static IrvResults ComputeIrvWinners(Dictionary<Guid, EntryInfo> entries, IEnumerable<Vote> votes)
 	{
 		var active = new HashSet<Guid>(entries.Keys);
+		var eliminatedVotes = new Dictionary<Guid, int>();
 		var ballots = votes
 			.Select(v => v.Choices
 				.Where(c => c.Rank.HasValue && active.Contains(c.EntryId))
@@ -985,7 +992,7 @@ public sealed class PollService : IPollService
 
 		if (ballots.Count == 0)
 		{
-			return [];
+			return new IrvResults([], entries.Keys.ToDictionary(id => id, _ => 0));
 		}
 
 		while (active.Count > 1)
@@ -1012,6 +1019,10 @@ public sealed class PollService : IPollService
 			var totalVotes = roundCounts.Values.Sum();
 			if (maxVotes > totalVotes / 2)
 			{
+				foreach (var id in active.Where(id => roundCounts[id] != maxVotes))
+				{
+					eliminatedVotes[id] = roundCounts[id];
+				}
 				active.RemoveWhere(id => roundCounts[id] != maxVotes);
 				break;
 			}
@@ -1019,6 +1030,7 @@ public sealed class PollService : IPollService
 			var toRemove = roundCounts.Where(kvp => kvp.Value == minVotes).Select(kvp => kvp.Key).ToList();
 			foreach (var id in toRemove)
 			{
+				eliminatedVotes[id] = roundCounts[id];
 				active.Remove(id);
 			}
 		}
@@ -1033,11 +1045,19 @@ public sealed class PollService : IPollService
 			}
 		}
 
+		var allVotes = new Dictionary<Guid, int>(eliminatedVotes);
+		foreach (var kvp in finalCounts)
+		{
+			allVotes[kvp.Key] = kvp.Value;
+		}
+
 		var top = finalCounts.Values.DefaultIfEmpty().Max();
-		return finalCounts
+		var winners = finalCounts
 			.Where(kvp => kvp.Value == top)
 			.Select(kvp => new PollWinnerResponse(kvp.Key, entries[kvp.Key].DisplayName, kvp.Value, entries[kvp.Key].AssetId, entries[kvp.Key].SubmittedByDisplayName))
 			.ToList();
+
+		return new IrvResults(winners, allVotes);
 	}
 
 	private static List<EntryData> ShuffleDeterministic(IReadOnlyList<EntryData> items, Guid memberId, Guid pollId)
@@ -1079,6 +1099,7 @@ public sealed class PollService : IPollService
 			RankCounts = data.RankCounts,
 			IsWinner = data.IsWinner,
 			Position = position,
+			IrvFinalVotes = data.IrvFinalVotes,
 			SubmittedByDisplayName = data.SubmittedByDisplayName
 		};
 	}
@@ -1098,6 +1119,7 @@ public sealed class PollService : IPollService
 		int ApprovalVotes,
 		List<PollDetailRankCountResponse> RankCounts,
 		bool IsWinner,
+		int? IrvFinalVotes,
 		string SubmittedByDisplayName);
 
 	private readonly record struct EntryInfo(string DisplayName, Guid? AssetId, string SubmittedByDisplayName);

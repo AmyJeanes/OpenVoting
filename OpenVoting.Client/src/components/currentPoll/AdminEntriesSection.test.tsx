@@ -18,6 +18,8 @@ describe('AdminEntriesSection', () => {
     render(
       <AdminEntriesSection
         poll={poll}
+        winners={[]}
+        irvVotesByEntryId={new Map<string, number>()}
         entries={[entry]}
         entriesLoading={false}
         votingBreakdown={[]}
@@ -43,6 +45,8 @@ describe('AdminEntriesSection', () => {
     render(
       <AdminEntriesSection
         poll={poll}
+        winners={[]}
+        irvVotesByEntryId={new Map<string, number>()}
         entries={[entry]}
         entriesLoading={false}
         votingBreakdown={[]}
@@ -67,6 +71,8 @@ describe('AdminEntriesSection', () => {
     render(
       <AdminEntriesSection
         poll={poll}
+        winners={[]}
+        irvVotesByEntryId={new Map<string, number>()}
         entries={[entry]}
         entriesLoading={false}
         votingBreakdown={[]}
@@ -91,6 +97,8 @@ describe('AdminEntriesSection', () => {
     render(
       <AdminEntriesSection
         poll={poll}
+        winners={[]}
+        irvVotesByEntryId={new Map<string, number>()}
         entries={[entry]}
         entriesLoading={false}
         votingBreakdown={[]}
@@ -114,6 +122,8 @@ describe('AdminEntriesSection', () => {
     render(
       <AdminEntriesSection
         poll={poll}
+        winners={[]}
+        irvVotesByEntryId={new Map<string, number>()}
         entries={[entry]}
         entriesLoading={false}
         votingBreakdown={[]}

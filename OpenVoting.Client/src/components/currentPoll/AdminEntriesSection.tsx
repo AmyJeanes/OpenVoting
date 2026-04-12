@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { ImageLightbox, type ImageLightboxData } from '../ImageLightbox';
 import { MarkdownText } from '../MarkdownText';
-import type { AssetUploadResponse, PollEntryResponse, PollResponse, VotingBreakdownEntry } from '../../types';
+import type { AssetUploadResponse, PollEntryResponse, PollResponse, PollWinnerResponse, VotingBreakdownEntry } from '../../types';
 
 export type AdminEntriesSectionProps = {
   poll: PollResponse;
+  winners: PollWinnerResponse[];
+  irvVotesByEntryId: Map<string, number>;
   entries: PollEntryResponse[];
   entriesLoading: boolean;
   votingBreakdown: VotingBreakdownEntry[];
@@ -27,9 +29,53 @@ function entryTitle(poll: PollResponse, entry: PollEntryResponse) {
   return 'Untitled entry';
 }
 
+const RANK_COLORS = [
+  'var(--rank-1, #3b82f6)',
+  'var(--rank-2, #60a5fa)',
+  'var(--rank-3, #93c5fd)',
+  'var(--rank-4, #bfdbfe)',
+  'var(--rank-5, #dbeafe)',
+];
+
+function RankDistributionBar({ rankCounts, totalVoters }: { rankCounts: { rank: number; votes: number }[]; totalVoters: number }) {
+  if (rankCounts.length === 0 || totalVoters === 0) return null;
+  const sorted = [...rankCounts].sort((a, b) => a.rank - b.rank);
+  const totalRanked = sorted.reduce((sum, r) => sum + r.votes, 0);
+  return (
+    <div className="rank-distribution">
+      <div className="rank-bar" title={sorted.map((r) => `#${r.rank}: ${r.votes}`).join(', ')}>
+        {sorted.map((r) => {
+          const pct = (r.votes / totalRanked) * 100;
+          if (pct === 0) return null;
+          return (
+            <div
+              key={r.rank}
+              className="rank-bar-segment"
+              style={{
+                width: `${pct}%`,
+                backgroundColor: RANK_COLORS[r.rank - 1] ?? RANK_COLORS[RANK_COLORS.length - 1],
+              }}
+            />
+          );
+        })}
+      </div>
+      <div className="rank-legend">
+        {sorted.map((r) => (
+          <span key={r.rank} className="rank-legend-item">
+            <span className="rank-legend-dot" style={{ backgroundColor: RANK_COLORS[r.rank - 1] ?? RANK_COLORS[RANK_COLORS.length - 1] }} />
+            #{r.rank}: {r.votes}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AdminEntriesSection(props: AdminEntriesSectionProps) {
   const {
     poll,
+    winners,
+    irvVotesByEntryId,
     entries,
     entriesLoading,
     votingBreakdown,
@@ -46,6 +92,12 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<ImageLightboxData | null>(null);
   const handleToggle = () => setExpanded((v) => !v);
+
+  const winnersById = useMemo(() => {
+    const map = new Map<string, PollWinnerResponse>();
+    for (const w of winners) map.set(w.entryId, w);
+    return map;
+  }, [winners]);
 
   const leaderboard = useMemo(() => {
     const withScores = entries.map((entry) => {
@@ -87,7 +139,7 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
         )}
         {!entriesLoading && entries.length > 0 && (
           <ul className="entries entry-grid">
-            {leaderboard.map(({ entry: e, breakdown, score }, idx) => {
+            {leaderboard.map(({ entry: e, breakdown }, idx) => {
               const showByline = !!e.submittedByDisplayName;
               const assetId = entryAssetId(e);
               const asset = assetCache[assetId];
@@ -95,12 +147,11 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
               const previewUrl = asset?.url;
               const fullImageUrl = previewUrl ? (originalUrl ?? previewUrl) : null;
               const rankCounts = breakdown?.rankCounts ?? [];
-              const firstChoice = rankCounts.find((r) => r.rank === 1)?.votes ?? 0;
               const approvals = breakdown?.approvals ?? 0;
               const createdAtText = new Date(e.createdAt).toLocaleString();
               const positionLabel = `#${idx + 1}`;
-              const topScore = leaderboard[0]?.score ?? 0;
-              const isProjectedWinner = showAdminBreakdown && topScore > 0 && score === topScore;
+              const winnerData = winnersById.get(e.id);
+              const isIrvWinner = poll.votingMethod === 2 && !!winnerData;
               return (
                 <li key={e.id} className={`entry-card with-bottom-actions ${e.isDisqualified ? 'unavailable' : ''}`} data-testid={`admin-entry-${e.id}`}>
                   <div className="entry-head">
@@ -109,7 +160,7 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                     </div>
                     <div className="badges admin-entry-badges">
                       <span className="pill subtle">{positionLabel}</span>
-                      {isProjectedWinner && <span className="pill winner">Projected winner</span>}
+                      {isIrvWinner && <span className="pill winner">Projected winner</span>}
                     </div>
                   </div>
                   <div className="admin-entry-details">
@@ -149,23 +200,13 @@ export function AdminEntriesSection(props: AdminEntriesSectionProps) {
                         <>
                           <div className="actions">
                             {poll.votingMethod === 2 ? (
-                              <span className="pill subtle">{firstChoice} people ranked this #1</span>
+                              <span className="pill subtle">Projected votes: {irvVotesByEntryId.get(e.id) ?? '–'}</span>
                             ) : (
                               <span className="pill subtle">{approvals} people approved</span>
                             )}
-                            <span className="pill compact subtle">Score: {score}</span>
                           </div>
                           {poll.votingMethod === 2 && rankCounts.length > 0 && (
-                            <div className="muted" style={{ marginTop: 6, marginBottom: 12 }}>
-                              <span style={{ fontWeight: 600, marginRight: 6 }}>How people ranked this:</span>
-                              <ul style={{ display: 'inline', padding: 0, margin: 0, listStyle: 'none' }}>
-                                {rankCounts.map((r) => (
-                                  <li key={r.rank} style={{ display: 'inline', marginRight: 8 }}>
-                                    <span className="pill subtle">#{r.rank}: {r.votes}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
+                            <RankDistributionBar rankCounts={rankCounts} totalVoters={poll.totalVotes} />
                           )}
                           {poll.votingMethod === 2 && rankCounts.length === 0 && (
                             <p className="muted">No ranks submitted yet</p>

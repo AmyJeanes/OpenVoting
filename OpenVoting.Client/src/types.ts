@@ -72,6 +72,7 @@ export type PollDetailEntryResponse = {
   rankCounts: PollDetailRankCount[];
   isWinner: boolean;
   position?: number;
+  irvFinalVotes?: number;
   submittedByDisplayName: string;
 };
 

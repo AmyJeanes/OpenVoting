@@ -1177,6 +1177,48 @@ button.ghost {
     margin-top: 12px;
 }
 
+.rank-distribution {
+    margin-top: 8px;
+}
+
+.rank-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--pill-subtle-bg, #e6eef2);
+    gap: 1px;
+}
+
+.rank-bar-segment {
+    min-width: 3px;
+    transition: width 300ms ease;
+}
+
+.rank-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #8899a6);
+}
+
+.rank-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.rank-legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
 .admin-entry-actions {
     margin-top: 12px;
 }
@@ -2123,14 +2165,10 @@ textarea {
 
 .admin-collapse {
     overflow: hidden;
-    max-height: 2000px;
+    max-height: 5000px;
     opacity: 1;
     padding-bottom: 0;
     transition: max-height 260ms ease-in-out, opacity 260ms ease-in-out, padding 260ms ease-in-out;
-}
-
-.admin-card:not(.collapsed) .admin-collapse {
-    overflow: visible;
 }
 
 .admin-card.collapsed .admin-collapse {
@@ -2332,12 +2370,12 @@ textarea {
 }
 
 @media (max-width: 860px) {
-    .section-head {
+    .section-head:not(.admin-toggle) {
         flex-wrap: wrap;
         align-items: flex-start;
     }
 
-    .section-head > div:first-child {
+    .section-head:not(.admin-toggle) > div:first-child {
         flex: 1 1 100%;
         min-width: 0;
     }
