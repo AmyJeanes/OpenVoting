@@ -33,6 +33,23 @@ const RANK_COLORS = [
   'var(--rank-5, #dbeafe)',
 ];
 
+// Selected entries in rank order; unranked and unparseable ranks sort to the end.
+const orderSelectedByRank = (
+  entries: PollEntryResponse[],
+  voteState: Record<string, { selected: boolean; rank: string }>
+) => entries
+  .filter((e) => voteState[e.id]?.selected)
+  .sort((a, b) => {
+    const ra = Number(voteState[a.id]?.rank ?? Number.POSITIVE_INFINITY);
+    const rb = Number(voteState[b.id]?.rank ?? Number.POSITIVE_INFINITY);
+    if (Number.isNaN(ra) && Number.isNaN(rb)) return 0;
+    if (Number.isNaN(ra)) return 1;
+    if (Number.isNaN(rb)) return -1;
+    if (ra === rb) return 0;
+    return ra - rb;
+  })
+  .map((e) => e.id);
+
 function ClosedPollRankBar({ rankCounts, totalVoters }: { rankCounts: { rank: number; votes: number }[]; totalVoters: number }) {
   if (rankCounts.length === 0 || totalVoters === 0) return null;
   const sorted = [...rankCounts].sort((a, b) => a.rank - b.rank);
@@ -195,6 +212,18 @@ export function CurrentPollPage(props: CurrentPollProps) {
   }, [votingBreakdown]);
   const [irvStage, setIrvStage] = useState<'select' | 'rank'>('select');
   const [rankedIds, setRankedIds] = useState<string[]>([]);
+
+  // Reseed the ranking from the current selection. The array below is the dependency list this
+  // used to run as: comparing it during render keeps the order in step with the selection instead
+  // of committing a stale one first and correcting it a render later.
+  const rankSeedInputs = [poll?.id, poll?.requireRanking, voteInfo?.voteId, entries, voteState];
+  const [prevRankSeedInputs, setPrevRankSeedInputs] = useState<unknown[] | null>(null);
+  if (!prevRankSeedInputs || rankSeedInputs.some((value, i) => value !== prevRankSeedInputs[i])) {
+    setPrevRankSeedInputs(rankSeedInputs);
+    setIrvStage('select');
+    setRankedIds(poll?.requireRanking ? orderSelectedByRank(entries, voteState) : []);
+  }
+
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverAfter, setDragOverAfter] = useState(false);
@@ -291,6 +320,31 @@ export function CurrentPollPage(props: CurrentPollProps) {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsSaveSuccessCount, setSettingsSaveSuccessCount] = useState(0);
 
+  // Reseed the admin forms whenever a new poll object arrives, including the one a save returns.
+  const [prevPollForForms, setPrevPollForForms] = useState<PollResponse | null>(null);
+  if (prevPollForForms !== poll) {
+    setPrevPollForForms(poll);
+    if (poll) {
+      setMetaForm({
+        title: poll.title,
+        description: poll.description ?? '',
+        titleRequirement: poll.titleRequirement,
+        descriptionRequirement: poll.descriptionRequirement,
+        imageRequirement: poll.imageRequirement
+      });
+      setSubmissionForm({
+        maxSubmissionsPerMember: poll.maxSubmissionsPerMember,
+        submissionClosesAt: isMaxTimestamp(poll.submissionClosesAt) ? '' : toLocal(poll.submissionClosesAt),
+        mustHaveJoinedBefore: poll.mustHaveJoinedBefore ? toLocal(poll.mustHaveJoinedBefore) : ''
+      });
+      setVotingForm({
+        maxSelections: poll.maxSelections,
+        votingClosesAt: isMaxTimestamp(poll.votingClosesAt) ? '' : toLocal(poll.votingClosesAt),
+        mustHaveJoinedBefore: poll.mustHaveJoinedBefore ? toLocal(poll.mustHaveJoinedBefore) : ''
+      });
+    }
+  }
+
   useEffect(() => {
     if (pollError) showToast(pollError, { tone: 'error' });
   }, [pollError, showToast]);
@@ -320,15 +374,16 @@ export function CurrentPollPage(props: CurrentPollProps) {
     const hasEntry = pollDetail.entries.some((e) => e.id === entryId);
     if (!hasEntry) return;
 
-    setHighlightedEntryId(entryId);
-
     // Scroll into view twice to account for images/layout settling
     const scrollToEntry = () => {
       const target = document.getElementById(`entry-${entryId}`);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
     };
 
-    requestAnimationFrame(scrollToEntry);
+    requestAnimationFrame(() => {
+      setHighlightedEntryId(entryId);
+      scrollToEntry();
+    });
     const lateScroll = window.setTimeout(scrollToEntry, 400);
     return () => window.clearTimeout(lateScroll);
   }, [isClosed, pollDetail, location.hash]);
@@ -338,30 +393,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
     const timeout = window.setTimeout(() => setHighlightedEntryId(null), 2000);
     return () => window.clearTimeout(timeout);
   }, [highlightedEntryId]);
-
-  useEffect(() => {
-    if (!poll?.requireRanking) {
-      setIrvStage('select');
-      setRankedIds([]);
-      return;
-    }
-
-    const ordered = entries
-      .filter((e) => voteState[e.id]?.selected)
-      .sort((a, b) => {
-        const ra = Number(voteState[a.id]?.rank ?? Number.POSITIVE_INFINITY);
-        const rb = Number(voteState[b.id]?.rank ?? Number.POSITIVE_INFINITY);
-        if (Number.isNaN(ra) && Number.isNaN(rb)) return 0;
-        if (Number.isNaN(ra)) return 1;
-        if (Number.isNaN(rb)) return -1;
-        if (ra === rb) return 0;
-        return ra - rb;
-      })
-      .map((e) => e.id);
-
-    setIrvStage('select');
-    setRankedIds(ordered);
-  }, [poll?.id, poll?.requireRanking, voteInfo?.voteId, entries, voteState]);
 
   useEffect(() => {
     const justFinishedSuccessfulSubmit = prevVoteSubmittingRef.current && !voteSubmitting && !voteError;
@@ -567,27 +598,6 @@ export function CurrentPollPage(props: CurrentPollProps) {
     entries.forEach((e) => handleToggleSelection(e.id, false));
     setRankedIds([]);
   };
-
-  useEffect(() => {
-    if (!poll) return;
-    setMetaForm({
-      title: poll.title,
-      description: poll.description ?? '',
-      titleRequirement: poll.titleRequirement,
-      descriptionRequirement: poll.descriptionRequirement,
-      imageRequirement: poll.imageRequirement
-    });
-    setSubmissionForm({
-      maxSubmissionsPerMember: poll.maxSubmissionsPerMember,
-      submissionClosesAt: isMaxTimestamp(poll.submissionClosesAt) ? '' : toLocal(poll.submissionClosesAt),
-      mustHaveJoinedBefore: poll.mustHaveJoinedBefore ? toLocal(poll.mustHaveJoinedBefore) : ''
-    });
-    setVotingForm({
-      maxSelections: poll.maxSelections,
-      votingClosesAt: isMaxTimestamp(poll.votingClosesAt) ? '' : toLocal(poll.votingClosesAt),
-      mustHaveJoinedBefore: poll.mustHaveJoinedBefore ? toLocal(poll.mustHaveJoinedBefore) : ''
-    });
-  }, [poll]);
 
   const disqualifyReasonRequired = pendingAction === 'disqualify' && pendingReason.trim().length === 0;
 

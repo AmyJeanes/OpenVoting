@@ -87,13 +87,38 @@ const parseSafeReturnTo = (value: string | null): string | null => {
 
 type ConfirmResolver = (result: boolean) => void;
 
+const fetchConfigData = async (): Promise<ConfigResponse> => {
+  const res = await fetch('/api/config');
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || res.statusText);
+  }
+
+  return res.json();
+};
+
+// A sign-in handoff arrives either as a URL query (the Discord redirect) or as a one-shot flash
+// left in localStorage. Read it while initialising state so the first render already has it; the
+// mount effect only clears the handoff away afterwards.
+const readBootstrapState = () => {
+  const query = new URLSearchParams(window.location.search);
+  const tokenFromQuery = query.get('token')?.trim();
+  const flashFromQuery = query.get('flash')?.trim();
+
+  return {
+    token: tokenFromQuery || localStorage.getItem(tokenKey) || '',
+    flash: (flashFromQuery || localStorage.getItem('ov_flash') || null) as FlashMessage | null
+  };
+};
+
 export function useVotingApp() {
-  const [token, setToken] = useState<string>('');
-  const [sessionState, setSessionState] = useState<SessionState>('idle');
+  const [bootstrap] = useState(readBootstrapState);
+  const [token, setToken] = useState<string>(bootstrap.token);
+  const [sessionState, setSessionState] = useState<SessionState>(bootstrap.token ? 'idle' : 'anonymous');
   const [me, setMe] = useState<MeResponse | null>(null);
   const [config, setConfig] = useState<ConfigResponse | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
-  const [flash, setFlash] = useState<FlashMessage | null>(null);
+  const [flash, setFlash] = useState<FlashMessage | null>(bootstrap.flash);
 
   const [poll, setPoll] = useState<PollResponse | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
@@ -284,21 +309,6 @@ export function useVotingApp() {
     clearSelectedPollData();
     setVotingBreakdown([]);
     setVotingBreakdownError(null);
-  };
-
-  const fetchConfig = async () => {
-    setConfigError(null);
-    try {
-      const res = await fetch('/api/config');
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || res.statusText);
-      }
-      const data: ConfigResponse = await res.json();
-      setConfig(data);
-    } catch (err) {
-      setConfigError(err instanceof Error ? err.message : 'Failed to load config');
-    }
   };
 
   const fetchMe = async (): Promise<MeResponse> => {
@@ -1166,11 +1176,7 @@ export function useVotingApp() {
   // Effects live below every function they call: the react-hooks compiler rules reject an effect
   // closing over a `const` declared further down, and their relative order here is their run order.
   useEffect(() => {
-    const storedFlash = localStorage.getItem('ov_flash');
-    if (storedFlash) {
-      setFlash(storedFlash);
-      localStorage.removeItem('ov_flash');
-    }
+    localStorage.removeItem('ov_flash');
 
     const query = new URLSearchParams(window.location.search);
     const tokenFromQuery = query.get('token')?.trim();
@@ -1178,10 +1184,6 @@ export function useVotingApp() {
     const returnToFromQuery = parseSafeReturnTo(query.get('returnTo'));
     if (tokenFromQuery) {
       localStorage.setItem(tokenKey, tokenFromQuery);
-    }
-
-    if (flashFromQuery) {
-      setFlash(flashFromQuery);
     }
 
     if (tokenFromQuery || flashFromQuery || returnToFromQuery) {
@@ -1197,13 +1199,16 @@ export function useVotingApp() {
       window.history.replaceState({}, document.title, nextPath);
     }
 
-    fetchConfig();
-    const saved = localStorage.getItem(tokenKey);
-    if (saved) {
-      setToken(saved);
-    } else {
-      setSessionState('anonymous');
-    }
+    const loadConfig = async () => {
+      try {
+        setConfig(await fetchConfigData());
+        setConfigError(null);
+      } catch (err) {
+        setConfigError(err instanceof Error ? err.message : 'Failed to load config');
+      }
+    };
+
+    loadConfig();
   }, []);
 
   useEffect(() => {
@@ -1231,9 +1236,9 @@ export function useVotingApp() {
   }, []);
 
   useEffect(() => {
+    // Nothing to tear down on an empty token: logout() is the only way to reach one, and it
+    // already clears the session and poll state itself.
     if (!token) {
-      setSessionState('anonymous');
-      resetPollState();
       return;
     }
 

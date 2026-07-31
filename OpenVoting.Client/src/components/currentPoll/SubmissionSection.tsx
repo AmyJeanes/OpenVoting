@@ -45,6 +45,17 @@ export function SubmissionSection(props: SubmissionSectionProps) {
   const [imageTouched, setImageTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [lastSubmitSuccessCount, setLastSubmitSuccessCount] = useState(entrySubmitSuccessCount);
+
+  // A successful submit empties the form, so the flags have to clear in the same pass or the
+  // freshly-blanked required fields render as validation errors.
+  if (lastSubmitSuccessCount !== entrySubmitSuccessCount) {
+    setLastSubmitSuccessCount(entrySubmitSuccessCount);
+    setTitleTouched(false);
+    setDescriptionTouched(false);
+    setImageTouched(false);
+    setSubmitAttempted(false);
+  }
 
   const imageValidationMessages = new Set([
     'Please upload an image file',
@@ -85,11 +96,8 @@ export function SubmissionSection(props: SubmissionSectionProps) {
     onSubmitEntry();
   };
 
+  // The file input is uncontrolled, so its value only clears by touching the DOM node.
   useEffect(() => {
-    setTitleTouched(false);
-    setDescriptionTouched(false);
-    setImageTouched(false);
-    setSubmitAttempted(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
