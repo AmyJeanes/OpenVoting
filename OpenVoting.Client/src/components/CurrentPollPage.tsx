@@ -55,7 +55,7 @@ function ClosedPollRankBar({ rankCounts, totalVoters }: { rankCounts: { rank: nu
   const sorted = [...rankCounts].sort((a, b) => a.rank - b.rank);
   const totalRanked = sorted.reduce((sum, r) => sum + r.votes, 0);
   return (
-    <div className="rank-distribution">
+    <div className="rank-distribution" data-testid="rank-distribution">
       <div className="rank-bar" title={sorted.map((r) => `#${r.rank}: ${r.votes}`).join(', ')}>
         {sorted.map((r) => {
           const pct = (r.votes / totalRanked) * 100;

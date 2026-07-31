@@ -8,6 +8,7 @@ const dbConnection = process.env.PLAYWRIGHT_DB_CONNECTION ?? 'Host=127.0.0.1;Por
 const jwtSigningKey = process.env.PLAYWRIGHT_JWT_SIGNING_KEY ?? 'smoke-test-signing-key-1234567890';
 const guildId = process.env.PLAYWRIGHT_GUILD_ID ?? 'smoke-guild';
 const adminRoleId = process.env.PLAYWRIGHT_ADMIN_ROLE_ID ?? 'smoke-admin';
+const blobConnection = process.env.PLAYWRIGHT_BLOB_CONNECTION ?? 'UseDevelopmentStorage=true';
 
 export default defineConfig({
   testDir: './playwright',
@@ -38,7 +39,7 @@ export default defineConfig({
         Settings__Jwt__SigningKey: jwtSigningKey,
         Settings__Discord__GuildId: guildId,
         Settings__Discord__AdminRoleIds__0: adminRoleId,
-        Settings__BlobStorage__ConnectionString: 'UseDevelopmentStorage=true',
+        Settings__BlobStorage__ConnectionString: blobConnection,
         Settings__BlobStorage__ContainerName: 'assets',
       },
       stdout: 'pipe',

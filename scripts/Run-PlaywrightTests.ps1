@@ -3,7 +3,9 @@ param(
     [ValidateSet('Smoke', 'Full')]
     [string]$TestType = 'Smoke',
     [string]$ContainerName = 'openvoting-playwright-postgres',
+    [string]$AzuriteContainerName = 'openvoting-playwright-azurite',
     [int]$PostgresPort = 55432,
+    [int]$AzuriteBlobPort = 10000,
     [string]$DatabaseName = 'openvoting_smoke',
     [string]$PostgresUser = 'postgres',
     [string]$PostgresPassword = 'postgres',
@@ -109,6 +111,44 @@ function New-PlaywrightPostgresContainer {
     return $availablePort
 }
 
+function New-PlaywrightAzuriteContainer {
+    param(
+        [string]$Name,
+        [int]$PreferredPort
+    )
+
+    $availablePort = Get-AvailableTcpPort -PreferredPort $PreferredPort
+    # The Azure SDK negotiates a newer API version than Azurite recognises and it rejects the
+    # request outright, so skip the version check rather than pinning the client in app code.
+    Invoke-Docker run --detach --name $Name --publish "${availablePort}:10000" mcr.microsoft.com/azure-storage/azurite:3.36.0 azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck | Out-Null
+    return $availablePort
+}
+
+function Wait-ForAzurite {
+    param(
+        [string]$Name,
+        [int]$Port,
+        [int]$TimeoutSeconds = 60
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        $client = [System.Net.Sockets.TcpClient]::new()
+        try {
+            $client.Connect('127.0.0.1', $Port)
+            return
+        }
+        catch [System.Net.Sockets.SocketException] {
+            Start-Sleep -Seconds 1
+        }
+        finally {
+            $client.Dispose()
+        }
+    }
+
+    throw "Azurite container '$Name' did not become ready within $TimeoutSeconds seconds"
+}
+
 function Wait-ForPostgres {
     param(
         [string]$Name,
@@ -145,6 +185,7 @@ if ($containerExistedBefore) {
 
 $createdContainer = $false
 $startedContainer = $false
+$createdAzuriteContainer = $false
 $envBackup = @{}
 $resolvedPostgresPort = $PostgresPort
 
@@ -186,8 +227,20 @@ try {
 
     Wait-ForPostgres -Name $ContainerName -User $PostgresUser -Database $DatabaseName
 
+    # Azurite backs asset uploads. Recreated each run rather than reused, so a run never inherits
+    # blobs whose rows no longer exist in the freshly migrated database.
+    if (Test-ContainerExists -Name $AzuriteContainerName) {
+        Invoke-Docker rm --force $AzuriteContainerName | Out-Null
+    }
+
+    $resolvedAzuritePort = New-PlaywrightAzuriteContainer -Name $AzuriteContainerName -PreferredPort $AzuriteBlobPort
+    $createdAzuriteContainer = $true
+    Wait-ForAzurite -Name $AzuriteContainerName -Port $resolvedAzuritePort
+
     $dbConnection = "Host=127.0.0.1;Port=$resolvedPostgresPort;Database=$DatabaseName;Username=$PostgresUser;Password=$PostgresPassword"
+    $blobConnection = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:$resolvedAzuritePort/devstoreaccount1;"
     $envValues = @{
+        PLAYWRIGHT_BLOB_CONNECTION = $blobConnection
         PLAYWRIGHT_BASE_URL = $baseUrl
         PLAYWRIGHT_DB_CONNECTION = $dbConnection
         PLAYWRIGHT_API_BASE_URL = $apiBaseUrl
@@ -257,6 +310,10 @@ finally {
         }
         elseif ($containerWasRunningBefore) {
             # Leave pre-existing running infrastructure alone.
+        }
+
+        if ($createdAzuriteContainer) {
+            & docker rm --force $AzuriteContainerName *> $null
         }
     }
 }
