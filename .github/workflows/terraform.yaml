@@ -6,6 +6,7 @@ on:
       - renovate/*
     paths:
       - terraform/**
+      - .github/workflows/terraform.yaml
   workflow_dispatch:
     inputs:
       runApply:
@@ -23,6 +24,7 @@ on:
       - main
     paths:
       - terraform/**
+      - .github/workflows/terraform.yaml
 
 jobs:
   terraform:
