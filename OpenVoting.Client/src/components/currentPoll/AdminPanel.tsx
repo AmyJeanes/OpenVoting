@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { MouseEvent } from 'react';
 import type { FieldRequirement, PollResponse } from '../../types';
 import { votingMethodLabel } from '../../utils/format';
@@ -51,10 +51,14 @@ export function AdminPanel(props: AdminPanelProps) {
   const [titleTouched, setTitleTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  useEffect(() => {
+  const [lastSaveSuccessCount, setLastSaveSuccessCount] = useState(saveSuccessCount);
+
+  // Return to a pristine validation state once a save lands and reseeds metaForm.
+  if (lastSaveSuccessCount !== saveSuccessCount) {
+    setLastSaveSuccessCount(saveSuccessCount);
     setTitleTouched(false);
     setSubmitAttempted(false);
-  }, [saveSuccessCount]);
+  }
 
   const titleMissing = metaForm.title.trim().length === 0;
   const showTitleInvalid = titleMissing && (titleTouched || submitAttempted);

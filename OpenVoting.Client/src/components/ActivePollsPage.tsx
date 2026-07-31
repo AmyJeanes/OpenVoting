@@ -34,6 +34,15 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [lastSuccessCount, setLastSuccessCount] = useState(createSuccessCount);
+
+  // Return to a pristine validation state after a successful create.
+  if (lastSuccessCount !== createSuccessCount) {
+    setLastSuccessCount(createSuccessCount);
+    setTitleTouched(false);
+    setSubmitAttempted(false);
+  }
+
   const titleMissing = createForm.title.trim().length === 0;
   const showTitleInvalid = titleMissing && (titleTouched || submitAttempted);
   const hasValidationErrors = showTitleInvalid;
@@ -50,11 +59,6 @@ export function ActivePollsPage({ sessionState, me, activePolls, pollError, load
     }
     onCreatePoll();
   };
-
-  useEffect(() => {
-    setTitleTouched(false);
-    setSubmitAttempted(false);
-  }, [createSuccessCount]);
 
   useEffect(() => {
     if (pollError) showToast(pollError, { tone: 'error' });

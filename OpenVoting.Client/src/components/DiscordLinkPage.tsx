@@ -4,6 +4,9 @@ import type { FlashMessage, OneTimeDiscordLinkAuthResponse, OneTimeDiscordLinkSt
 
 const tokenStorageKey = 'ov_token';
 
+// Stable identity: this flows into warningMessage, whose effect dispatches on every new value.
+const missingTokenStatus: OneTimeDiscordLinkStatusResponse = { status: 'invalid', message: 'Missing login token' };
+
 export function DiscordLinkPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -11,14 +14,14 @@ export function DiscordLinkPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
-  const [status, setStatus] = useState<OneTimeDiscordLinkStatusResponse | null>(null);
+  const [fetchedStatus, setFetchedStatus] = useState<OneTimeDiscordLinkStatusResponse | null>(null);
 
   const hasToken = token.trim().length > 0;
+  const status = hasToken ? fetchedStatus : missingTokenStatus;
   const canContinue = hasToken && status?.status === 'valid';
 
   useEffect(() => {
     if (!hasToken) {
-      setStatus({ status: 'invalid', message: 'Missing login token' });
       return;
     }
 
@@ -34,12 +37,12 @@ export function DiscordLinkPage() {
 
         const payload: OneTimeDiscordLinkStatusResponse = await response.json();
         if (!cancelled) {
-          setStatus(payload);
+          setFetchedStatus(payload);
         }
       } catch (err) {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : 'Unable to verify login link';
-          setStatus({ status: 'invalid', message });
+          setFetchedStatus({ status: 'invalid', message });
         }
       } finally {
         if (!cancelled) {

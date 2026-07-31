@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AuthPrompt } from './AuthPrompt';
 import type { Dispatch, SetStateAction } from 'react';
 import type { CreatePollForm, SessionState } from '../types';
@@ -20,15 +20,18 @@ export type AdminPageProps = {
 export function AdminPage({ sessionState, me, createForm, setCreateForm, creating, createError, createSuccessCount = 0, onCreatePoll, onLogin, loginCta, loginDisabled }: AdminPageProps) {
   const [titleTouched, setTitleTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [lastSuccessCount, setLastSuccessCount] = useState(createSuccessCount);
+
+  // Return to a pristine validation state after a successful create.
+  if (lastSuccessCount !== createSuccessCount) {
+    setLastSuccessCount(createSuccessCount);
+    setTitleTouched(false);
+    setSubmitAttempted(false);
+  }
 
   const titleMissing = createForm.title.trim().length === 0;
   const showTitleInvalid = titleMissing && (titleTouched || submitAttempted);
   const hasValidationErrors = showTitleInvalid;
-
-  useEffect(() => {
-    setTitleTouched(false);
-    setSubmitAttempted(false);
-  }, [createSuccessCount]);
 
   if (sessionState !== 'authenticated') {
     return <AuthPrompt onLogin={onLogin} loginCta={loginCta} loginDisabled={loginDisabled} />;

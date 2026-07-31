@@ -116,6 +116,41 @@ describe('ActivePollsPage', () => {
     expect(screen.getByText('Please correct the validation errors')).toBeInTheDocument();
   });
 
+  it('clears the validation banner once a create succeeds', async () => {
+    const Harness = ({ createSuccessCount }: { createSuccessCount: number }) => (
+      <ToastProvider>
+        <MemoryRouter>
+          <ActivePollsPage
+            sessionState="authenticated"
+            me={{ isAdmin: true }}
+            onLogin={vi.fn()}
+            loginCta="Sign in"
+            loginDisabled={false}
+            activePolls={[]}
+            pollError={null}
+            loading={false}
+            onRefresh={vi.fn()}
+            createForm={{ title: '', description: '', votingMethod: 1 }}
+            setCreateForm={vi.fn()}
+            creating={false}
+            createError={null}
+            createSuccessCount={createSuccessCount}
+            onCreatePoll={vi.fn()}
+          />
+        </MemoryRouter>
+      </ToastProvider>
+    );
+
+    const { rerender } = render(<Harness createSuccessCount={0} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create poll' }));
+    expect(screen.getByText('Please correct the validation errors')).toBeInTheDocument();
+
+    rerender(<Harness createSuccessCount={1} />);
+
+    expect(screen.queryByText('Please correct the validation errors')).not.toBeInTheDocument();
+  });
+
   it('filters live polls by title and description in realtime', async () => {
     const springPoll = createPollResponse({ id: 'poll-1', title: 'Spring Contest', description: 'Season opener', status: 2 });
     const summerPoll = createPollResponse({ id: 'poll-2', title: 'Summer Clash', description: 'Beach theme', status: 2 });
