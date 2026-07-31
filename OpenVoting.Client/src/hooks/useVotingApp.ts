@@ -152,112 +152,6 @@ export function useVotingApp() {
       || message === 'Unable to read the selected image';
   };
 
-  useEffect(() => {
-    const storedFlash = localStorage.getItem('ov_flash');
-    if (storedFlash) {
-      setFlash(storedFlash);
-      localStorage.removeItem('ov_flash');
-    }
-
-    const query = new URLSearchParams(window.location.search);
-    const tokenFromQuery = query.get('token')?.trim();
-    const flashFromQuery = query.get('flash')?.trim();
-    const returnToFromQuery = parseSafeReturnTo(query.get('returnTo'));
-    if (tokenFromQuery) {
-      localStorage.setItem(tokenKey, tokenFromQuery);
-    }
-
-    if (flashFromQuery) {
-      setFlash(flashFromQuery);
-    }
-
-    if (tokenFromQuery || flashFromQuery || returnToFromQuery) {
-      query.delete('token');
-      query.delete('flash');
-      query.delete('returnTo');
-      const nextSearch = query.toString();
-      const cleanedPath = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
-      const storedReturnTo = parseSafeReturnTo(localStorage.getItem(postLoginReturnToKey));
-      const returnTo = returnToFromQuery ?? storedReturnTo;
-      localStorage.removeItem(postLoginReturnToKey);
-      const nextPath = returnTo ?? cleanedPath;
-      window.history.replaceState({}, document.title, nextPath);
-    }
-
-    fetchConfig();
-    const saved = localStorage.getItem(tokenKey);
-    if (saved) {
-      setToken(saved);
-    } else {
-      setSessionState('anonymous');
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleFlashEvent = (event: Event) => {
-      const customEvent = event as CustomEvent<FlashMessage | null>;
-      const message = customEvent.detail;
-
-      if (typeof message === 'string') {
-        setFlash(message.trim().length > 0 ? message : null);
-        return;
-      }
-
-      if (message && message.text.trim().length > 0) {
-        setFlash(message);
-        return;
-      }
-
-      setFlash(null);
-    };
-
-    window.addEventListener('ov-flash', handleFlashEvent);
-    return () => {
-      window.removeEventListener('ov-flash', handleFlashEvent);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!token) {
-      setSessionState('anonymous');
-      resetPollState();
-      return;
-    }
-
-    if (skipNextTokenBootstrapRef.current) {
-      skipNextTokenBootstrapRef.current = false;
-      return;
-    }
-
-    const bootstrap = async () => {
-      setSessionState('loading');
-      try {
-        await fetchMe();
-        await refreshActiveAndSelected();
-        await fetchHistory();
-        setSessionState('authenticated');
-      } catch (err) {
-        if ((err as Error).message === 'Unauthorized') {
-          return;
-        }
-        setFlash((err as Error).message || 'Unable to refresh session');
-      }
-    };
-
-    bootstrap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  useEffect(() => {
-    const name = config?.serverName?.trim() || 'Voting';
-    document.title = `${name} Voting`;
-  }, [config?.serverName]);
-
-  useEffect(() => {
-    history.forEach((p) => p.winners.forEach((w) => w.assetId && loadAsset(w.assetId)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [history]);
-
   const pollById = (id: string | null) => {
     if (!id) return null;
     if (poll?.id === id) return poll;
@@ -276,13 +170,6 @@ export function useVotingApp() {
     confirmResolver.current = null;
     setConfirmConfig(null);
   };
-
-  useEffect(() => () => {
-    if (confirmResolver.current) {
-      confirmResolver.current(false);
-    }
-    confirmResolver.current = null;
-  }, []);
 
   const authedFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const res = await fetch(input, {
@@ -376,51 +263,6 @@ export function useVotingApp() {
     setSessionState('anonymous');
     setFlash(message && message.trim().length > 0 ? message : 'Signed out');
   };
-
-  useEffect(() => {
-    if (refreshTimerRef.current !== null) {
-      window.clearTimeout(refreshTimerRef.current);
-      refreshTimerRef.current = null;
-    }
-
-    if (!token) {
-      return;
-    }
-
-    let cancelled = false;
-    const expiresAt = getJwtExpiryMs(token);
-    const refreshDelay = Math.max((expiresAt ?? Date.now()) - Date.now() - refreshLeadTimeMs, minRefreshDelayMs);
-
-    const schedule = (delayMs: number) => {
-      refreshTimerRef.current = window.setTimeout(async () => {
-        if (cancelled) {
-          return;
-        }
-
-        try {
-          const refreshed = await refreshToken();
-          if (!refreshed && token) {
-            schedule(minRefreshDelayMs);
-          }
-        } catch {
-          if (token) {
-            schedule(minRefreshDelayMs);
-          }
-        }
-      }, delayMs);
-    };
-
-    schedule(refreshDelay);
-
-    return () => {
-      cancelled = true;
-      if (refreshTimerRef.current !== null) {
-        window.clearTimeout(refreshTimerRef.current);
-        refreshTimerRef.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
 
   const clearSelectedPollData = () => {
     setPoll(null);
@@ -1320,6 +1162,166 @@ export function useVotingApp() {
       setPollError(null);
     }
   };
+
+  // Effects live below every function they call: the react-hooks compiler rules reject an effect
+  // closing over a `const` declared further down, and their relative order here is their run order.
+  useEffect(() => {
+    const storedFlash = localStorage.getItem('ov_flash');
+    if (storedFlash) {
+      setFlash(storedFlash);
+      localStorage.removeItem('ov_flash');
+    }
+
+    const query = new URLSearchParams(window.location.search);
+    const tokenFromQuery = query.get('token')?.trim();
+    const flashFromQuery = query.get('flash')?.trim();
+    const returnToFromQuery = parseSafeReturnTo(query.get('returnTo'));
+    if (tokenFromQuery) {
+      localStorage.setItem(tokenKey, tokenFromQuery);
+    }
+
+    if (flashFromQuery) {
+      setFlash(flashFromQuery);
+    }
+
+    if (tokenFromQuery || flashFromQuery || returnToFromQuery) {
+      query.delete('token');
+      query.delete('flash');
+      query.delete('returnTo');
+      const nextSearch = query.toString();
+      const cleanedPath = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+      const storedReturnTo = parseSafeReturnTo(localStorage.getItem(postLoginReturnToKey));
+      const returnTo = returnToFromQuery ?? storedReturnTo;
+      localStorage.removeItem(postLoginReturnToKey);
+      const nextPath = returnTo ?? cleanedPath;
+      window.history.replaceState({}, document.title, nextPath);
+    }
+
+    fetchConfig();
+    const saved = localStorage.getItem(tokenKey);
+    if (saved) {
+      setToken(saved);
+    } else {
+      setSessionState('anonymous');
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleFlashEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<FlashMessage | null>;
+      const message = customEvent.detail;
+
+      if (typeof message === 'string') {
+        setFlash(message.trim().length > 0 ? message : null);
+        return;
+      }
+
+      if (message && message.text.trim().length > 0) {
+        setFlash(message);
+        return;
+      }
+
+      setFlash(null);
+    };
+
+    window.addEventListener('ov-flash', handleFlashEvent);
+    return () => {
+      window.removeEventListener('ov-flash', handleFlashEvent);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!token) {
+      setSessionState('anonymous');
+      resetPollState();
+      return;
+    }
+
+    if (skipNextTokenBootstrapRef.current) {
+      skipNextTokenBootstrapRef.current = false;
+      return;
+    }
+
+    const bootstrap = async () => {
+      setSessionState('loading');
+      try {
+        await fetchMe();
+        await refreshActiveAndSelected();
+        await fetchHistory();
+        setSessionState('authenticated');
+      } catch (err) {
+        if ((err as Error).message === 'Unauthorized') {
+          return;
+        }
+        setFlash((err as Error).message || 'Unable to refresh session');
+      }
+    };
+
+    bootstrap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  useEffect(() => {
+    const name = config?.serverName?.trim() || 'Voting';
+    document.title = `${name} Voting`;
+  }, [config?.serverName]);
+
+  useEffect(() => {
+    history.forEach((p) => p.winners.forEach((w) => w.assetId && loadAsset(w.assetId)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history]);
+
+  useEffect(() => () => {
+    if (confirmResolver.current) {
+      confirmResolver.current(false);
+    }
+    confirmResolver.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (refreshTimerRef.current !== null) {
+      window.clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    if (!token) {
+      return;
+    }
+
+    let cancelled = false;
+    const expiresAt = getJwtExpiryMs(token);
+    const refreshDelay = Math.max((expiresAt ?? Date.now()) - Date.now() - refreshLeadTimeMs, minRefreshDelayMs);
+
+    const schedule = (delayMs: number) => {
+      refreshTimerRef.current = window.setTimeout(async () => {
+        if (cancelled) {
+          return;
+        }
+
+        try {
+          const refreshed = await refreshToken();
+          if (!refreshed && token) {
+            schedule(minRefreshDelayMs);
+          }
+        } catch {
+          if (token) {
+            schedule(minRefreshDelayMs);
+          }
+        }
+      }, delayMs);
+    };
+
+    schedule(refreshDelay);
+
+    return () => {
+      cancelled = true;
+      if (refreshTimerRef.current !== null) {
+        window.clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const loginCta = useMemo(() => {
     if (sessionState === 'loading') return 'Checking your account…';
