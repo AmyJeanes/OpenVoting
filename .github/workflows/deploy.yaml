@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       
       - name: Connect to Kubernetes
-        uses: AmyJeanes/Abyss-Infrastructure/.github/actions/connect-k8s@3183bb7e4ec53784e528ee8312b3b9fafd18dcae # main
+        uses: AmyJeanes/Abyss-Infrastructure/.github/actions/connect-k8s@b670c0ef8a6ec85a206ae613d1bfa8f776f57de8 # main
         with:
           kubeconfig: "${{ secrets.KUBECONFIG }}"
           hostname: "${{ vars.KUBERNETES_API_HOSTNAME }}"
@@ -53,10 +53,10 @@ jobs:
         working-directory: charts
 
       - name: Wait for certificate to be ready
-        uses: AmyJeanes/Abyss-Infrastructure/.github/actions/wait-kube-certificate@3183bb7e4ec53784e528ee8312b3b9fafd18dcae # main
+        uses: AmyJeanes/Abyss-Infrastructure/.github/actions/wait-kube-certificate@b670c0ef8a6ec85a206ae613d1bfa8f776f57de8 # main
         with:
           name: "openvoting-tls"
 
       - name: Disconnect from Kubernetes
         if: always()
-        uses: AmyJeanes/Abyss-Infrastructure/.github/actions/disconnect-k8s@3183bb7e4ec53784e528ee8312b3b9fafd18dcae # main
+        uses: AmyJeanes/Abyss-Infrastructure/.github/actions/disconnect-k8s@b670c0ef8a6ec85a206ae613d1bfa8f776f57de8 # main
