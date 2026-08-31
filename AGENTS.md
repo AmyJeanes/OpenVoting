@@ -19,6 +19,7 @@ OpenVoting.Server:
 
 OpenVoting.Client:
 - This is a React frontend application
+- Use colons, not em dashes, in compact status or reason text. Verify sibling spacing in the browser and inspect computed styles when generic classes may override component margins.
 - Use `npm run build` to compile
 - Use `npm run test` to run unit tests
 - Use `npm run lint` to run the linter and discover issues
