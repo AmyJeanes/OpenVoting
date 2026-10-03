@@ -1,7 +1,7 @@
 # See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:57460add89e2b3dd1950c41d8b7dc96eeb7a24d13d98e3656ce9997a8b746bd6 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:222759b391a1aaf241166672c8f99b2d4ada452e7b5319f3c6e8f265a37b5ad4 AS base
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
@@ -9,7 +9,7 @@ EXPOSE 8081
 
 
 # This stage is used to build the service project
-FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:83e0db97c45d2e39b80123fe42940a23c423405a17f80b608a4b8768033d6392 AS with-deps
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:e70cdb7f80b0348f5cb85f19a8f670fca061f033d57eed12fa003d58b0e06317 AS with-deps
 RUN apt-get update
 RUN apt-get install curl -y
 RUN curl -sL https://deb.nodesource.com/setup_20.x | bash
