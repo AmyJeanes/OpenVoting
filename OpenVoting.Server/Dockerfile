@@ -12,7 +12,7 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:11.0@sha256:65f3c7c6a25a239ab3e6719f2896147e7b68242ff2d8818dd70498bde6ef8bea AS with-deps
 RUN apt-get update
 RUN apt-get install curl -y
-RUN curl -sL https://deb.nodesource.com/setup_24.x | bash
+RUN curl -sL https://deb.nodesource.com/setup_26.x | bash
 RUN apt-get -y install nodejs
 
 FROM with-deps AS build
