@@ -16,6 +16,8 @@ import type {
   FlashMessage
 } from '../types';
 import { useToast } from '../components';
+import { toEventHandler } from '../utils/async';
+import { readJson } from '../utils/http';
 
 const tokenKey = 'ov_token';
 const postLoginReturnToKey = 'ov_post_login_return_to';
@@ -94,7 +96,7 @@ const fetchConfigData = async (): Promise<ConfigResponse> => {
     throw new Error(text || res.statusText);
   }
 
-  return res.json();
+  return readJson<ConfigResponse>(res);
 };
 
 // A sign-in handoff arrives either as a URL query (the Discord redirect) or as a one-shot flash
@@ -236,7 +238,7 @@ export function useVotingApp() {
         throw new Error(text || 'Unable to refresh session');
       }
 
-      const data: RefreshAuthResponse = await res.json();
+      const data = await readJson<RefreshAuthResponse>(res);
       if (!data.token) {
         logout('Your session expired, please sign in again');
         return false;
@@ -313,7 +315,7 @@ export function useVotingApp() {
       const text = await res.text();
       throw new Error(text || res.statusText);
     }
-    const data: MeResponse = await res.json();
+    const data = await readJson<MeResponse>(res);
     setMe(data);
     return data;
   };
@@ -349,7 +351,7 @@ export function useVotingApp() {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const created: PollResponse = await res.json();
+      const created = await readJson<PollResponse>(res);
       showToast('Poll created', { tone: 'success' });
       setCreateSuccessCount((prev) => prev + 1);
       setSelectedPollId(created.id);
@@ -382,7 +384,7 @@ export function useVotingApp() {
       const text = await res.text();
       throw new Error(text || res.statusText);
     }
-    const data: PollResponse = await res.json();
+    const data = await readJson<PollResponse>(res);
     setPoll(data);
     setSelectedPollId(data.id);
     if (!data.isAdmin || (data.status !== 2 && data.status !== 5)) {
@@ -407,7 +409,7 @@ export function useVotingApp() {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const tally: VotingBreakdownEntry[] = await res.json();
+      const tally = await readJson<VotingBreakdownEntry[]>(res);
       setVotingBreakdown(tally);
     } catch (err) {
       setVotingBreakdownError(err instanceof Error ? err.message : 'Failed to load voting breakdown');
@@ -426,7 +428,7 @@ export function useVotingApp() {
       const text = await res.text();
       throw new Error(text || res.statusText);
     }
-    const data: PollHistoryResponse[] = await res.json();
+    const data = await readJson<PollHistoryResponse[]>(res);
     setHistory(data);
   };
 
@@ -444,7 +446,7 @@ export function useVotingApp() {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const data: PollResponse[] = await res.json();
+      const data = await readJson<PollResponse[]>(res);
       setActivePolls(data);
       if (!selectedPollId || !data.some((p) => p.id === selectedPollId)) {
         setSelectedPollId(data[0]?.id ?? null);
@@ -467,7 +469,7 @@ export function useVotingApp() {
       const text = await res.text();
       throw new Error(text || res.statusText);
     }
-    const data: PollDetailResponse = await res.json();
+    const data = await readJson<PollDetailResponse>(res);
     setPollDetail(data);
     loadAssetsForEntries(data.entries);
     return data;
@@ -488,7 +490,7 @@ export function useVotingApp() {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const data: PollEntryResponse[] = await res.json();
+      const data = await readJson<PollEntryResponse[]>(res);
       setEntries(data);
       loadAssetsForEntries(data);
       setVoteState((prev) => {
@@ -517,7 +519,7 @@ export function useVotingApp() {
       const text = await res.text();
       throw new Error(text || res.statusText);
     }
-    const data: VoteResponse = await res.json();
+    const data = await readJson<VoteResponse>(res);
     setVoteInfo(data);
     setVoteState((prev) => {
       const next = { ...prev } as Record<string, { selected: boolean; rank: string }>;
@@ -575,7 +577,7 @@ export function useVotingApp() {
     try {
       const res = await authedFetch(`/api/assets/${id}`);
       if (!res.ok) return;
-      const data: AssetUploadResponse = await res.json();
+      const data = await readJson<AssetUploadResponse>(res);
       setAssetCache((prev) => ({ ...prev, [id]: data }));
     } catch {
       // Suppress asset load errors
@@ -588,7 +590,9 @@ export function useVotingApp() {
       if (e.publicAssetId) ids.add(e.publicAssetId);
       if (e.originalAssetId) ids.add(e.originalAssetId);
     });
-    ids.forEach((id) => loadAsset(id));
+    ids.forEach((id) => {
+      void loadAsset(id);
+    });
   };
 
   const uploadAsset = async (file: File): Promise<AssetUploadResponse> => {
@@ -602,7 +606,7 @@ export function useVotingApp() {
       const text = await res.text();
       throw new Error(text || res.statusText);
     }
-    return res.json();
+    return readJson<AssetUploadResponse>(res);
   };
 
   const submitEntry = async () => {
@@ -658,8 +662,8 @@ export function useVotingApp() {
       let originalId: string | undefined;
 
       if (hasFile) {
-        await validateImageFile(selectedFile!);
-        const upload = await uploadAsset(selectedFile!);
+        await validateImageFile(selectedFile);
+        const upload = await uploadAsset(selectedFile);
         originalId = upload.id;
       }
 
@@ -908,7 +912,7 @@ export function useVotingApp() {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const data: VoteResponse = await res.json();
+      const data = await readJson<VoteResponse>(res);
       setVoteInfo(data);
       showToast('Vote submitted', { tone: 'success' });
     } catch (err) {
@@ -1065,7 +1069,7 @@ export function useVotingApp() {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const updated: PollResponse = await res.json();
+      const updated = await readJson<PollResponse>(res);
       setSelectedPollId(updated.id);
       await refreshPoll(true, updated.id);
       await fetchActivePolls();
@@ -1095,7 +1099,7 @@ export function useVotingApp() {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const updated: PollResponse = await res.json();
+      const updated = await readJson<PollResponse>(res);
       setSelectedPollId(updated.id);
       await refreshPoll(true, updated.id);
       await fetchActivePolls();
@@ -1125,7 +1129,7 @@ export function useVotingApp() {
         const text = await res.text();
         throw new Error(text || res.statusText);
       }
-      const updated: PollResponse = await res.json();
+      const updated = await readJson<PollResponse>(res);
       setSelectedPollId(updated.id);
       await refreshPoll(true, updated.id);
       await fetchActivePolls();
@@ -1166,6 +1170,25 @@ export function useVotingApp() {
     } else {
       clearSelectedPollData();
       setPollError(null);
+    }
+  };
+
+  // authedFetch has already logged out and set the flash for an Unauthorized error
+  const refreshLivePolls = async () => {
+    try {
+      await refreshActiveAndSelected();
+    } catch (err) {
+      if (err instanceof Error && err.message === 'Unauthorized') return;
+      setPollError(err instanceof Error ? err.message : 'Failed to load polls');
+    }
+  };
+
+  const refreshHistory = async () => {
+    try {
+      await fetchHistory();
+    } catch (err) {
+      if (err instanceof Error && err.message === 'Unauthorized') return;
+      setHistoryError(err instanceof Error ? err.message : 'Failed to load history');
     }
   };
 
@@ -1268,7 +1291,9 @@ export function useVotingApp() {
   }, [config?.serverName]);
 
   useEffect(() => {
-    history.forEach((p) => p.winners.forEach((w) => w.assetId && loadAsset(w.assetId)));
+    history.forEach((p) => p.winners.forEach((w) => {
+      if (w.assetId) void loadAsset(w.assetId);
+    }));
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [history]);
 
@@ -1293,22 +1318,26 @@ export function useVotingApp() {
     const expiresAt = getJwtExpiryMs(token);
     const refreshDelay = Math.max((expiresAt ?? Date.now()) - Date.now() - refreshLeadTimeMs, minRefreshDelayMs);
 
-    const schedule = (delayMs: number) => {
-      refreshTimerRef.current = window.setTimeout(async () => {
-        if (cancelled) {
-          return;
-        }
+    const refreshAndReschedule = async () => {
+      if (cancelled) {
+        return;
+      }
 
-        try {
-          const refreshed = await refreshToken();
-          if (!refreshed && token) {
-            schedule(minRefreshDelayMs);
-          }
-        } catch {
-          if (token) {
-            schedule(minRefreshDelayMs);
-          }
+      try {
+        const refreshed = await refreshToken();
+        if (!refreshed && token) {
+          schedule(minRefreshDelayMs);
         }
+      } catch {
+        if (token) {
+          schedule(minRefreshDelayMs);
+        }
+      }
+    };
+
+    const schedule = (delayMs: number) => {
+      refreshTimerRef.current = window.setTimeout(() => {
+        void refreshAndReschedule();
       }, delayMs);
     };
 
@@ -1381,16 +1410,16 @@ export function useVotingApp() {
     activePolls,
     activeLoading,
     refreshPoll,
-    refreshActiveAndSelected,
-    handleSelectPoll,
-    transitionPoll,
-    deletePoll,
+    refreshLivePolls: toEventHandler(refreshLivePolls),
+    handleSelectPoll: toEventHandler(handleSelectPoll),
+    transitionPoll: toEventHandler(transitionPoll),
+    deletePoll: toEventHandler(deletePoll),
     updatePollMetadata,
     updateSubmissionSettings,
     updateVotingSettings,
     openVotingModal,
     setOpenVotingModal,
-    handleConfirmOpenVoting,
+    handleConfirmOpenVoting: toEventHandler(handleConfirmOpenVoting),
     handleCancelOpenVoting,
     // creation
     createForm,
@@ -1398,7 +1427,7 @@ export function useVotingApp() {
     creating,
     createError,
     createSuccessCount,
-    createPoll,
+    createPoll: toEventHandler(createPoll),
     // entries
     entries,
     entriesError,
@@ -1412,11 +1441,11 @@ export function useVotingApp() {
     entrySubmitSuccessCount,
     entrySubmitError,
     entrySubmitting,
-    submitEntry,
+    submitEntry: toEventHandler(submitEntry),
     handleEntryFilesChange,
-    disqualifyEntry,
-    requalifyEntry,
-    deleteEntry,
+    disqualifyEntry: toEventHandler(disqualifyEntry),
+    requalifyEntry: toEventHandler(requalifyEntry),
+    deleteEntry: toEventHandler(deleteEntry),
     onRefreshEntries: () => fetchEntries(),
     // assets
     assetCache,
@@ -1428,7 +1457,7 @@ export function useVotingApp() {
     voteInfo,
     toggleSelection,
     updateRank,
-    submitVote,
+    submitVote: toEventHandler(submitVote),
     // admin tallies
     votingBreakdown,
     votingBreakdownError,
@@ -1436,7 +1465,7 @@ export function useVotingApp() {
     // history
     history,
     historyError,
-    fetchHistory,
+    refreshHistory: toEventHandler(refreshHistory),
     // confirm dialog
     confirmConfig,
     requestConfirm,

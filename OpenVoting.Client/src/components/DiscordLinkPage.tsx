@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toEventHandler } from '../utils/async';
+import { readJson } from '../utils/http';
 import type { FlashMessage, OneTimeDiscordLinkAuthResponse, OneTimeDiscordLinkStatusResponse } from '../types';
 
 const tokenStorageKey = 'ov_token';
@@ -35,7 +37,7 @@ export function DiscordLinkPage() {
           throw new Error(text || 'Unable to verify login link');
         }
 
-        const payload: OneTimeDiscordLinkStatusResponse = await response.json();
+        const payload = await readJson<OneTimeDiscordLinkStatusResponse>(response);
         if (!cancelled) {
           setFetchedStatus(payload);
         }
@@ -92,6 +94,10 @@ export function DiscordLinkPage() {
     };
   }, [warningMessage]);
 
+  const handleCancel = () => {
+    void navigate('/', { replace: true });
+  };
+
   const handleContinue = async () => {
     if (!canContinue || submitting) {
       return;
@@ -114,7 +120,7 @@ export function DiscordLinkPage() {
         throw new Error(text || 'Unable to complete sign in');
       }
 
-      const payload: OneTimeDiscordLinkAuthResponse = await response.json();
+      const payload = await readJson<OneTimeDiscordLinkAuthResponse>(response);
       localStorage.setItem(tokenStorageKey, payload.token);
       void navigate('/', { replace: true });
       window.location.reload();
@@ -131,10 +137,10 @@ export function DiscordLinkPage() {
       <h2>{title}</h2>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
-        <button className="primary" type="button" onClick={handleContinue} disabled={!canContinue || statusLoading || submitting}>
+        <button className="primary" type="button" onClick={toEventHandler(handleContinue)} disabled={!canContinue || statusLoading || submitting}>
           {submitting ? 'Signing in…' : 'Continue'}
         </button>
-        <button className="ghost" type="button" onClick={() => navigate('/', { replace: true })}>
+        <button className="ghost" type="button" onClick={handleCancel}>
           Cancel
         </button>
       </div>

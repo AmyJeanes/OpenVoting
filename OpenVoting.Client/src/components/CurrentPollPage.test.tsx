@@ -52,11 +52,10 @@ function renderPage(overrides: Partial<CurrentPollProps> = {}) {
       onSelectPoll: vi.fn(),
       onToggleSelection: vi.fn(),
       onUpdateRank: vi.fn(),
-      onSubmitVote: vi.fn(async () => {
+      onSubmitVote: vi.fn(() => {
         setVoteError(null);
         setVoteSubmitting(true);
-        await new Promise((resolve) => window.setTimeout(resolve, 10));
-        setVoteSubmitting(false);
+        window.setTimeout(() => setVoteSubmitting(false), 10);
       }),
       onSubmitEntry: vi.fn(),
       onEntryFormChange: vi.fn(),

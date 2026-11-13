@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useVotingApp } from './useVotingApp';
+import { createMeResponse, createPollResponse } from '../test/factories';
 
 declare const Response: typeof globalThis.Response;
 const showToastMock = vi.fn();
@@ -10,6 +11,15 @@ describe('useVotingApp', () => {
     status: 200,
     headers: { 'Content-Type': 'application/json' }
   });
+
+  const mockFetch = (route: (url: string) => Response) => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      return Promise.resolve(route(url));
+    });
+    global.fetch = fetchMock;
+    return fetchMock;
+  };
 
   beforeEach(() => {
     const store = new Map<string, string>();
@@ -42,14 +52,12 @@ describe('useVotingApp', () => {
   });
 
   it('sets session anonymous when no saved token', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const fetchMock = mockFetch((url) => {
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
       return new Response('', { status: 404 });
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
 
     const { result } = renderHook(() => useVotingApp());
 
@@ -62,8 +70,7 @@ describe('useVotingApp', () => {
 
   it('logs out and clears token on unauthorized me response', async () => {
     localStorage.setItem('ov_token', 'abc');
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const fetchMock = mockFetch((url) => {
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test' });
       }
@@ -72,7 +79,6 @@ describe('useVotingApp', () => {
       }
       return new Response('', { status: 404 });
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
 
     const { result } = renderHook(() => useVotingApp());
 
@@ -82,19 +88,18 @@ describe('useVotingApp', () => {
 
     expect(localStorage.getItem('ov_token')).toBeNull();
     expect(result.current.flash).toBe('Your session expired, please sign in again');
-    expect(fetchMock).toHaveBeenCalledWith('/api/auth/me', expect.objectContaining({ headers: expect.any(Object) }));
+    const meInit = fetchMock.mock.calls.find(([input]) => input === '/api/auth/me')?.[1];
+    expect(new Headers(meInit?.headers).get('Authorization')).toBe('Bearer abc');
   });
 
   it('surfaces stored flash message from auth redirect', async () => {
     localStorage.setItem('ov_flash', 'Join the Discord server to sign in');
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    mockFetch((url) => {
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
       return new Response('', { status: 404 });
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
 
     const { result } = renderHook(() => useVotingApp());
 
@@ -106,14 +111,12 @@ describe('useVotingApp', () => {
   });
 
   it('keeps selected image file in state while async validation is pending', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    mockFetch((url) => {
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
       return new Response('', { status: 404 });
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
 
     vi.stubGlobal('URL', {
       ...URL,
@@ -131,7 +134,7 @@ describe('useVotingApp', () => {
         // Keep validation pending by never invoking onload/onerror.
       }
     }
-    vi.stubGlobal('Image', PendingImage as unknown as typeof Image);
+    vi.stubGlobal('Image', PendingImage);
 
     const { result } = renderHook(() => useVotingApp());
 
@@ -149,14 +152,12 @@ describe('useVotingApp', () => {
   });
 
   it('keeps selected file when validation fails so submit reports specific validation error', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    mockFetch((url) => {
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
       return new Response('', { status: 404 });
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
 
     vi.stubGlobal('URL', {
       ...URL,
@@ -174,7 +175,7 @@ describe('useVotingApp', () => {
         this.onload?.();
       }
     }
-    vi.stubGlobal('Image', RectImage as unknown as typeof Image);
+    vi.stubGlobal('Image', RectImage);
 
     const { result } = renderHook(() => useVotingApp());
 
@@ -196,14 +197,12 @@ describe('useVotingApp', () => {
   });
 
   it('rejects image files larger than 10MB during client-side validation', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    mockFetch((url) => {
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
       return new Response('', { status: 404 });
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
 
     const { result } = renderHook(() => useVotingApp());
 
@@ -229,14 +228,12 @@ describe('useVotingApp', () => {
   it('stores current path before redirecting to Discord login', async () => {
     window.history.replaceState({}, '', '/polls/live/abc?view=grid#details');
 
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    mockFetch((url) => {
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test/oauth' });
       }
       return new Response('', { status: 404 });
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
 
     const { result } = renderHook(() => useVotingApp());
 
@@ -259,8 +256,7 @@ describe('useVotingApp', () => {
     window.history.replaceState({}, '', '/?token=jwt-token');
     localStorage.setItem('ov_post_login_return_to', '/polls/live/next?tab=vote#entry-1');
 
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    mockFetch((url) => {
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test/oauth' });
       }
@@ -269,7 +265,6 @@ describe('useVotingApp', () => {
       }
       return new Response('', { status: 404 });
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
 
     const { result } = renderHook(() => useVotingApp());
 
@@ -287,8 +282,7 @@ describe('useVotingApp', () => {
     window.history.replaceState({}, '', '/?token=jwt-token&returnTo=%2Fpolls%2Fhistory%3Fq%3Ddone%23top');
     localStorage.setItem('ov_post_login_return_to', '/polls/live/next?tab=vote#entry-1');
 
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    mockFetch((url) => {
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test/oauth' });
       }
@@ -297,7 +291,6 @@ describe('useVotingApp', () => {
       }
       return new Response('', { status: 404 });
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
 
     const { result } = renderHook(() => useVotingApp());
 
@@ -309,6 +302,61 @@ describe('useVotingApp', () => {
     expect(window.location.search).toBe('?q=done');
     expect(window.location.hash).toBe('#top');
     expect(localStorage.getItem('ov_post_login_return_to')).toBeNull();
+  });
+
+  describe('when signed in', () => {
+    const poll = createPollResponse({ id: 'poll-1' });
+    let failures: Record<string, string>;
+
+    beforeEach(() => {
+      localStorage.setItem('ov_token', 'abc');
+      failures = {};
+      mockFetch((url) => {
+        const path = new URL(url, 'http://localhost').pathname;
+        if (failures[path]) return new Response(failures[path], { status: 500 });
+        switch (path) {
+          case '/api/config': return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
+          case '/api/auth/me': return okJson(createMeResponse());
+          case '/api/polls/active': return okJson([poll]);
+          case '/api/polls/poll-1/summary': return okJson(poll);
+          case '/api/polls/poll-1/entries': return okJson([]);
+          case '/api/polls/poll-1': return okJson({ entries: [], winners: [] });
+          default: return new Response(null, { status: 204 });
+        }
+      });
+    });
+
+    it('shows a live polls refresh failure as a poll error', async () => {
+      const { result } = renderHook(() => useVotingApp());
+      await waitFor(() => {
+        expect(result.current.sessionState).toBe('authenticated');
+      });
+
+      failures['/api/polls/poll-1/summary'] = 'Summary failed';
+      act(() => {
+        result.current.refreshLivePolls();
+      });
+
+      await waitFor(() => {
+        expect(result.current.pollError).toBe('Summary failed');
+      });
+    });
+
+    it('shows a history refresh failure as a history error', async () => {
+      const { result } = renderHook(() => useVotingApp());
+      await waitFor(() => {
+        expect(result.current.sessionState).toBe('authenticated');
+      });
+
+      failures['/api/polls/history'] = 'History failed';
+      act(() => {
+        result.current.refreshHistory();
+      });
+
+      await waitFor(() => {
+        expect(result.current.historyError).toBe('History failed');
+      });
+    });
   });
 });
 

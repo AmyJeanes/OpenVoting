@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toEventHandler } from '../utils/async';
+import { readJson } from '../utils/http';
 
 const tokenStorageKey = 'ov_token';
 const flashStorageKey = 'ov_flash';
@@ -57,7 +59,7 @@ export function DiscordOAuthCallbackPage() {
         throw new Error(text || 'Unable to complete sign in');
       }
 
-      const payload: DiscordAuthResponse = await response.json();
+      const payload = await readJson<DiscordAuthResponse>(response);
       localStorage.setItem(tokenStorageKey, payload.token);
       localStorage.removeItem(flashStorageKey);
       void navigate('/', { replace: true });
@@ -78,7 +80,7 @@ export function DiscordOAuthCallbackPage() {
       <p className="muted">{description}</p>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
-        <button className="primary" type="button" onClick={handleContinue} disabled={!canContinue || submitting}>
+        <button className="primary" type="button" onClick={toEventHandler(handleContinue)} disabled={!canContinue || submitting}>
           {submitting ? 'Signing in…' : 'Continue'}
         </button>
         <button className="ghost" type="button" onClick={handleCancel}>

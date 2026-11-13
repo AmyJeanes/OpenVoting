@@ -13,7 +13,7 @@ export type ActivePollsPageProps = {
   activePolls: PollResponse[];
   pollError: string | null;
   loading: boolean;
-  onRefresh: () => Promise<void> | void;
+  onRefresh: () => void;
   createForm: CreatePollForm;
   setCreateForm: Dispatch<SetStateAction<CreatePollForm>>;
   creating: boolean;

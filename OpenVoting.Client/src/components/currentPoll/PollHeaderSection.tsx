@@ -6,7 +6,7 @@ import { MarkdownText } from '../MarkdownText';
 
 export type PollHeaderSectionProps = {
   poll: PollResponse | null;
-  onRefreshPoll: () => Promise<void> | void;
+  onRefreshPoll: () => void;
 };
 
 export function PollHeaderSection({ poll, onRefreshPoll }: PollHeaderSectionProps) {

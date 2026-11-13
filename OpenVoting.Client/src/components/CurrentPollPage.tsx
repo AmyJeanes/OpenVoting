@@ -13,6 +13,7 @@ import { MySubmissionsSection } from './currentPoll/MySubmissionsSection';
 import { PreviewSection } from './currentPoll/PreviewSection';
 import { VotingSection } from './currentPoll/VotingSection';
 import { RankingModal } from './currentPoll/RankingModal';
+import { toEventHandler } from '../utils/async';
 import type {
   AssetUploadResponse,
   PollEntryResponse,
@@ -111,7 +112,7 @@ export type CurrentPollProps = {
   entrySubmitSuccessCount: number;
   entrySubmitting: boolean;
   assetCache: Record<string, AssetUploadResponse>;
-  onRefreshPoll: () => Promise<void> | void;
+  onRefreshPoll: () => void;
   onSelectPoll: (id: string) => void;
   onToggleSelection: (id: string, selected: boolean) => void;
   onUpdateRank: (id: string, rank: string) => void;
@@ -655,7 +656,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
           onVotingChange={setVotingForm}
           onTransition={onTransition}
           onDeletePoll={onDeletePoll}
-          onSave={handleSaveSettings}
+          onSave={toEventHandler(handleSaveSettings)}
         />
       )}
 

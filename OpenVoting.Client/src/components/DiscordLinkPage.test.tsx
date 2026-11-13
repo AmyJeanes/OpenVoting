@@ -12,7 +12,7 @@ const renderAt = (path: string) => render(
 describe('DiscordLinkPage', () => {
   it('reports a missing login token without waiting on a status fetch', async () => {
     const fetchMock = vi.fn();
-    global.fetch = fetchMock as unknown as typeof fetch;
+    global.fetch = fetchMock;
 
     const flashes: (FlashMessage | null)[] = [];
     const onFlash = (event: Event) => flashes.push((event as CustomEvent<FlashMessage | null>).detail);
@@ -33,10 +33,10 @@ describe('DiscordLinkPage', () => {
   });
 
   it('enables continue once the token checks out as valid', async () => {
-    global.fetch = vi.fn(async () => new Response(
+    global.fetch = vi.fn(() => Promise.resolve(new Response(
       JSON.stringify({ status: 'valid', displayName: 'Amy' }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
-    )) as unknown as typeof fetch;
+    )));
 
     renderAt('/auth/discord-link?token=good-token');
 

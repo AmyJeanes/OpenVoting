@@ -38,7 +38,7 @@ export default function App() {
     pollLoading,
     activePolls,
     activeLoading,
-    refreshActiveAndSelected,
+    refreshLivePolls,
     handleSelectPoll,
     transitionPoll,
     deletePoll,
@@ -83,7 +83,7 @@ export default function App() {
     // history
     history,
     historyError,
-    fetchHistory,
+    refreshHistory,
     // modals
     openVotingModal,
     setOpenVotingModal,
@@ -130,7 +130,7 @@ export default function App() {
               activePolls={activePolls}
               pollError={pollError}
               loading={activeLoading}
-              onRefresh={refreshActiveAndSelected}
+              onRefresh={refreshLivePolls}
               createForm={createForm}
               setCreateForm={setCreateForm}
               creating={creating}
@@ -170,7 +170,7 @@ export default function App() {
               entrySubmitSuccessCount={entrySubmitSuccessCount}
               entrySubmitting={entrySubmitting}
               assetCache={assetCache}
-              onRefreshPoll={refreshActiveAndSelected}
+              onRefreshPoll={refreshLivePolls}
               onSelectPoll={handleSelectPoll}
               onToggleSelection={toggleSelection}
               onUpdateRank={updateRank}
@@ -220,7 +220,7 @@ export default function App() {
               entrySubmitSuccessCount={entrySubmitSuccessCount}
               entrySubmitting={entrySubmitting}
               assetCache={assetCache}
-              onRefreshPoll={refreshActiveAndSelected}
+              onRefreshPoll={refreshLivePolls}
               onSelectPoll={handleSelectPoll}
               onToggleSelection={toggleSelection}
               onUpdateRank={updateRank}
@@ -251,7 +251,7 @@ export default function App() {
               history={history}
               historyError={historyError}
               assetCache={assetCache}
-              onRefresh={fetchHistory}
+              onRefresh={refreshHistory}
             />
           }
         />

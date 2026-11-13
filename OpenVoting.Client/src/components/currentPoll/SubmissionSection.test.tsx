@@ -46,7 +46,7 @@ describe('SubmissionSection', () => {
       />
     );
 
-    const input = screen.getByLabelText(/upload image/i) as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>(/upload image/i);
     Object.defineProperty(input, 'value', { value: 'C:\\fakepath\\professor_booboo_by_lieveheersbeestje-d7mb7og.jpg', writable: true, configurable: true });
 
     fireEvent.click(input);
@@ -76,7 +76,7 @@ describe('SubmissionSection', () => {
       />
     );
 
-    const input = screen.getByLabelText(/upload image/i) as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>(/upload image/i);
     Object.defineProperty(input, 'value', { value: 'C:\\fakepath\\image.jpg', writable: true, configurable: true });
 
     rerender(
