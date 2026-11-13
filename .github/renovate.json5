@@ -11,6 +11,14 @@
   },
   "packageRules": [
     {
+      // Npgsql's EF Core provider only accepts EF Core of its own major, so they must update together
+      "groupName": "EF Core and Npgsql",
+      "matchPackageNames": [
+        "Microsoft.EntityFrameworkCore*",
+        "Npgsql.EntityFrameworkCore.PostgreSQL"
+      ]
+    },
+    {
       // Always want to use latest version
       "matchDepNames": [
         "ghcr.io/amyjeanes/openvoting/openvoting"
