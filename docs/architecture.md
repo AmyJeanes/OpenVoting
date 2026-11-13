@@ -4,7 +4,7 @@
 
 Tech stack:
 
-- ASP.NET Core (.NET 10)
+- ASP.NET Core (.NET 11)
 - EF Core + Npgsql (PostgreSQL)
 - JWT Bearer authentication
 - Azure Blob Storage SDK

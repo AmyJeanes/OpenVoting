@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- .NET SDK 10.x
+- .NET SDK 11.x
 - Node.js 20.x + npm
 - PostgreSQL
 - (Optional) Azurite for local blob emulation
