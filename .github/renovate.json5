@@ -23,6 +23,12 @@
   ],
   "packageRules": [
     {
+      // CI runs OpenTofu, which installs providers from the OpenTofu registry; it mirrors new
+      // releases hours after registry.terraform.io, so look versions up there instead
+      "matchDatasources": ["terraform-provider"],
+      "registryUrls": ["https://registry.opentofu.org"]
+    },
+    {
       // CI and the Docker build should run the same Node major
       "groupName": "Node",
       "matchDepNames": ["node"]
