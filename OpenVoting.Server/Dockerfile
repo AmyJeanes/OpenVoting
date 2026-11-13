@@ -30,7 +30,9 @@ RUN dotnet build "./OpenVoting.Server.csproj" -c $BUILD_CONFIGURATION -o /app/bu
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./OpenVoting.Server.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+ARG TARGETARCH
+# Publishing for one architecture keeps only that platform's SkiaSharp native library instead of every RID's
+RUN dotnet publish "./OpenVoting.Server.csproj" -c $BUILD_CONFIGURATION -a $TARGETARCH --self-contained false -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final

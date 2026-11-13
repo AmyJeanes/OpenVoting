@@ -3,8 +3,6 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Options;
 using OpenVoting.Data;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
 
 namespace OpenVoting.Server.Services;
 
@@ -63,7 +61,7 @@ public sealed class BlobAssetStorage : IAssetStorage
 			throw new InvalidOperationException($"File exceeds the allowed limit of {maxBytes / (1024 * 1024)} MB");
 		}
 
-		var processed = await ProcessImageAsync(workingStream, contentType, options, cancellationToken);
+		var processed = ProcessImage(workingStream, contentType, options);
 
 		if (options?.MaxBytes is long maxProcessedBytes && processed.Buffer.Length > maxProcessedBytes)
 		{
@@ -146,9 +144,9 @@ public sealed class BlobAssetStorage : IAssetStorage
 		return buffer;
 	}
 
-	private static async Task<ProcessedImage> ProcessImageAsync(MemoryStream source, string contentType, AssetSaveOptions? options, CancellationToken cancellationToken)
+	private static ProcessedImage ProcessImage(MemoryStream source, string contentType, AssetSaveOptions? options)
 	{
-		var info = await IdentifyAsync(source, options, cancellationToken);
+		var info = Identify(source, options);
 		var requiresProcessing = options?.ResizeTo.HasValue == true || options?.ApplyBlur == true || options?.NormalizeToPng == true;
 
 		if (!requiresProcessing)
@@ -159,46 +157,14 @@ public sealed class BlobAssetStorage : IAssetStorage
 			return new ProcessedImage(source, normalizedType, info.Width, info.Height, hash);
 		}
 
-		source.Position = 0;
-		using var image = await Image.LoadAsync(source, cancellationToken);
-
-		if (options?.ResizeTo is int size)
-		{
-			image.Mutate(x => x.Resize(new ResizeOptions
-			{
-				Size = new Size(size, size),
-				Mode = ResizeMode.Crop
-			}));
-		}
-
-		if (options?.ApplyBlur == true)
-		{
-			image.Mutate(x => x.GaussianBlur(20f));
-		}
-
-		var buffer = new MemoryStream();
-		await image.SaveAsPngAsync(buffer, cancellationToken);
-		buffer.Position = 0;
-
+		var (buffer, width, height) = ImageProcessor.ToPng(source, options?.ResizeTo, options?.ApplyBlur == true);
 		var hashProcessed = ComputeHash(buffer);
-		return new ProcessedImage(buffer, "image/png", image.Width, image.Height, hashProcessed);
+		return new ProcessedImage(buffer, "image/png", width, height, hashProcessed);
 	}
 
-	private static async Task<(int Width, int Height)> IdentifyAsync(Stream stream, AssetSaveOptions? options, CancellationToken cancellationToken)
+	private static (int Width, int Height) Identify(Stream stream, AssetSaveOptions? options)
 	{
-		if (!stream.CanSeek)
-		{
-			throw new InvalidOperationException("Image stream must be seekable");
-		}
-
-		stream.Position = 0;
-		var info = await Image.IdentifyAsync(stream, cancellationToken);
-		stream.Position = 0;
-
-		if (info is null)
-		{
-			throw new InvalidOperationException("Invalid image file");
-		}
+		var info = ImageProcessor.Identify(stream);
 
 		if (options?.RequireSquare == true && info.Width != info.Height)
 		{
@@ -210,7 +176,7 @@ public sealed class BlobAssetStorage : IAssetStorage
 			throw new InvalidOperationException($"Image must be at least {min}x{min}");
 		}
 
-		return (info.Width, info.Height);
+		return info;
 	}
 
 	private static string NormalizeContentType(string contentType)

@@ -6,9 +6,7 @@ using OpenVoting.Server.Contracts;
 using OpenVoting.Server.Services;
 using OpenVoting.Server.Tests.Helpers;
 using NUnit.Framework;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.PixelFormats;
+using SkiaSharp;
 
 namespace OpenVoting.Server.Tests;
 
@@ -311,24 +309,14 @@ public class PollEntryServiceTests
 		Assert.That(await db.Assets.CountAsync(), Is.EqualTo(2));
 
 		var entry = await db.PollEntries.FirstAsync();
-		Assert.That(entry.TeaserBlurHash, Is.Not.Null.And.Not.Empty);
+		// Same value the previous Blurhash.ImageSharp encoder produced for this image
+		Assert.That(entry.TeaserBlurHash, Is.EqualTo("LNB:wF3Da|xwuyRofQnTf7fQfQfQ"));
 		Assert.That(entry.PublicAssetId, Is.Not.Null);
 	}
 
 	private static byte[] CreateValidSquarePngBytes()
 	{
-		using var image = new Image<Rgba32>(8, 8);
-		for (var y = 0; y < image.Height; y++)
-		{
-			for (var x = 0; x < image.Width; x++)
-			{
-				image[x, y] = new Rgba32((byte)(x * 24), (byte)(y * 24), 140, 255);
-			}
-		}
-
-		using var ms = new MemoryStream();
-		image.Save(ms, new PngEncoder());
-		return ms.ToArray();
+		return TestImages.Png(8, 8, (x, y) => new SKColor((byte)(x * 24), (byte)(y * 24), 140));
 	}
 
 	[Test]

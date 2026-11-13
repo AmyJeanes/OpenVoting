@@ -1,12 +1,9 @@
 using System.Security.Claims;
-using Blurhash.ImageSharp;
 using Microsoft.EntityFrameworkCore;
 using OpenVoting.Data;
 using OpenVoting.Data.Enums;
 using OpenVoting.Server.Auth;
 using OpenVoting.Server.Contracts;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace OpenVoting.Server.Services;
 
@@ -465,9 +462,7 @@ public sealed class PollEntryService : IPollEntryService
 
 	private static string CreateTeaserBlurHash(MemoryStream source)
 	{
-		source.Position = 0;
-		using var image = Image.Load<Rgba32>(source);
-		var blurHash = Blurhasher.Encode(image, 4, 3);
+		var blurHash = ImageProcessor.CreateBlurHash(source, 4, 3);
 		return string.IsNullOrWhiteSpace(blurHash) ? FallbackTeaserBlurHash : blurHash;
 	}
 
