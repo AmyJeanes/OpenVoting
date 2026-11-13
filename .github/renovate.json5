@@ -19,6 +19,14 @@
       ]
     },
     {
+      // oxlint declares a minimum oxlint-tsgolint version, and they release together
+      "groupName": "Oxlint",
+      "matchPackageNames": [
+        "oxlint",
+        "oxlint-tsgolint"
+      ]
+    },
+    {
       // Always want to use latest version
       "matchDepNames": [
         "ghcr.io/amyjeanes/openvoting/openvoting"

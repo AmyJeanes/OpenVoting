@@ -51,7 +51,7 @@ export function DiscordLinkPage() {
       }
     };
 
-    fetchStatus();
+    void fetchStatus();
     return () => {
       cancelled = true;
     };
@@ -116,7 +116,7 @@ export function DiscordLinkPage() {
 
       const payload: OneTimeDiscordLinkAuthResponse = await response.json();
       localStorage.setItem(tokenStorageKey, payload.token);
-      navigate('/', { replace: true });
+      void navigate('/', { replace: true });
       window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to complete sign in');

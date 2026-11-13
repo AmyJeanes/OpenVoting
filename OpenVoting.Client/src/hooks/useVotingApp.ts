@@ -197,13 +197,9 @@ export function useVotingApp() {
   };
 
   const authedFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    const res = await fetch(input, {
-      ...init,
-      headers: {
-        ...(init?.headers ?? {}),
-        Authorization: `Bearer ${token}`
-      }
-    });
+    const headers = new Headers(init?.headers);
+    headers.set('Authorization', `Bearer ${token}`);
+    const res = await fetch(input, { ...init, headers });
 
     if (res.status === 401) {
       logout('Your session expired, please sign in again');
@@ -359,7 +355,7 @@ export function useVotingApp() {
       setSelectedPollId(created.id);
       await fetchActivePolls();
       await refreshPoll(true, created.id);
-      navigate('/polls/live');
+      void navigate('/polls/live');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create poll';
       setCreateError(message);
@@ -1045,7 +1041,7 @@ export function useVotingApp() {
       setHistory((prev) => prev.filter((p) => p.id !== pollId));
       await fetchActivePolls();
       await fetchHistory();
-      navigate(wasClosed ? '/polls/history' : '/polls/live');
+      void navigate(wasClosed ? '/polls/history' : '/polls/live');
     } catch (err) {
       setPollError(err instanceof Error ? err.message : 'Failed to delete poll');
     }
@@ -1208,7 +1204,7 @@ export function useVotingApp() {
       }
     };
 
-    loadConfig();
+    void loadConfig();
   }, []);
 
   useEffect(() => {
@@ -1262,8 +1258,8 @@ export function useVotingApp() {
       }
     };
 
-    bootstrap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void bootstrap();
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
@@ -1273,7 +1269,7 @@ export function useVotingApp() {
 
   useEffect(() => {
     history.forEach((p) => p.winners.forEach((w) => w.assetId && loadAsset(w.assetId)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [history]);
 
   useEffect(() => () => {
@@ -1325,7 +1321,7 @@ export function useVotingApp() {
         refreshTimerRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const loginCta = useMemo(() => {

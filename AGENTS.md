@@ -30,6 +30,7 @@ OpenVoting.Client:
 - Use the browser tool where available to view and test the frontend changes
 - When needed you can edit the code to help use Playwright, such as adding attributes to elements to make them easier to select
 - Add playwright smoke / full tests for any significant changes to the frontend, especially if they affect user flows, e.g. voting, creating polls, etc
-- eslint-plugin-react-hooks v7 enforces the React Compiler rules. Two bite often:
+- Oxlint (`.oxlintrc.json`) lints with type-aware rules via `oxlint-tsgolint`, which only understands files a tsconfig includes, so add new TypeScript outside `src` to `tsconfig.node.json`. Suppress a finding with `// oxlint-disable-next-line <rule>`
+- Oxlint's `react` plugin enforces the React Compiler rules. Two bite often:
   - `immutability` rejects an effect closing over a `const` declared further down, so effects sit below the functions they call in `useVotingApp`
-  - `set-state-in-effect` rejects a synchronous setState in an effect body. Derive during render, use a lazy `useState` initialiser, or use React's render-time guard (`if (prev !== next) { setPrev(next); ... }`), which the rules accept. It cannot see past a call to a function declared outside the effect, so a helper whose first statement is a setState is flagged even when it later awaits — define such a helper inside the effect, or have it return data and set state at the call site
+  - `set-state-in-effect` rejects a synchronous setState in an effect body. Derive during render, use a lazy `useState` initialiser, or use React's render-time guard (`if (prev !== next) { setPrev(next); ... }`), which the rules accept. It cannot see past a call to a function declared outside the effect, so calling a helper that sets state is flagged even when the setState follows an `await`. Define such a helper inside the effect, or have it return data and set state at the call site

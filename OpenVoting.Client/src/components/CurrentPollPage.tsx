@@ -362,7 +362,7 @@ export function CurrentPollPage(props: CurrentPollProps) {
       onSelectPoll(pollId);
     }
     // Intentionally depend on route param only; onSelectPoll identity can change between renders.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [pollId]);
 
   useEffect(() => {

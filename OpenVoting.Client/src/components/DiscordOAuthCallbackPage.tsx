@@ -31,7 +31,7 @@ export function DiscordOAuthCallbackPage() {
   }, [canContinue, oauthError, oauthErrorDescription]);
 
   const handleCancel = () => {
-    navigate('/', { replace: true });
+    void navigate('/', { replace: true });
   };
 
   const handleContinue = async () => {
@@ -60,7 +60,7 @@ export function DiscordOAuthCallbackPage() {
       const payload: DiscordAuthResponse = await response.json();
       localStorage.setItem(tokenStorageKey, payload.token);
       localStorage.removeItem(flashStorageKey);
-      navigate('/', { replace: true });
+      void navigate('/', { replace: true });
       window.location.reload();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to complete sign in';

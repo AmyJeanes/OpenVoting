@@ -43,7 +43,7 @@ describe('useVotingApp', () => {
 
   it('sets session anonymous when no saved token', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
@@ -63,7 +63,7 @@ describe('useVotingApp', () => {
   it('logs out and clears token on unauthorized me response', async () => {
     localStorage.setItem('ov_token', 'abc');
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test' });
       }
@@ -88,7 +88,7 @@ describe('useVotingApp', () => {
   it('surfaces stored flash message from auth redirect', async () => {
     localStorage.setItem('ov_flash', 'Join the Discord server to sign in');
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
@@ -107,7 +107,7 @@ describe('useVotingApp', () => {
 
   it('keeps selected image file in state while async validation is pending', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
@@ -150,7 +150,7 @@ describe('useVotingApp', () => {
 
   it('keeps selected file when validation fails so submit reports specific validation error', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
@@ -197,7 +197,7 @@ describe('useVotingApp', () => {
 
   it('rejects image files larger than 10MB during client-side validation', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: '' });
       }
@@ -230,7 +230,7 @@ describe('useVotingApp', () => {
     window.history.replaceState({}, '', '/polls/live/abc?view=grid#details');
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test/oauth' });
       }
@@ -260,7 +260,7 @@ describe('useVotingApp', () => {
     localStorage.setItem('ov_post_login_return_to', '/polls/live/next?tab=vote#entry-1');
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test/oauth' });
       }
@@ -288,7 +288,7 @@ describe('useVotingApp', () => {
     localStorage.setItem('ov_post_login_return_to', '/polls/live/next?tab=vote#entry-1');
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith('/api/config')) {
         return okJson({ serverName: 'Test Server', discordAuthorizeUrl: 'https://discord.test/oauth' });
       }
